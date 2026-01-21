@@ -20,9 +20,14 @@ body {
 
 .main-content {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 280px;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed ~ .main-content {
+  margin-left: 80px;
 }
 
 .content-placeholder {
@@ -41,6 +46,14 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(0);
+  }
+  
   .main-content {
     margin-left: 0;
   }

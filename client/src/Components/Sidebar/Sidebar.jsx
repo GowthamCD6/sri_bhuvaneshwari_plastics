@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   const menuItems = [
@@ -15,14 +17,32 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+      {/* Header */}
       <div className="sidebar-header">
-        <div className="logo-container">
-          <div className="logo">SBP</div>
-          <h2 className="company-name">SBP ERP</h2>
+        <div className="header-content">
+          <div className="logo-section">
+            <div className="logo">SBP</div>
+            {!collapsed && (
+              <div className="company-info">
+                <h2 className="company-name">SBP ERP</h2>
+                <p className="company-subtitle">Procurement System</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Toggle Button */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="toggle-btn"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
         </div>
       </div>
 
+      {/* Navigation */}
       <nav className="sidebar-nav">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -32,26 +52,27 @@ const Sidebar = () => {
             <Link
               key={item.path}
               to={item.path}
-              className={`nav-item ${isActive ? 'active' : ''}`}
+              className={`nav-item ${isActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
+              title={collapsed ? item.label : ''}
             >
-              <Icon className="nav-icon" size={20} />
-              <span className="nav-label">{item.label}</span>
+              {isActive && <div className="active-indicator" />}
+              <Icon className="nav-icon" size={22} />
+              {!collapsed && <span className="nav-label">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
+      {/* User Profile */}
       <div className="sidebar-footer">
-        <div className="user-profile">
-          <img 
-            src="https://ui-avatars.com/api/?name=Rajesh+Kumar&background=4A5568&color=fff" 
-            alt="User Avatar" 
-            className="user-avatar"
-          />
-          <div className="user-info">
-            <div className="user-name">Rajesh Kumar</div>
-            <div className="user-role">Procurement Manager</div>
-          </div>
+        <div className={`user-profile ${collapsed ? 'collapsed' : ''}`}>
+          <div className="user-avatar">RK</div>
+          {!collapsed && (
+            <div className="user-info">
+              <div className="user-name">Rajesh Kumar</div>
+              <div className="user-role">Procurement Manager</div>
+            </div>
+          )}
         </div>
       </div>
     </div>
