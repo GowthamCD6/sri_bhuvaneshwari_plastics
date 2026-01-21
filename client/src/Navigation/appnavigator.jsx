@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from '../Pages/Dashboard';
-import PurchaseIndents from '../Pages/PurchaseIndents';
+import PurchaseIndents from '../Pages/PurchaseIndent/PurchaseIndents';
 import PurchaseOrders from '../Pages/PurchaseOrders';
 import Inventory from '../Pages/Inventory';
 import Suppliers from '../Pages/Suppliers';
