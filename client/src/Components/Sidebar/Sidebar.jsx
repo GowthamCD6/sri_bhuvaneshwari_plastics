@@ -1,16 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import logo from '../../assets/SBP logo.png';
 import './Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ onToggle }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [purchaseOpen, setPurchaseOpen] = useState(true);
   const location = useLocation();
+
+  useEffect(() => {
+    if (onToggle) {
+      onToggle(collapsed);
+    }
+  }, [collapsed, onToggle]);
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-    { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
+    { 
+      label: 'Purchase', 
+      icon: ShoppingCart,
+      isDropdown: true,
+      children: [
+        { path: '/purchase-indents', label: 'Indents', icon: FileText },
+        { path: '/purchase-orders', label: 'Orders', icon: ShoppingCart },
+      ]
+    },
     { path: '/inventory', label: 'Inventory', icon: Package },
     { path: '/suppliers', label: 'Suppliers', icon: Users },
     { path: '/reports', label: 'Reports', icon: BarChart3 },
@@ -22,13 +37,7 @@ const Sidebar = () => {
       <div className="sidebar-header">
         <div className="header-content">
           <div className="logo-section">
-            <div className="logo">SBP</div>
-            {!collapsed && (
-              <div className="company-info">
-                <h2 className="company-name">SBP ERP</h2>
-                <p className="company-subtitle">Procurement System</p>
-              </div>
-            )}
+            <img src={logo} alt="SBP Logo" className="logo" />
           </div>
           
           {/* Toggle Button */}
@@ -44,8 +53,57 @@ const Sidebar = () => {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {menuItems.map((item) => {
+        {menuItems.map((item, index) => {
           const Icon = item.icon;
+          
+          if (item.isDropdown) {
+            const isAnyChildActive = item.children.some(child => location.pathname === child.path);
+            
+            return (
+              <div key={index} className="nav-dropdown">
+                <div
+                  className={`nav-item dropdown-trigger ${isAnyChildActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
+                  onClick={() => !collapsed && setPurchaseOpen(!purchaseOpen)}
+                  title={collapsed ? item.label : ''}
+                >
+                  {isAnyChildActive && <div className="active-indicator" />}
+                  <Icon className="nav-icon" size={22} />
+                  {!collapsed && (
+                    <>
+                      <span className="nav-label">{item.label}</span>
+                      <ChevronDown 
+                        className={`dropdown-arrow ${purchaseOpen ? 'open' : ''}`} 
+                        size={16} 
+                      />
+                    </>
+                  )}
+                </div>
+                
+                {!collapsed && purchaseOpen && (
+                  <div className="dropdown-content">
+                    {item.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const isActive = location.pathname === child.path;
+                      
+                      return (
+                        <Link
+                          key={child.path}
+                          to={child.path}
+                          className={`nav-item sub-item ${isActive ? 'active' : ''}`}
+                          title={child.label}
+                        >
+                          {isActive && <div className="active-indicator" />}
+                          <ChildIcon className="nav-icon" size={18} />
+                          <span className="nav-label">{child.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+          
           const isActive = location.pathname === item.path;
           
           return (
