@@ -22,8 +22,8 @@ const Sidebar = ({ onToggle }) => {
       icon: ShoppingCart,
       isDropdown: true,
       children: [
-        { path: '/purchase-indents', label: 'Indents', icon: FileText },
-        { path: '/purchase-orders', label: 'Orders', icon: ShoppingCart },
+        { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
+        { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
       ]
     },
     { path: '/inventory', label: 'Inventory', icon: Package },
