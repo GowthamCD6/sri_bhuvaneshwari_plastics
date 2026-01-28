@@ -1,20 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Plus, Search, List } from 'lucide-react';
 import './CustomerOrders.css'; // Import the standard CSS file
-
-// Icons
-const Icons = {
-  Plus: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  ),
-  Search: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-  ),
-  List: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-  )
-};
+import NewOrderModal from './Add-New-Customer/NewOrderModal';
 
 const CustomerOrders = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
   // Mock Data
   const orders = [
     {
@@ -25,7 +23,8 @@ const CustomerOrders = () => {
       // Use CSS class names for styling logic
       indentStatusClass: "badge-draft",
       customerName: "TechSol Industries",
-      customerContact: "+91 98450 11223 · sales@techsol.com",
+      customerPhone: "+91 98450 11223",
+      customerEmail: "sales@techsol.in",
       component: "SS 304 Sheet 2mm",
       componentDesc: "Laser cut panels for enclosure",
       items: 2,
@@ -39,12 +38,13 @@ const CustomerOrders = () => {
       indentStatus: "Sent to Store",
       indentStatusClass: "badge-orange",
       customerName: "Global Motors Pvt Ltd",
-      customerContact: "+91 99620 77445 · purchase@globalmotors.com",
+      customerPhone: "+91 99620 77445",
+      customerEmail: "purchase@globalmotors.com",
       component: "Aluminium Angle 50x50",
       componentDesc: "Frame brackets for G...",
       items: 1,
       priority: "Standard",
-      priorityClass: "badge-standard-blue",
+      priorityClass: "badge-standard",
     },
     {
       id: "ORD-2025-003",
@@ -53,12 +53,13 @@ const CustomerOrders = () => {
       indentStatus: "Approved",
       indentStatusClass: "badge-approved",
       customerName: "Apex Engineering",
-      customerContact: "+91 90250 33881 · materials@apexeng.in",
+      customerPhone: "+91 90250 33881",
+      customerEmail: "materials@apexeng.in",
       component: "MS Plates & Hardware",
       componentDesc: "Base plates, bolts and...",
       items: 4,
       priority: "Standard",
-      priorityClass: "badge-standard-green",
+      priorityClass: "badge-standard",
     },
   ];
 
@@ -68,8 +69,8 @@ const CustomerOrders = () => {
       {/* Top Header */}
       <div className="header-row">
         <h1 className="page-title">Customer Orders</h1>
-        <button className="btn-primary">
-          <Icons.Plus />
+        <button className="btn-primary" onClick={handleOpenModal}>
+          <Plus size={16} />
           Add Customer Order
         </button>
       </div>
@@ -85,7 +86,7 @@ const CustomerOrders = () => {
 
         <div className="search-wrapper">
           <div className="search-icon">
-            <Icons.Search />
+            <Search size={18} />
           </div>
           <input 
             type="text" 
@@ -102,7 +103,7 @@ const CustomerOrders = () => {
         <div className="card-header">
           <div className="card-title-group">
             <div className="icon-box">
-               <Icons.List />
+               <List size={20} color="#2563eb" />
             </div>
             <h2 className="card-title">Customer Order List</h2>
           </div>
@@ -148,18 +149,19 @@ const CustomerOrders = () => {
 
                   {/* Indent ID & Status */}
                   <td>
-                    <div className="text-main">{order.indentId}</div>
-                    <span className={`badge ${order.indentStatusClass}`}>
-                      {order.indentStatus}
-                    </span>
+                    <div className="indent-cell">
+                      <div className="text-main">{order.indentId}</div>
+                      <span className={`badge ${order.indentStatusClass}`}>
+                        {order.indentStatus}
+                      </span>
+                    </div>
                   </td>
 
                   {/* Customer Details */}
                   <td>
                     <div className="text-main">{order.customerName}</div>
-                    <div className="text-sub" title={order.customerContact}>
-                      {order.customerContact}
-                    </div>
+                    <div className="text-sub">{order.customerPhone}</div>
+                    <div className="text-sub">{order.customerEmail}</div>
                   </td>
 
                   {/* Components */}
@@ -192,6 +194,9 @@ const CustomerOrders = () => {
           </table>
         </div>
       </div>
+
+      {/* Add Customer Order Modal */}
+      {isModalOpen && <NewOrderModal onClose={handleCloseModal} />}
     </div>
   );
 };

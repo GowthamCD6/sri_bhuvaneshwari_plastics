@@ -1,0 +1,224 @@
+/* Variables matching the previous dashboard */
+:root {
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --border-color: #e2e8f0;
+  --text-dark: #0f172a;
+  --text-medium: #334155;
+  --text-light: #94a3b8; /* Placeholder & Icon color */
+  --bg-modal: #ffffff;
+  --bg-overlay: rgba(15, 23, 42, 0.5); /* Dark overlay */
+}
+
+/* Modal Overlay (Backdrop) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+/* Modal Container */
+.modal-container {
+  background-color: var(--bg-modal);
+  width: 100%;
+  max-width: 700px; /* Adjust based on preference */
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* Prevents modal from being taller than screen */
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Header */
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.close-btn {
+  background-color: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-medium);
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #e2e8f0;
+  color: var(--text-dark);
+}
+
+/* Body */
+.modal-body {
+  padding: 32px; /* Generous padding like image */
+  overflow-y: auto;
+}
+
+.form-content-wrapper {
+  background-color: #ffffff; /* Explicit white within body */
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 24px;
+}
+
+/* Form Typography */
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 4px 0;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: var(--text-light); /* Light gray helper text */
+  margin: 0 0 20px 0;
+  font-weight: 500;
+}
+
+.divider {
+  border: 0;
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 24px 0;
+}
+
+/* Form Layout */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.half-width {
+  flex: 1;
+}
+
+/* Inputs & Labels */
+.input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-medium);
+  margin-bottom: 6px;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* Allows click to pass through to input */
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: #ffffff;
+  box-sizing: border-box; /* Crucial for padding/width calculation */
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-input.has-icon {
+  padding-left: 40px; /* Space for icon */
+}
+
+.form-input::placeholder {
+  color: #cbd5e1; /* Light placeholder text */
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Footer */
+.modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color); /* Separator line */
+  display: flex;
+  justify-content: flex-end; /* Right align buttons */
+  gap: 12px;
+  background-color: var(--bg-modal);
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.btn {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  color: var(--text-medium);
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  border: 1px solid var(--primary-blue);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-blue-hover);
+  border-color: var(--primary-blue-hover);
+}

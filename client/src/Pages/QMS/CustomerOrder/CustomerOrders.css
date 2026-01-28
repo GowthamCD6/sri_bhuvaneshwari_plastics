@@ -258,24 +258,189 @@ body {
 /* Badges */
 .badge {
   display: inline-block;
-  padding: 2px 12px;
+  padding: 4px 12px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
-/* Specific Badge Styles based on CSS classes */
-.badge-draft, .badge-standard-blue {
-  background-color: var(--badge-blue-bg);
-  color: var(--badge-blue-text);
+/* Indent Cell Layout */
+.indent-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.badge-orange, .badge-urgent {
-  background-color: var(--badge-orange-bg);
-  color: var(--badge-orange-text);
+/* Indent Status Badge Styles */
+.badge-draft {
+  background-color: #e0e7ff;
+  color: #4f46e5;
 }
 
-.badge-green, .badge-approved, .badge-standard-green {
-  background-color: var(--badge-green-bg);
-  color: var(--badge-green-text);
+.badge-orange {
+  background-color: #dbeafe;
+  color: #3b82f6;
+}
+
+.badge-approved {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+/* Priority Badge Styles */
+.badge-urgent {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.badge-standard {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--white);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-light);
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+
+.modal-form {
+  padding: 24px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-row:has(.form-group + .form-group) {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.form-input,
+.form-textarea {
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-dark);
+  background-color: var(--white);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 24px;
+}
+
+.btn-secondary {
+  background-color: var(--white);
+  color: var(--text-medium);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-light);
+}
+
+/* Responsive Modal */
+@media (max-width: 640px) {
+  .modal-content {
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .form-row:has(.form-group + .form-group) {
+    grid-template-columns: 1fr;
+  }
 }
