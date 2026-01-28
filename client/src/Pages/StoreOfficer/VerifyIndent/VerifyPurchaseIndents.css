@@ -1,0 +1,276 @@
+/* --- Variables & Reset --- */
+:root {
+  --vpi-bg: #f8fafc;
+  --vpi-white: #ffffff;
+  --vpi-text-dark: #1e293b;
+  --vpi-text-gray: #64748b;
+  --vpi-text-light: #94a3b8;
+  --vpi-red-primary: #dc2626; /* Main Red */
+  --vpi-red-hover: #b91c1c;
+  --vpi-header-bg: #fff1f2; /* Light Pink Table Header */
+  --vpi-header-text: #881337; /* Dark Red Text */
+  --vpi-border: #e2e8f0;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--vpi-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+.vpi-container {
+  padding: 32px 40px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* --- Page Header --- */
+.vpi-header-section {
+  margin-bottom: 24px;
+}
+
+.vpi-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.vpi-subtitle {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* --- Cards General --- */
+.vpi-card {
+  background: var(--vpi-white);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  margin-bottom: 24px;
+}
+
+/* --- Stepper Card --- */
+.vpi-stepper-card {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.vpi-stepper-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 60%;
+  justify-content: center;
+}
+
+.vpi-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vpi-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vpi-step-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Active Step Styling */
+.vpi-step.active .vpi-step-circle {
+  background-color: var(--vpi-red-primary);
+  color: white;
+}
+.vpi-step.active .vpi-step-label {
+  color: #0f172a;
+}
+
+/* Inactive Step Styling */
+.vpi-step.inactive .vpi-step-circle {
+  background-color: #f1f5f9;
+  color: #cbd5e1;
+}
+.vpi-step.inactive .vpi-step-label {
+  color: #cbd5e1;
+}
+
+.vpi-step-line {
+  flex: 1;
+  height: 2px;
+  background-color: #f1f5f9;
+  min-width: 40px;
+}
+
+/* --- Main Table Card --- */
+.vpi-table-card {
+  overflow: hidden; /* For header radius */
+  padding-bottom: 12px;
+}
+
+.vpi-card-header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vpi-border);
+}
+
+.vpi-card-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* --- Table --- */
+.vpi-table-responsive {
+  overflow-x: auto;
+  padding: 0 24px;
+}
+
+.vpi-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.vpi-table th {
+  background-color: var(--vpi-header-bg); /* Pinkish header */
+  color: var(--vpi-header-text); /* Dark Red text */
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  /* border-radius: 4px; No radius on th in this design */
+}
+
+/* Add first/last child radius for the header row background effect if desired, 
+   but image shows solid bar. */
+.vpi-table thead tr th:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.vpi-table thead tr th:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.vpi-table td {
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--vpi-border);
+  vertical-align: top;
+}
+
+.vpi-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Typography Helpers --- */
+.vpi-id-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.vpi-sub-text-blue {
+  font-size: 11px;
+  color: #64748b; /* Blue-ish gray */
+  margin-top: 4px;
+}
+
+.vpi-bold-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+.vpi-role-text {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.vpi-std-text {
+  font-size: 14px;
+  color: #334155;
+}
+
+/* --- Badges (Urgency) --- */
+.vpi-urgency-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  min-width: 60px;
+  text-align: center;
+}
+
+.badge-critical { background-color: #ef4444; }
+.badge-urgent   { background-color: #f97316; }
+.badge-normal   { background-color: #10b981; }
+
+/* --- Status Pills (Status) --- */
+.vpi-status-pill {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  line-height: 1.3;
+}
+
+.status-orange { background-color: #f97316; } /* Pending Store Verif */
+.status-green  { background-color: #10b981; } /* Verified & Sent */
+.status-emerald{ background-color: #34d399; } /* With Admin - lighter green */
+.status-red    { background-color: #ef4444; } /* Rejected */
+
+/* Specific adjustment for "With Admin" to match image exactly */
+.status-emerald { background-color: #10b981; } 
+
+/* --- Buttons --- */
+.vpi-btn-primary {
+  background-color: var(--vpi-red-primary);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 70px;
+}
+
+.vpi-btn-primary:hover {
+  background-color: var(--vpi-red-hover);
+}
+
+.vpi-btn-outline {
+  background-color: white;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 70px;
+}
+
+.vpi-btn-outline:hover {
+  background-color: #f8fafc;
+}
