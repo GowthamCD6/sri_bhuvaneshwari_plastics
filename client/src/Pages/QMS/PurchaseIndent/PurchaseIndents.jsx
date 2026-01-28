@@ -350,10 +350,10 @@ const NewPurchaseIndent = () => {
             <p className="pi-section-subtitle">Basic information used to identify and track this indent.</p>
 
             <div className="pi-form-grid">
-              {/* Indent Number */}
+              {/* PO Number */}
               <div className="pi-form-field">
                 <div className="pi-label-with-tag">
-                  <label className="pi-label">Indent number</label>
+                  <label className="pi-label">PO number</label>
                   <span className="pi-label-tag">Auto generated</span>
                 </div>
                 <input
@@ -365,9 +365,9 @@ const NewPurchaseIndent = () => {
                 />
               </div>
 
-              {/* Indent Date */}
+              {/* PO Date */}
               <div className="pi-form-field">
-                <label className="pi-label">Indent date</label>
+                <label className="pi-label">PO date</label>
                 <div className="pi-input-wrapper">
                   <input
                     type="date"
@@ -451,27 +451,6 @@ const NewPurchaseIndent = () => {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Reason for Purchase */}
-          <div className="pi-section">
-            <h2 className="pi-section-title">Reason for purchase *</h2>
-            <p className="pi-section-subtitle">Explain why this material is required (stock or PO purpose).</p>
-
-            <div className="pi-form-field">
-              <div className="pi-label-wrapper">
-                <label className="pi-label">Justification</label>
-                <span className="pi-helper-text">Visible to approvers</span>
-              </div>
-              <textarea
-                required
-                placeholder="Enter the reason for this purchase, including reference PO, customer, or stock requirement details."
-                value={formData.justification}
-                onChange={(e) => setFormData({...formData, justification: e.target.value})}
-                className="pi-textarea"
-                rows="4"
-              />
             </div>
           </div>
 

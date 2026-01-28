@@ -1,0 +1,373 @@
+:root {
+  --vsi-bg: #f8fafc;
+  --vsi-white: #ffffff;
+  --vsi-border: #e2e8f0;
+  --vsi-text-dark: #0f172a;
+  --vsi-text-medium: #334155;
+  --vsi-text-light: #64748b;
+  --vsi-primary: #2563eb;       /* Blue */
+  --vsi-primary-hover: #1d4ed8;
+  --vsi-orange: #f97316;
+  --vsi-green: #10b981;
+  --vsi-badge-orange-bg: #fff7ed;
+  --vsi-badge-orange-text: #c2410c;
+  --vsi-badge-blue-bg: #eff6ff;
+  --vsi-badge-blue-text: #1d4ed8;
+}
+
+body {
+  background-color: var(--vsi-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+}
+
+.vsi-container {
+  padding: 24px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* --- Header --- */
+.vsi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.vsi-page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+  margin: 0;
+}
+
+.vsi-header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.vsi-notification {
+  position: relative;
+  cursor: pointer;
+}
+
+.vsi-notification-dot {
+  position: absolute;
+  top: 0;
+  right: 1px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 1px solid var(--vsi-bg);
+}
+
+.vsi-user-avatar-lg {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* --- Stats Cards --- */
+.vsi-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.vsi-card {
+  background: var(--vsi-white);
+  border: 1px solid var(--vsi-border);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.vsi-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vsi-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.vsi-card-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+}
+
+/* --- Main Panel (Toolbar + Table) --- */
+.vsi-main-panel {
+  background: var(--vsi-white);
+  border: 1px solid var(--vsi-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  overflow: hidden;
+}
+
+/* Toolbar */
+.vsi-toolbar {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid transparent; /* Keeps spacing */
+}
+
+.vsi-tabs {
+  background-color: #f1f5f9;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  gap: 2px;
+}
+
+.vsi-tab {
+  background: none;
+  border: none;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vsi-text-light);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.vsi-tab.active {
+  background-color: var(--vsi-white);
+  color: var(--vsi-text-dark);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.vsi-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.vsi-search-wrapper {
+  position: relative;
+}
+
+.vsi-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  display: flex;
+}
+
+.vsi-search-input {
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--vsi-border);
+  border-radius: 6px;
+  font-size: 13px;
+  width: 200px;
+  outline: none;
+}
+
+.vsi-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- Table --- */
+.vsi-table-container {
+  overflow-x: auto;
+}
+
+.vsi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vsi-table th {
+  text-align: left;
+  padding: 14px 24px;
+  background-color: #f8fafc;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--vsi-border);
+}
+
+.vsi-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--vsi-border);
+  vertical-align: middle;
+}
+
+.vsi-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* Column Specifics */
+.vsi-id-link {
+  color: var(--vsi-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.vsi-subtext {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.vsi-text-bold {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+}
+
+.vsi-subtext-blue {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.vsi-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vsi-user-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vsi-text-medium {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vsi-text-medium);
+}
+
+/* Store Status Progress Bar */
+.vsi-stock-text {
+  font-size: 12px;
+  margin-bottom: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.vsi-bold-dark {
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+}
+
+.vsi-success-text {
+  color: var(--vsi-green);
+  font-weight: 500;
+}
+
+.vsi-progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: #f1f5f9; /* Light gray base */
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.vsi-progress-fill {
+  height: 100%;
+  background-color: var(--vsi-green);
+  border-radius: 4px;
+}
+
+/* Verification Badges */
+.vsi-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-pending {
+  background-color: var(--vsi-badge-orange-bg);
+  color: var(--vsi-badge-orange-text);
+}
+
+.badge-verified {
+  background-color: var(--vsi-badge-blue-bg);
+  color: var(--vsi-badge-blue-text);
+}
+
+/* Actions */
+.vsi-btn-verify {
+  background-color: var(--vsi-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.vsi-btn-verify:hover {
+  background-color: var(--vsi-primary-hover);
+}
+
+/* --- Footer --- */
+.vsi-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vsi-footer-text {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.vsi-pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.vsi-page-btn {
+  background-color: #eff6ff;
+  border: none;
+  color: var(--vsi-primary);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vsi-page-btn:hover {
+  background-color: #dbeafe;
+}

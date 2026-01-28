@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Dashboard from '../Pages/Dashboard';
 import PurchaseIndents from '../Pages/QMS/PurchaseIndent/PurchaseIndents';
 import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
-import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents';
+import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
 import SentToAdmin from '../Pages/QMS/SentToAdmin';
 
 const AppNavigator = () => {
