@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown, CheckCircle, Send } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown, CheckCircle, Send, AlertTriangle, Settings } from 'lucide-react';
 import logo from '../../assets/SBP logo.png';
 import './Sidebar.css';
 
@@ -58,9 +58,20 @@ const Sidebar = ({ onToggle, userRole }) => {
     ],
     store: [
       { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { 
+        label: 'Stock Management',
+        section: true,
+      },
       { path: '/inventory', label: 'Inventory', icon: Package },
-      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-      { path: '/reports', label: 'Reports', icon: BarChart3 },
+      { path: '/goods-inventory', label: 'Goods Inventory', icon: Package },
+      { path: '/low-stock-alert', label: 'Low Stock Alert', icon: AlertTriangle },
+      { path: '/stock-adjustment', label: 'Stock Adjustment', icon: Settings },
+      { 
+        label: 'Procurement',
+        section: true,
+      },
+      { path: '/verify-indents', label: 'Verify Indents', icon: CheckCircle },
+      { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
     ],
   };
 

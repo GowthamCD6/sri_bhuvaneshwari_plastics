@@ -4,6 +4,7 @@ import PurchaseIndents from '../Pages/QMS/PurchaseIndent/PurchaseIndents';
 import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
 import SentToAdmin from '../Pages/QMS/SentToAdmin';
+import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
 
 const AppNavigator = () => {
   return (
@@ -14,6 +15,7 @@ const AppNavigator = () => {
       <Route path="/purchase-indents" element={<PurchaseIndents />} />
       <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
       <Route path="/sent-to-admin" element={<SentToAdmin />} />
+      <Route path="/inventory" element={<Inventory />} />
     </Routes>
   );
 };
