@@ -173,6 +173,21 @@
   pointer-events: none;
 }
 
+/* Section styles */
+.nav-section {
+  padding: 16px 12px 8px 12px;
+  margin-top: 8px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9e9e9e;
+  display: block;
+}
+
 /* Dropdown styles */
 .nav-dropdown {
   margin: 2px 0;

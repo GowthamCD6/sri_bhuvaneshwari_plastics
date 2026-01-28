@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown, CheckCircle, Send } from 'lucide-react';
 import logo from '../../assets/SBP logo.png';
 import './Sidebar.css';
 
-const Sidebar = ({ onToggle }) => {
+const Sidebar = ({ onToggle, userRole }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const [purchaseOpen, setPurchaseOpen] = useState(true);
+  const [orderManagementOpen, setOrderManagementOpen] = useState(true);
+  const [approvalsOpen, setApprovalsOpen] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
@@ -15,21 +16,55 @@ const Sidebar = ({ onToggle }) => {
     }
   }, [collapsed, onToggle]);
 
-  const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { 
-      label: 'Purchase', 
-      icon: ShoppingCart,
-      isDropdown: true,
-      children: [
-        { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-        { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
-      ]
-    },
-    { path: '/inventory', label: 'Inventory', icon: Package },
-    { path: '/suppliers', label: 'Suppliers', icon: Users },
-    { path: '/reports', label: 'Reports', icon: BarChart3 },
-  ];
+  // Role-based menu configuration
+  const roleMenus = {
+    qms: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { 
+        label: 'Order Management',
+        section: true,
+      },
+      { path: '/customer-orders', label: 'Customer Orders', icon: ShoppingCart },
+      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
+      { 
+        label: 'Approvals',
+        section: true,
+      },
+      { path: '/verify-store-indents', label: 'Verify Store Indents', icon: CheckCircle },
+      { path: '/sent-to-admin', label: 'Sent to Admin', icon: Send },
+    ],
+    procurement: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { 
+        label: 'Purchase', 
+        icon: ShoppingCart,
+        isDropdown: true,
+        children: [
+          { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
+          { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
+        ]
+      },
+      { path: '/inventory', label: 'Inventory', icon: Package },
+      { path: '/suppliers', label: 'Suppliers', icon: Users },
+      { path: '/reports', label: 'Reports', icon: BarChart3 },
+    ],
+    admin: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
+      { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
+      { path: '/inventory', label: 'Inventory', icon: Package },
+      { path: '/suppliers', label: 'Suppliers', icon: Users },
+      { path: '/reports', label: 'Reports', icon: BarChart3 },
+    ],
+    store: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/inventory', label: 'Inventory', icon: Package },
+      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
+      { path: '/reports', label: 'Reports', icon: BarChart3 },
+    ],
+  };
+
+  const menuItems = roleMenus[userRole] || roleMenus.procurement;
 
   return (
     <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -54,6 +89,16 @@ const Sidebar = ({ onToggle }) => {
       {/* Navigation */}
       <nav className="sidebar-nav">
         {menuItems.map((item, index) => {
+          // Render section headers
+          if (item.section) {
+            if (collapsed) return null;
+            return (
+              <div key={index} className="nav-section">
+                <span className="section-label">{item.label}</span>
+              </div>
+            );
+          }
+
           const Icon = item.icon;
           
           if (item.isDropdown) {
@@ -63,7 +108,7 @@ const Sidebar = ({ onToggle }) => {
               <div key={index} className="nav-dropdown">
                 <div
                   className={`nav-item dropdown-trigger ${isAnyChildActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
-                  onClick={() => !collapsed && setPurchaseOpen(!purchaseOpen)}
+                  onClick={() => !collapsed && setOrderManagementOpen(!orderManagementOpen)}
                   title={collapsed ? item.label : ''}
                 >
                   {isAnyChildActive && <div className="active-indicator" />}
@@ -72,14 +117,14 @@ const Sidebar = ({ onToggle }) => {
                     <>
                       <span className="nav-label">{item.label}</span>
                       <ChevronDown 
-                        className={`dropdown-arrow ${purchaseOpen ? 'open' : ''}`} 
+                        className={`dropdown-arrow ${orderManagementOpen ? 'open' : ''}`} 
                         size={16} 
                       />
                     </>
                   )}
                 </div>
                 
-                {!collapsed && purchaseOpen && (
+                {!collapsed && orderManagementOpen && (
                   <div className="dropdown-content">
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;
@@ -108,7 +153,7 @@ const Sidebar = ({ onToggle }) => {
           
           return (
             <Link
-              key={item.path}
+              key={item.path || index}
               to={item.path}
               className={`nav-item ${isActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
               title={collapsed ? item.label : ''}
