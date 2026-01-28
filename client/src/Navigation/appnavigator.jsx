@@ -7,6 +7,7 @@ import SentToAdmin from '../Pages/QMS/SentToAdmin';
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
 import GoodsInventory from '../Pages/StoreOfficer/GoodsInventory/GoodsInventory';
 import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
+import StockAdjustment from '../Pages/StoreOfficer/StockAdjustment/StockAdjustment';
 
 const AppNavigator = () => {
   return (
@@ -20,6 +21,7 @@ const AppNavigator = () => {
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/goods-inventory" element={<GoodsInventory />} />
       <Route path="/low-stock-alert" element={<LowStockAlerts />} />
+      <Route path="/stock-adjustment" element={<StockAdjustment />} />
     </Routes>
   );
 };
