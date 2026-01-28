@@ -1,0 +1,348 @@
+/* Variables */
+:root {
+  --lsa-bg: #f8fafc;
+  --lsa-white: #ffffff;
+  --lsa-border: #e2e8f0;
+  --lsa-text-dark: #0f172a;
+  --lsa-text-medium: #334155;
+  --lsa-text-light: #64748b; /* Slate 500 */
+  --lsa-primary: #2563eb;     /* Blue 600 */
+  --lsa-primary-hover: #1d4ed8;
+  --lsa-red: #ef4444;
+  --lsa-orange: #f59e0b;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--lsa-bg);
+}
+
+.lsa-container {
+  padding: 24px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* --- Header --- */
+.lsa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--lsa-border);
+}
+
+.lsa-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--lsa-text-dark);
+  margin: 0 0 6px 0;
+}
+
+.lsa-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.lsa-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--lsa-border);
+  background: var(--lsa-white);
+  color: var(--lsa-text-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* --- Stats Cards --- */
+.lsa-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 cards */
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.lsa-card {
+  background: var(--lsa-white);
+  border: 1px solid var(--lsa-border);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.lsa-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.lsa-card-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8; /* Light Uppercase label */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lsa-card-val {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--lsa-text-dark);
+  line-height: 1.2;
+}
+
+.lsa-card-sub {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* --- Filter Bar --- */
+.lsa-filter-bar {
+  background: var(--lsa-white);
+  border: 1px solid var(--lsa-border);
+  border-radius: 8px;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.lsa-filter-group {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.lsa-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lsa-filter-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.lsa-dropdown-btn {
+  background: #f8fafc;
+  border: 1px solid var(--lsa-border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lsa-text-medium);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lsa-search-wrapper {
+  position: relative;
+  width: 260px;
+}
+
+.lsa-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: #94a3b8;
+}
+
+.lsa-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--lsa-border);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* --- Table --- */
+.lsa-table-container {
+  background: var(--lsa-white);
+  border: 1px solid var(--lsa-border);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.lsa-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.lsa-table th {
+  background: #f1f5f9;
+  text-align: left;
+  padding: 14px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--lsa-border);
+}
+
+.lsa-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.lsa-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Product Cell */
+.lsa-prod-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lsa-prod-icon {
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+
+.lsa-prod-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lsa-text-dark);
+}
+
+.lsa-prod-code {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Text Styles */
+.lsa-text-std {
+  font-size: 14px;
+  color: var(--lsa-text-medium);
+}
+
+.lsa-text-bold {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lsa-text-dark);
+}
+
+/* Status Badges */
+.lsa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 90px;
+  justify-content: flex-start;
+}
+
+.lsa-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor; /* Inherits text color */
+}
+
+/* 1. Light Red Badge (Out of Stock) */
+.lsa-badge.light-red {
+  background-color: #eff6ff; /* Actually light blue in image row 1 */
+  color: #ef4444; /* Red Text */
+}
+/* Note: The image shows Row 1 "Out of Stock" has blue-ish BG and red text/dot */
+
+/* 2. Solid Red Badge (Critical) */
+.lsa-badge.solid-red {
+  background-color: #ef4444;
+  color: white;
+}
+.lsa-badge.solid-red .lsa-dot {
+  background-color: white;
+}
+
+/* 3. Solid Orange Badge (Low Stock) */
+.lsa-badge.solid-orange {
+  background-color: #f59e0b;
+  color: white;
+}
+.lsa-badge.solid-orange .lsa-dot {
+  background-color: white;
+}
+
+/* Action Button */
+.lsa-btn-restock {
+  background-color: var(--lsa-primary);
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lsa-btn-restock:hover {
+  background-color: var(--lsa-primary-hover);
+}
+
+/* --- Footer --- */
+.lsa-footer {
+  background: var(--lsa-white);
+  border: 1px solid var(--lsa-border);
+  border-top: none; /* Connects to table */
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lsa-footer-text {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.lsa-pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.lsa-page-btn {
+  background: #f8fafc;
+  border: 1px solid var(--lsa-border);
+  color: var(--lsa-text-medium);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.lsa-page-btn:hover {
+  background: #f1f5f9;
+}

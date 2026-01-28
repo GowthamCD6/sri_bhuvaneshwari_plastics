@@ -5,6 +5,8 @@ import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
 import SentToAdmin from '../Pages/QMS/SentToAdmin';
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
+import GoodsInventory from '../Pages/StoreOfficer/GoodsInventory/GoodsInventory';
+import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
 
 const AppNavigator = () => {
   return (
@@ -16,6 +18,8 @@ const AppNavigator = () => {
       <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
       <Route path="/sent-to-admin" element={<SentToAdmin />} />
       <Route path="/inventory" element={<Inventory />} />
+      <Route path="/goods-inventory" element={<GoodsInventory />} />
+      <Route path="/low-stock-alert" element={<LowStockAlerts />} />
     </Routes>
   );
 };
