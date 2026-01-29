@@ -71,7 +71,7 @@ const Sidebar = ({ onToggle, userRole }) => {
         section: true,
       },
       { path: '/verify-indents', label: 'Verify Indents', icon: CheckCircle },
-      { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
+      { path: '/material-request', label: 'Material Request', icon: ShoppingCart },
     ],
   };
 

@@ -1,30 +1,6 @@
 import React from 'react';
+import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, MoreVertical } from 'lucide-react';
 import './Inventory.css';
-
-// Custom SVG Icons matching the design
-const Icons = {
-  Cube: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-  ),
-  AlertTriangle: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-  ),
-  XCircle: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-  ),
-  DollarSign: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-  ),
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-  ),
-  Plus: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-  ),
-  MoreVertical: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-  )
-};
 
 const InventoryDashboard = () => {
   // Data transcribed exactly from the image
@@ -99,28 +75,28 @@ const InventoryDashboard = () => {
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Total Materials</span>
-            <Icons.Cube />
+            <Package size={20} className="icon-blue" />
           </div>
           <div className="inv-stat-value">142</div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Low Stock Items</span>
-            <Icons.AlertTriangle />
+            <AlertTriangle size={20} className="icon-orange" />
           </div>
           <div className="inv-stat-value">8</div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Out of Stock</span>
-            <Icons.XCircle />
+            <XCircle size={20} className="icon-red" />
           </div>
           <div className="inv-stat-value">2</div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Total Value</span>
-            <Icons.DollarSign />
+            <DollarSign size={20} className="icon-green" />
           </div>
           <div className="inv-stat-value">$24,500</div>
         </div>
@@ -141,7 +117,7 @@ const InventoryDashboard = () => {
           <div className="inv-actions">
             <div className="inv-search-wrapper">
               <div className="inv-search-icon">
-                <Icons.Search />
+                <Search size={18} className="icon-gray" />
               </div>
               <input 
                 type="text" 
@@ -150,7 +126,7 @@ const InventoryDashboard = () => {
               />
             </div>
             <button className="inv-btn-primary">
-              <Icons.Plus />
+              <Plus size={18} />
               Add Material
             </button>
           </div>
@@ -209,7 +185,7 @@ const InventoryDashboard = () => {
                     <div className="action-cell">
                       <button className="btn-update">Update Stock</button>
                       <button className="btn-more">
-                        <Icons.MoreVertical />
+                        <MoreVertical size={18} className="icon-gray" />
                       </button>
                     </div>
                   </td>
