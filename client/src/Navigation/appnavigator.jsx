@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Dashboard from '../Pages/Dashboard';
+import Dashboard from '../Pages/StoreOfficer/Dashboard/Dashboard';
 import PurchaseIndents from '../Pages/QMS/PurchaseIndent/PurchaseIndents';
 import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';

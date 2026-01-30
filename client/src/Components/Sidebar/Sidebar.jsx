@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, ShoppingCart, Package, Users, BarChart3, ChevronLeft, ChevronRight, ChevronDown, CheckCircle, Send, AlertTriangle, Settings } from 'lucide-react';
-import logo from '../../assets/SBP logo.png';
-import './Sidebar.css';
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileText,
+  ShoppingCart,
+  Package,
+  Users,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  CheckCircle,
+  Send,
+  AlertTriangle,
+  Settings,
+} from "lucide-react";
+import logo from "../../assets/SBP logo.png";
+import "./Sidebar.css";
 
 const Sidebar = ({ onToggle, userRole }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -19,78 +33,106 @@ const Sidebar = ({ onToggle, userRole }) => {
   // Role-based menu configuration
   const roleMenus = {
     qms: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { 
-        label: 'Order Management',
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      {
+        label: "Order Management",
         section: true,
       },
-      { path: '/customer-orders', label: 'Customer Orders', icon: ShoppingCart },
-      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-      { 
-        label: 'Approvals',
+      {
+        path: "/customer-orders",
+        label: "Customer Orders",
+        icon: ShoppingCart,
+      },
+      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
+      {
+        label: "Approvals",
         section: true,
       },
-      { path: '/verify-store-indents', label: 'Verify Store Indents', icon: CheckCircle },
-      { path: '/sent-to-admin', label: 'Sent to Admin', icon: Send },
+      {
+        path: "/verify-store-indents",
+        label: "Verify Store Indents",
+        icon: CheckCircle,
+      },
+      { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
     procurement: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { 
-        label: 'Purchase', 
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      {
+        label: "Purchase",
         icon: ShoppingCart,
         isDropdown: true,
         children: [
-          { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-          { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
-        ]
+          {
+            path: "/purchase-indents",
+            label: "Purchase Indents",
+            icon: FileText,
+          },
+          {
+            path: "/purchase-orders",
+            label: "Purchase Orders",
+            icon: ShoppingCart,
+          },
+        ],
       },
-      { path: '/inventory', label: 'Inventory', icon: Package },
-      { path: '/suppliers', label: 'Suppliers', icon: Users },
-      { path: '/reports', label: 'Reports', icon: BarChart3 },
+      { path: "/inventory", label: "Inventory", icon: Package },
+      { path: "/suppliers", label: "Suppliers", icon: Users },
+      { path: "/reports", label: "Reports", icon: BarChart3 },
     ],
     admin: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { path: '/purchase-indents', label: 'Purchase Indents', icon: FileText },
-      { path: '/purchase-orders', label: 'Purchase Orders', icon: ShoppingCart },
-      { path: '/inventory', label: 'Inventory', icon: Package },
-      { path: '/suppliers', label: 'Suppliers', icon: Users },
-      { path: '/reports', label: 'Reports', icon: BarChart3 },
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
+      {
+        path: "/purchase-orders",
+        label: "Purchase Orders",
+        icon: ShoppingCart,
+      },
+      { path: "/inventory", label: "Inventory", icon: Package },
+      { path: "/suppliers", label: "Suppliers", icon: Users },
+      { path: "/reports", label: "Reports", icon: BarChart3 },
     ],
     store: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { 
-        label: 'Stock Management',
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      {
+        label: "Stock Management",
         section: true,
       },
-      { path: '/inventory', label: 'Inventory', icon: Package },
-      { path: '/goods-inventory', label: 'Goods Inventory', icon: Package },
-      { path: '/low-stock-alert', label: 'Low Stock Alert', icon: AlertTriangle },
-      { path: '/stock-adjustment', label: 'Stock Adjustment', icon: Settings },
-      { 
-        label: 'Procurement',
+      { path: "/inventory", label: "Inventory", icon: Package },
+      { path: "/goods-inventory", label: "Goods Inventory", icon: Package },
+      {
+        path: "/low-stock-alert",
+        label: "Low Stock Alert",
+        icon: AlertTriangle,
+      },
+      { path: "/stock-adjustment", label: "Stock Adjustment", icon: Settings },
+      {
+        label: "Procurement",
         section: true,
       },
-      { path: '/verify-indents', label: 'Verify Indents', icon: CheckCircle },
-      { path: '/material-request', label: 'Material Request', icon: ShoppingCart },
+      { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
+      {
+        path: "/material-request",
+        label: "Material Request",
+        icon: ShoppingCart,
+      },
     ],
   };
 
   const menuItems = roleMenus[userRole] || roleMenus.procurement;
 
   return (
-    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       {/* Header */}
       <div className="sidebar-header">
         <div className="header-content">
           <div className="logo-section">
             <img src={logo} alt="SBP Logo" className="logo" />
           </div>
-          
+
           {/* Toggle Button */}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="toggle-btn"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -111,41 +153,45 @@ const Sidebar = ({ onToggle, userRole }) => {
           }
 
           const Icon = item.icon;
-          
+
           if (item.isDropdown) {
-            const isAnyChildActive = item.children.some(child => location.pathname === child.path);
-            
+            const isAnyChildActive = item.children.some(
+              (child) => location.pathname === child.path,
+            );
+
             return (
               <div key={index} className="nav-dropdown">
                 <div
-                  className={`nav-item dropdown-trigger ${isAnyChildActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
-                  onClick={() => !collapsed && setOrderManagementOpen(!orderManagementOpen)}
-                  title={collapsed ? item.label : ''}
+                  className={`nav-item dropdown-trigger ${isAnyChildActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
+                  onClick={() =>
+                    !collapsed && setOrderManagementOpen(!orderManagementOpen)
+                  }
+                  title={collapsed ? item.label : ""}
                 >
                   {isAnyChildActive && <div className="active-indicator" />}
                   <Icon className="nav-icon" size={22} />
                   {!collapsed && (
                     <>
                       <span className="nav-label">{item.label}</span>
-                      <ChevronDown 
-                        className={`dropdown-arrow ${orderManagementOpen ? 'open' : ''}`} 
-                        size={16} 
+                      <ChevronDown
+                        className={`dropdown-arrow ${orderManagementOpen ? "open" : ""}`}
+                        size={16}
                       />
                     </>
                   )}
                 </div>
-                
+
                 {!collapsed && orderManagementOpen && (
                   <div className="dropdown-content">
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;
                       const isActive = location.pathname === child.path;
-                      
+
                       return (
                         <Link
                           key={child.path}
                           to={child.path}
-                          className={`nav-item sub-item ${isActive ? 'active' : ''}`}
+                          className={`nav-item sub-item ${isActive ? "active" : ""}`}
                           title={child.label}
                         >
                           {isActive && <div className="active-indicator" />}
@@ -159,15 +205,15 @@ const Sidebar = ({ onToggle, userRole }) => {
               </div>
             );
           }
-          
+
           const isActive = location.pathname === item.path;
-          
+
           return (
             <Link
               key={item.path || index}
               to={item.path}
-              className={`nav-item ${isActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`}
-              title={collapsed ? item.label : ''}
+              className={`nav-item ${isActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
+              title={collapsed ? item.label : ""}
             >
               {isActive && <div className="active-indicator" />}
               <Icon className="nav-icon" size={22} />
@@ -179,7 +225,7 @@ const Sidebar = ({ onToggle, userRole }) => {
 
       {/* User Profile */}
       <div className="sidebar-footer">
-        <div className={`user-profile ${collapsed ? 'collapsed' : ''}`}>
+        <div className={`user-profile ${collapsed ? "collapsed" : ""}`}>
           <div className="user-avatar">RK</div>
           {!collapsed && (
             <div className="user-info">
