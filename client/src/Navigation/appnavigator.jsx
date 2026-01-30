@@ -10,6 +10,7 @@ import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
 import StockAdjustment from '../Pages/StoreOfficer/StockAdjustment/StockAdjustment';
 import VerifyPurchaseIndents from '../Pages/StoreOfficer/VerifyIndent/VerifyPurchaseIndents';
 import MaterialRequest from '../Pages/StoreOfficer/MaterialRequest/MaterialRequest';
+import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
 
 const AppNavigator = () => {
   return (
@@ -26,6 +27,7 @@ const AppNavigator = () => {
       <Route path="/stock-adjustment" element={<StockAdjustment />} />
       <Route path="/verify-indents" element={<VerifyPurchaseIndents />} />
       <Route path="/material-request" element={<MaterialRequest />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard/>}></Route>
     </Routes>
   );
 };

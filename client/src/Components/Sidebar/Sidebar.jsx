@@ -79,7 +79,7 @@ const Sidebar = ({ onToggle, userRole }) => {
       { path: "/reports", label: "Reports", icon: BarChart3 },
     ],
     admin: [
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/admin-dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       {
         path: "/purchase-orders",
