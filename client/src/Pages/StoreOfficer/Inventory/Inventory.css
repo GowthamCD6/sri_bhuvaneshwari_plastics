@@ -47,7 +47,7 @@ body {
   background-color: var(--inv-white);
   border: 1px solid var(--inv-border);
   border-radius: 10px;
-  padding: 20px;
+  padding: 33px;
   box-shadow: var(--inv-shadow-sm);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
