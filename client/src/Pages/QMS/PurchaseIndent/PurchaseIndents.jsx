@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User } from 'lucide-react';
 import './PurchaseIndents.css';
 
 const NewPurchaseIndent = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Check if we're in verify mode
+  const isVerifyMode = location.state?.verifyMode || false;
+  const indentToVerify = location.state?.indentData || null;
+  
   // Initialize with localStorage data or defaults
   const [materials, setMaterials] = useState(() => {
     const saved = localStorage.getItem('purchaseIndentMaterials');
@@ -70,6 +78,56 @@ const NewPurchaseIndent = () => {
 
   const [isEditingMaterial, setIsEditingMaterial] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Handle verification of indent
+  const handleVerifyIndent = () => {
+    if (window.confirm(`Are you sure you want to verify and approve indent ${indentToVerify?.id}?`)) {
+      // In real app, this would make an API call to verify the indent
+      alert(`Indent ${indentToVerify?.id} has been verified and approved successfully!`);
+      navigate('/verify-store-indents');
+    }
+  };
+
+  // Populate form data when in verify mode
+  useEffect(() => {
+    if (isVerifyMode && indentToVerify) {
+      setFormData({
+        department: indentToVerify.project || '',
+        requestedBy: indentToVerify.raisedBy || '',
+        priority: indentToVerify.priority?.replace(' Priority', '') || 'Medium',
+        indentNumber: indentToVerify.id || '',
+        indentDate: indentToVerify.date || '',
+        requiredByDate: indentToVerify.date || '',
+        justification: `Store indent for ${indentToVerify.project}`,
+        customerPart: indentToVerify.orderId || '',
+        orderQuantity: indentToVerify.itemCount?.replace(' Items', '') || '',
+        poNumber: indentToVerify.orderId || '',
+        poDate: indentToVerify.date || '',
+        rmRate: '',
+        piecesPerKg: '',
+        rmPercentage: '',
+        status: 'submitted'
+      });
+      
+      // Set materials based on indent data
+      if (indentToVerify.storeAvailable && indentToVerify.storeToBuy !== undefined) {
+        const verifyMaterials = [
+          {
+            id: 1,
+            description: `Materials for ${indentToVerify.project}`,
+            preferredSupplier: 'To be assigned',
+            requiredQuantity: `${indentToVerify.storeAvailable + indentToVerify.storeToBuy} units`,
+            requiredDate: indentToVerify.date,
+            onHand: `${indentToVerify.storeAvailable} units`,
+            order: `${indentToVerify.storeToBuy} units`,
+            status: 'pending',
+            uom: 'units'
+          }
+        ];
+        setMaterials(verifyMaterials);
+      }
+    }
+  }, [isVerifyMode, indentToVerify]);
   const [showStock, setShowStock] = useState(false);
   const [groupBySupplier, setGroupBySupplier] = useState(false);
   const [showWorkflow, setShowWorkflow] = useState(false);
@@ -301,6 +359,7 @@ const NewPurchaseIndent = () => {
                 className="pi-input"
                 placeholder="Enter material description"
                 autoFocus
+                readOnly={isVerifyMode}
               />
             </div>
             <div className="pi-material-column">
@@ -310,8 +369,11 @@ const NewPurchaseIndent = () => {
                 value={material.preferredSupplier}
                 onChange={(e) => handleMaterialChange(material.id, 'preferredSupplier', e.target.value)}
                 className="pi-input"
-                placeholder="Enter supplier name"
+                placeholder="Enter preferred supplier"
+                readOnly={isVerifyMode}
               />
+                placeholder="Enter supplier name"
+              
             </div>
             <div className="pi-material-column">
               <div className="pi-material-label">Required quantity</div>
@@ -422,19 +484,42 @@ const NewPurchaseIndent = () => {
         {/* Header */}
         <div className="pi-header">
           <div className="pi-header-left">
-            <h1>New Purchase Indent</h1>
-            <p>Capture material requirements and send to purchasing for approval.</p>
+            <h1>{isVerifyMode ? `Verify Store Indent - ${indentToVerify?.id}` : 'New Purchase Indent'}</h1>
+            <p>{isVerifyMode ? `Review and verify the indent raised by ${indentToVerify?.raisedBy} for ${indentToVerify?.project}` : 'Capture material requirements and send to purchasing for approval.'}</p>
           </div>
           <div className="pi-header-right">
-            <button
-              type="button"
-              className="pi-workflow-btn"
-              onClick={() => setShowWorkflow(true)}
-              title="View workflow status"
-              aria-label="View workflow status"
-            >
-              <GitBranch size={18} />
-            </button>
+            {isVerifyMode && (
+              <>
+                <button
+                  type="button"
+                  className="pi-btn-secondary"
+                  onClick={() => navigate('/verify-store-indents')}
+                >
+                  <X size={16} />
+                  Back to List
+                </button>
+                <button
+                  type="button"
+                  className="pi-btn-success"
+                  onClick={() => handleVerifyIndent()}
+                >
+                  <Check size={16} />
+                  Verify & Approve
+                </button>
+              </>
+            )}
+            )
+            {!isVerifyMode && (
+              <button
+                type="button"
+                className="pi-workflow-btn"
+                onClick={() => setShowWorkflow(true)}
+                title="View workflow status"
+                aria-label="View workflow status"
+              >
+                <GitBranch size={18} />
+              </button>
+            )}
             <div className="pi-draft-status">
               {formData.status === 'draft' ? 'Draft' : 'Submitted'} • {formData.indentNumber}
             </div>
@@ -590,6 +675,7 @@ const NewPurchaseIndent = () => {
                   }}
                   className={`pi-select ${validationErrors.department ? 'pi-input-error' : ''}`}
                   required
+                  disabled={isVerifyMode}
                 >
                   <option value="">Choose department</option>
                   <option value="production">Production</option>
@@ -842,22 +928,24 @@ const NewPurchaseIndent = () => {
           {/* Footer */}
           <div className="pi-footer">
             <div className="pi-document-code">Document code: SBP/PI/IB/02-00 | v1.0</div>
-            <div className="pi-footer-actions">
-              <button 
-                onClick={() => handleSubmit('save')}
-                className="pi-btn pi-btn-outline"
-              >
-                <Save size={16} />
-                Save draft
-              </button>
-              <button 
-                onClick={() => handleSubmit('submit')}
-                className="pi-btn pi-btn-primary"
-              >
-                <Send size={16} />
-                Submit for approval
-              </button>
-            </div>
+            {!isVerifyMode && (
+              <div className="pi-footer-actions">
+                <button 
+                  onClick={() => handleSubmit('save')}
+                  className="pi-btn pi-btn-outline"
+                >
+                  <Save size={16} />
+                  Save draft
+                </button>
+                <button 
+                  onClick={() => handleSubmit('submit')}
+                  className="pi-btn pi-btn-primary"
+                >
+                  <Send size={16} />
+                  Submit for approval
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

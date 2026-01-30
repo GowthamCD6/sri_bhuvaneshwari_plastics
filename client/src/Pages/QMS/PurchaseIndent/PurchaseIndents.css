@@ -1042,3 +1042,58 @@
   gap: 20px;
   margin-bottom: 20px;
 }
+
+/* Verify mode specific styles */
+.pi-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pi-btn-secondary:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pi-btn-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #10b981;
+  color: white;
+  border: 1px solid #10b981;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pi-btn-success:hover {
+  background-color: #059669;
+  border-color: #059669;
+}
+
+/* Readonly styles for verify mode */
+.pi-input:read-only,
+.pi-select:disabled {
+  background-color: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.pi-input:read-only:focus,
+.pi-select:disabled:focus {
+  box-shadow: none;
+  border-color: #e2e8f0;
+}

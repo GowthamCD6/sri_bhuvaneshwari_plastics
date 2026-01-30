@@ -1,34 +1,22 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Search, Filter, Clock, CheckCircle, ShoppingBag, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import './VerifyStoreIndents.css';
 
-// Exact SVG Icons matching the UI
-const Icons = {
-  Bell: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-  ),
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-  ),
-  Filter: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-  ),
-  Clock: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-  ),
-  CheckCircle: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-  ),
-  ShoppingBag: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-  ),
-  Box: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-  ),
-};
-
 const VerifyStoreIndents = () => {
-  // Mock Data corresponding to the image rows
-  const indents = [
+  const navigate = useNavigate();
+  
+  // State management
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(5); // Default pagination size
+  const [selectedIndents, setSelectedIndents] = useState([]);
+  const [sortField, setSortField] = useState('date');
+  const [sortDirection, setSortDirection] = useState('desc');
+  
+  // Mock Data corresponding to the image rows (expanded with more entries)
+  const allIndents = [
     {
       id: "#IND-24-082",
       date: "25 Jan, 2024",
@@ -89,7 +77,128 @@ const VerifyStoreIndents = () => {
       status: "Pending QMS",
       statusClass: "badge-pending",
     },
+    {
+      id: "#IND-24-074",
+      date: "21 Jan, 2024",
+      project: "Delta Manufacturing",
+      orderId: "Order #ORD-9900",
+      raisedBy: "Mike R.",
+      avatar: "https://i.pravatar.cc/150?u=a048581f4e29026801d",
+      itemCount: "15 Items",
+      priority: "High Priority",
+      storeAvailable: 10,
+      storeToBuy: 5,
+      isFullStock: false,
+      status: "Store Verified",
+      statusClass: "badge-verified",
+    },
+    {
+      id: "#IND-24-073",
+      date: "21 Jan, 2024",
+      project: "Epsilon Corp",
+      orderId: "Order #ORD-9899",
+      raisedBy: "Lisa T.",
+      avatar: "https://i.pravatar.cc/150?u=a048581f4e29026901d",
+      itemCount: "6 Items",
+      priority: "Normal Priority",
+      storeAvailable: 6,
+      storeToBuy: 0,
+      isFullStock: true,
+      status: "Store Verified",
+      statusClass: "badge-verified",
+    },
+    {
+      id: "#IND-24-072",
+      date: "20 Jan, 2024",
+      project: "Zeta Industries",
+      orderId: "Order #ORD-9898",
+      raisedBy: "John D.",
+      avatar: "https://i.pravatar.cc/150?u=a048581f4e29027001d",
+      itemCount: "18 Items",
+      priority: "Low Priority",
+      storeAvailable: 12,
+      storeToBuy: 6,
+      isFullStock: false,
+      status: "Pending QMS",
+      statusClass: "badge-pending",
+    },
   ];
+
+  // Filter and search logic
+  const filteredIndents = useMemo(() => {
+    let filtered = allIndents;
+
+    // Filter by tab
+    if (activeTab === 'pending') {
+      filtered = filtered.filter(indent => indent.status === 'Pending QMS');
+    } else if (activeTab === 'verified') {
+      filtered = filtered.filter(indent => indent.status === 'Store Verified');
+    }
+    // 'all' shows everything
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(indent => 
+        indent.id.toLowerCase().includes(query) ||
+        indent.project.toLowerCase().includes(query) ||
+        indent.raisedBy.toLowerCase().includes(query) ||
+        indent.orderId.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [searchQuery, activeTab]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const pending = allIndents.filter(i => i.status === 'Pending QMS').length;
+    const verified = allIndents.filter(i => i.status === 'Store Verified').length;
+    const requiresPurchase = allIndents.filter(i => i.storeToBuy > 0).length;
+    const fullyStocked = allIndents.filter(i => i.isFullStock).length;
+
+    return { pending, verified, requiresPurchase, fullyStocked };
+  }, []);
+
+  // Pagination logic
+  const totalItems = filteredIndents.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentIndents = filteredIndents.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeTab]);
+
+  // Handle actions
+  const handleVerify = (indentId) => {
+    // Find the specific indent data
+    const indentToVerify = allIndents.find(indent => indent.id === indentId);
+    
+    // Navigate to purchase indents page with indent data for verification
+    navigate('/purchase-indents', {
+      state: {
+        verifyMode: true,
+        indentData: indentToVerify
+      }
+    });
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="vsi-container">
@@ -99,7 +208,7 @@ const VerifyStoreIndents = () => {
         <h1 className="vsi-page-title">Verify Store Indents</h1>
         <div className="vsi-header-right">
           <div className="vsi-notification">
-            <Icons.Bell />
+            <Bell size={20} className="vsi-stat-icon" style={{color: '#64748b'}} />
             <span className="vsi-notification-dot"></span>
           </div>
           <img src="https://i.pravatar.cc/150?u=admin" alt="User" className="vsi-user-avatar-lg" />
@@ -111,30 +220,30 @@ const VerifyStoreIndents = () => {
         <div className="vsi-card">
           <div className="vsi-card-header">
             <span className="vsi-card-label">Pending Verification</span>
-            <Icons.Clock />
+            <Clock size={20} className="vsi-stat-icon" style={{color: '#f97316'}} />
           </div>
-          <div className="vsi-card-value">12</div>
+          <div className="vsi-card-value">{stats.pending}</div>
         </div>
         <div className="vsi-card">
           <div className="vsi-card-header">
             <span className="vsi-card-label">Processed Today</span>
-            <Icons.CheckCircle />
+            <CheckCircle size={20} className="vsi-stat-icon" style={{color: '#10b981'}} />
           </div>
-          <div className="vsi-card-value">8</div>
+          <div className="vsi-card-value">{stats.verified}</div>
         </div>
         <div className="vsi-card">
           <div className="vsi-card-header">
             <span className="vsi-card-label">Requires Purchase</span>
-            <Icons.ShoppingBag />
+            <ShoppingBag size={20} className="vsi-stat-icon" style={{color: '#3b82f6'}} />
           </div>
-          <div className="vsi-card-value">5</div>
+          <div className="vsi-card-value">{stats.requiresPurchase}</div>
         </div>
         <div className="vsi-card">
           <div className="vsi-card-header">
             <span className="vsi-card-label">Fully Stocked</span>
-            <Icons.Box />
+            <Package size={20} className="vsi-stat-icon" style={{color: '#94a3b8'}} />
           </div>
-          <div className="vsi-card-value">3</div>
+          <div className="vsi-card-value">{stats.fullyStocked}</div>
         </div>
       </div>
 
@@ -144,18 +253,39 @@ const VerifyStoreIndents = () => {
         {/* Filters Toolbar */}
         <div className="vsi-toolbar">
           <div className="vsi-tabs">
-            <button className="vsi-tab active">Pending</button>
-            <button className="vsi-tab">Verified</button>
-            <button className="vsi-tab">All Indents</button>
+            <button 
+              className={`vsi-tab ${activeTab === 'pending' ? 'active' : ''}`}
+              onClick={() => handleTabChange('pending')}
+            >
+              Pending
+            </button>
+            <button 
+              className={`vsi-tab ${activeTab === 'verified' ? 'active' : ''}`}
+              onClick={() => handleTabChange('verified')}
+            >
+              Verified
+            </button>
+            <button 
+              className={`vsi-tab ${activeTab === 'all' ? 'active' : ''}`}
+              onClick={() => handleTabChange('all')}
+            >
+              All Indents
+            </button>
           </div>
           
           <div className="vsi-actions">
             <div className="vsi-search-wrapper">
-              <div className="vsi-search-icon"><Icons.Search /></div>
-              <input type="text" placeholder="Search indents..." className="vsi-search-input" />
+              <div className="vsi-search-icon"><Search size={18} style={{color: '#94a3b8'}} /></div>
+              <input 
+                type="text" 
+                placeholder="Search indents..." 
+                className="vsi-search-input"
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
             </div>
             <button className="vsi-filter-btn">
-              <Icons.Filter />
+              <Filter size={16} />
               Filters
             </button>
           </div>
@@ -176,78 +306,119 @@ const VerifyStoreIndents = () => {
               </tr>
             </thead>
             <tbody>
-              {indents.map((item, idx) => (
-                <tr key={idx}>
-                  
-                  {/* ID */}
-                  <td>
-                    <div className="vsi-id-link">{item.id}</div>
-                    <div className="vsi-subtext">{item.date}</div>
-                  </td>
+              {currentIndents.length > 0 ? (
+                currentIndents.map((item, idx) => (
+                  <tr key={idx}>
+                    
+                    {/* ID */}
+                    <td>
+                      <div className="vsi-id-link">{item.id}</div>
+                      <div className="vsi-subtext">{item.date}</div>
+                    </td>
 
-                  {/* Project */}
-                  <td>
-                    <div className="vsi-text-bold">{item.project}</div>
-                    <div className="vsi-subtext-blue">{item.orderId}</div>
-                  </td>
+                    {/* Project */}
+                    <td>
+                      <div className="vsi-text-bold">{item.project}</div>
+                      <div className="vsi-subtext-blue">{item.orderId}</div>
+                    </td>
 
-                  {/* Raised By */}
-                  <td>
-                    <div className="vsi-user-cell">
-                      <img src={item.avatar} alt={item.raisedBy} className="vsi-user-avatar-sm" />
-                      <span className="vsi-text-medium">{item.raisedBy}</span>
-                    </div>
-                  </td>
+                    {/* Raised By */}
+                    <td>
+                      <div className="vsi-user-cell">
+                        <img src={item.avatar} alt={item.raisedBy} className="vsi-user-avatar-sm" />
+                        <span className="vsi-text-medium">{item.raisedBy}</span>
+                      </div>
+                    </td>
 
-                  {/* Items */}
-                  <td>
-                    <div className="vsi-text-bold">{item.itemCount}</div>
-                    <div className="vsi-subtext">{item.priority}</div>
-                  </td>
+                    {/* Items */}
+                    <td>
+                      <div className="vsi-text-bold">{item.itemCount}</div>
+                      <div className="vsi-subtext">{item.priority}</div>
+                    </td>
 
-                  {/* Store Status (Progress Bar) */}
-                  <td style={{ minWidth: '180px' }}>
-                    <div className="vsi-stock-text">
-                      <span className="vsi-bold-dark">{item.storeAvailable} Available</span>
-                      {item.isFullStock ? (
-                         <span className="vsi-success-text">Full Stock</span>
-                      ) : (
-                         <span className="vsi-subtext-blue"> {item.storeToBuy} to Buy</span>
-                      )}
-                    </div>
-                    {/* Progress Bar Visual */}
-                    <div className="vsi-progress-track">
-                      <div 
-                        className="vsi-progress-fill" 
-                        style={{ width: `${(item.storeAvailable / (item.storeAvailable + item.storeToBuy || 1)) * 100}%` }}
-                      ></div>
-                    </div>
-                  </td>
+                    {/* Store Status (Progress Bar) */}
+                    <td style={{ minWidth: '180px' }}>
+                      <div className="vsi-stock-text">
+                        <span className="vsi-bold-dark">{item.storeAvailable} Available</span>
+                        {item.isFullStock ? (
+                           <span className="vsi-success-text">Full Stock</span>
+                        ) : (
+                           <span className="vsi-subtext-blue"> {item.storeToBuy} to Buy</span>
+                        )}
+                      </div>
+                      {/* Progress Bar Visual */}
+                      <div className="vsi-progress-track">
+                        <div 
+                          className="vsi-progress-fill" 
+                          style={{ width: `${(item.storeAvailable / (item.storeAvailable + item.storeToBuy || 1)) * 100}%` }}
+                        ></div>
+                      </div>
+                    </td>
 
-                  {/* Verification Status */}
-                  <td>
-                    <span className={`vsi-badge ${item.statusClass}`}>
-                      {item.status}
-                    </span>
-                  </td>
+                    {/* Verification Status */}
+                    <td>
+                      <span className={`vsi-badge ${item.statusClass}`}>
+                        {item.status}
+                      </span>
+                    </td>
 
-                  {/* Action */}
-                  <td style={{textAlign: 'right'}}>
-                    <button className="vsi-btn-verify">Verify</button>
-                  </td>
+                    {/* Action */}
+                    <td style={{textAlign: 'right'}}>
+                      <button 
+                        className="vsi-btn-verify"
+                        onClick={() => handleVerify(item.id)}
+                        disabled={item.status === 'Store Verified'}
+                      >
+                        {item.status === 'Store Verified' ? 'Verified' : 'Verify'}
+                      </button>
+                    </td>
 
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                    {searchQuery ? 'No indents found matching your search.' : 'No indents available.'}
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Footer / Pagination */}
         <div className="vsi-footer">
-          <span className="vsi-footer-text">Showing 1-4 of 12 items</span>
+          <span className="vsi-footer-text">
+            Showing {currentIndents.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, totalItems)} of {totalItems} items
+          </span>
           <div className="vsi-pagination">
-            <button className="vsi-page-btn">Previous</button>
-            <button className="vsi-page-btn">Next</button>
+            <button 
+              className="vsi-page-btn"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft size={16} />
+              Previous
+            </button>
+            <div className="vsi-page-numbers">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  className={`vsi-page-btn ${page === currentPage ? 'active' : ''}`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="vsi-page-btn"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 

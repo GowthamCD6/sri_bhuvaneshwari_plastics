@@ -365,3 +365,40 @@
 .vsi-page-btn:hover {
   background-color: #dbeafe;
 }
+
+/* Enhanced functionality styles for complete page functionality */
+.vsi-page-numbers {
+  display: flex;
+  gap: 4px;
+  margin: 0 8px;
+}
+
+.vsi-page-btn.active {
+  background-color: var(--vsi-primary) !important;
+  border: 1px solid var(--vsi-primary);
+  color: white !important;
+}
+
+.vsi-page-btn:disabled {
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
+}
+
+.vsi-btn-verify:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border: 1px solid #e2e8f0;
+}
+
+.vsi-tab.active {
+  background-color: var(--vsi-primary);
+  color: white;
+}
+
+.vsi-tab:hover:not(.active) {
+  background-color: #eff6ff;
+  color: var(--vsi-primary);
+}
