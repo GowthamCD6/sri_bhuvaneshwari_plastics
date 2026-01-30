@@ -1,234 +1,193 @@
 import React, { useState } from 'react';
 import './QMSApproval.css';
 
-const QMSApproval = () => {
+const QMSIndentApprovals = () => {
+  const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
 
-  // Sample pending approvals data
-  const pendingApprovals = [
+  const indents = [
     {
-      id: 'QMS-001',
-      title: 'Raw Material Purchase - HDPE Granules',
+      id: 'IND-2024-089',
+      date: 'Oct 24, 2024',
+      material: 'HDPE Granules - Blue',
+      details: 'Qty: 500kg • Stock Replenishment',
       requestedBy: 'QMS Officer',
-      department: 'Quality Management',
-      date: '2026-01-28',
-      amount: '₹45,000',
-      priority: 'High',
+      urgency: 'Critical',
       status: 'Pending'
     },
     {
-      id: 'QMS-002',
-      title: 'Customer Order Approval - ABC Corp',
+      id: 'IND-2024-094',
+      date: 'Oct 23, 2024',
+      material: 'Industrial Solvent X2',
+      details: 'Qty: 100L • Maintenance',
       requestedBy: 'QMS Officer',
-      department: 'Quality Management',
-      date: '2026-01-27',
-      amount: '₹1,25,000',
-      priority: 'Medium',
+      urgency: 'High',
       status: 'Pending'
     },
     {
-      id: 'QMS-003',
-      title: 'Store Indent Verification - Packaging Materials',
-      requestedBy: 'Store Officer',
-      department: 'Store',
-      date: '2026-01-26',
-      amount: '₹18,500',
-      priority: 'Low',
+      id: 'IND-2024-092',
+      date: 'Oct 22, 2024',
+      material: 'Packing Tape (Clear)',
+      details: 'Qty: 200 Rolls • Packaging',
+      requestedBy: 'QMS Officer',
+      urgency: 'Normal',
       status: 'Pending'
     },
     {
-      id: 'QMS-004',
-      title: 'Quality Check Report - Batch #2024',
+      id: 'IND-2024-098',
+      date: 'Oct 21, 2024',
+      material: 'Safety Gloves (L)',
+      details: 'Qty: 50 Pairs • Safety Gear',
       requestedBy: 'QMS Officer',
-      department: 'Quality Management',
-      date: '2026-01-25',
-      amount: '₹0',
-      priority: 'High',
-      status: 'Under Review'
+      urgency: 'Normal',
+      status: 'Pending'
     },
     {
-      id: 'QMS-005',
-      title: 'Vendor Registration - New Supplier',
-      requestedBy: 'Procurement',
-      department: 'Procurement',
-      date: '2026-01-24',
-      amount: '₹0',
-      priority: 'Medium',
+      id: 'IND-2024-099',
+      date: 'Oct 21, 2024',
+      material: 'Machine Oil Type-A',
+      details: 'Qty: 50L • Maintenance',
+      requestedBy: 'QMS Officer',
+      urgency: 'Normal',
       status: 'Pending'
     }
   ];
 
-  const filteredApprovals = pendingApprovals.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         item.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || item.status.toLowerCase() === filterStatus.toLowerCase();
-    return matchesSearch && matchesFilter;
+  const filteredIndents = indents.filter(indent => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      indent.id.toLowerCase().includes(searchLower) ||
+      indent.material.toLowerCase().includes(searchLower) ||
+      indent.details.toLowerCase().includes(searchLower)
+    );
   });
 
-  const handleApprove = (id) => {
-    console.log('Approved:', id);
-    // Add approval logic here
-  };
-
-  const handleReject = (id) => {
-    console.log('Rejected:', id);
-    // Add rejection logic here
-  };
-
-  const getPriorityClass = (priority) => {
-    switch (priority.toLowerCase()) {
-      case 'high': return 'priority-high';
-      case 'medium': return 'priority-medium';
-      case 'low': return 'priority-low';
-      default: return '';
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status.toLowerCase()) {
-      case 'pending': return 'status-pending';
-      case 'under review': return 'status-review';
-      case 'approved': return 'status-approved';
-      case 'rejected': return 'status-rejected';
-      default: return '';
-    }
+  const handleViewIndent = (indentId) => {
+    console.log('Viewing indent:', indentId);
+    // Add your view logic here
   };
 
   return (
-    <div className="qms-approval-container">
+    <div className="qms-container">
       {/* Header */}
-      <div className="qms-approval-header">
-        <div className="header-left">
-          <h1>QMS Approvals</h1>
-          <p>Review and approve pending requests from QMS department</p>
-        </div>
-        <div className="header-stats">
-          <div className="stat-card pending">
-            <span className="stat-number">{pendingApprovals.filter(a => a.status === 'Pending').length}</span>
-            <span className="stat-label">Pending</span>
+      <header className="qms-header">
+        <div className="qms-header-content">
+          <h1 className="qms-title">QMS Indent Approvals</h1>
+          <div className="qms-header-right">
+            <div className="qms-notification">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span className="qms-notification-dot"></span>
+            </div>
+            <span className="qms-login-info">Last login: Today, 09:41 AM</span>
           </div>
-          <div className="stat-card review">
-            <span className="stat-number">{pendingApprovals.filter(a => a.status === 'Under Review').length}</span>
-            <span className="stat-label">Under Review</span>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="qms-main">
+        <div className="qms-card">
+          {/* Tabs and Search */}
+          <div className="qms-top-bar">
+            <div className="qms-tabs">
+              <button 
+                className={`qms-tab ${activeTab === 'pending' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pending')}
+              >
+                Pending Review (5)
+              </button>
+              <button 
+                className={`qms-tab ${activeTab === 'approved' ? 'active' : ''}`}
+                onClick={() => setActiveTab('approved')}
+              >
+                Approved History
+              </button>
+              <button 
+                className={`qms-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rejected')}
+              >
+                Rejected
+              </button>
+            </div>
+            <div className="qms-search-wrapper">
+              <svg className="qms-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input 
+                type="text" 
+                className="qms-search" 
+                placeholder="Search indents, material, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="qms-approval-filters">
-        <div className="search-box">
-          <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by ID or title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="filter-buttons">
-          <button 
-            className={`filter-btn ${filterStatus === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('all')}
-          >
-            All
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === 'pending' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('pending')}
-          >
-            Pending
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === 'under review' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('under review')}
-          >
-            Under Review
-          </button>
-        </div>
-      </div>
+          {/* Table Header */}
+          <div className="qms-table-header">
+            <div>Indent ID</div>
+            <div>Date</div>
+            <div>Material Details</div>
+            <div>Requested By</div>
+            <div>Urgency</div>
+            <div>Status</div>
+            <div>View</div>
+          </div>
 
-      {/* Approvals Table */}
-      <div className="qms-approval-table-container">
-        <table className="qms-approval-table">
-          <thead>
-            <tr>
-              <th>Request ID</th>
-              <th>Title</th>
-              <th>Requested By</th>
-              <th>Department</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredApprovals.map((item) => (
-              <tr key={item.id}>
-                <td className="request-id">{item.id}</td>
-                <td className="request-title">{item.title}</td>
-                <td>{item.requestedBy}</td>
-                <td>{item.department}</td>
-                <td>{item.date}</td>
-                <td className="amount">{item.amount}</td>
-                <td>
-                  <span className={`priority-badge ${getPriorityClass(item.priority)}`}>
-                    {item.priority}
+          {/* Table Body */}
+          <div className="qms-table-body">
+            {filteredIndents.map((indent) => (
+              <div key={indent.id} className="qms-table-row">
+                <div className="qms-indent-id">{indent.id}</div>
+                <div className="qms-date">{indent.date}</div>
+                <div>
+                  <div className="qms-material-name">{indent.material}</div>
+                  <div className="qms-material-details">{indent.details}</div>
+                </div>
+                <div className="qms-requester">
+                  <div className="qms-avatar">
+                    <span className="qms-avatar-text">Q</span>
+                  </div>
+                  <span className="qms-requester-name">{indent.requestedBy}</span>
+                </div>
+                <div>
+                  <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
+                    {indent.urgency}
                   </span>
-                </td>
-                <td>
-                  <span className={`status-badge ${getStatusClass(item.status)}`}>
-                    {item.status}
-                  </span>
-                </td>
-                <td className="actions">
+                </div>
+                <div className="qms-status">
+                  <div className="qms-status-dot"></div>
+                  <span className="qms-status-text">{indent.status}</span>
+                </div>
+                <div>
                   <button 
-                    className="action-btn approve"
-                    onClick={() => handleApprove(item.id)}
-                    title="Approve"
+                    className="qms-view-btn"
+                    onClick={() => handleViewIndent(indent.id)}
                   >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
+                    View
                   </button>
-                  <button 
-                    className="action-btn reject"
-                    onClick={() => handleReject(item.id)}
-                    title="Reject"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                  </button>
-                  <button 
-                    className="action-btn view"
-                    title="View Details"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-                </td>
-              </tr>
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
-
-        {filteredApprovals.length === 0 && (
-          <div className="no-data">
-            <p>No pending approvals found</p>
           </div>
-        )}
-      </div>
+
+          {/* Footer */}
+          <div className="qms-footer">
+            <span className="qms-footer-info">
+              Showing {filteredIndents.length} of {indents.length} pending indents
+            </span>
+            <div className="qms-pagination">
+              <button className="qms-pagination-btn" disabled>Previous</button>
+              <button className="qms-pagination-btn" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
 
-export default QMSApproval;
+export default QMSIndentApprovals;

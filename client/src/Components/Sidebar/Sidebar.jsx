@@ -18,7 +18,6 @@ import {
   ClipboardCheck,
   UserCog,
 } from "lucide-react";
-import logo from "../../assets/SBP logo.png";
 import "./Sidebar.css";
 
 const Sidebar = ({ onToggle, userRole }) => {
@@ -82,7 +81,11 @@ const Sidebar = ({ onToggle, userRole }) => {
       { path: "/reports", label: "Reports", icon: BarChart3 },
     ],
     admin: [
-      { path: "/admin-dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
+      {
+        path: "/admin-dashboard",
+        label: "Admin Dashboard",
+        icon: LayoutDashboard,
+      },
       {
         label: "Approvals",
         section: true,
@@ -132,7 +135,9 @@ const Sidebar = ({ onToggle, userRole }) => {
       <div className="sidebar-header">
         <div className="header-content">
           <div className="logo-section">
-            <img src={logo} alt="SBP Logo" className="logo" />
+            <div className="logo-icon">
+              <span className="logo-text">SBP</span>
+            </div>
           </div>
 
           {/* Toggle Button */}
