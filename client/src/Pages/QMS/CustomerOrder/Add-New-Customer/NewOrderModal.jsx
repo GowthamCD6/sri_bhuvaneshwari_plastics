@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './NewOrderModal.css';
 
 // Inline SVGs for pixel-perfect icons without external libraries
@@ -23,102 +23,435 @@ const Icons = {
   ),
   Plus: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  ),
+  Hash: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+  ),
+  Trash: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
   )
 };
 
-const NewOrderModal = ({ onClose }) => {
+// Generate unique Order ID
+const generateOrderId = () => {
+  const year = new Date().getFullYear();
+  const randomNum = Math.floor(Math.random() * 900) + 100;
+  return `ORD-${year}-${randomNum}`;
+};
+
+// Generate unique Indent ID
+const generateIndentId = () => {
+  const year = new Date().getFullYear();
+  const randomNum = Math.floor(Math.random() * 900) + 100;
+  return `IND-${year}-${randomNum}`;
+};
+
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+};
+
+const NewOrderModal = ({ onClose, onSubmit }) => {
+  // Form state for customer info and indent details
+  const [formData, setFormData] = useState({
+    customerName: '',
+    phoneNumber: '',
+    email: '',
+    indentId: generateIndentId(),
+    indentDate: getTodayDate()
+  });
+
+  // Items state - array of items for the order
+  const [items, setItems] = useState([
+    { id: 1, component: '', quantity: '', requiredByDate: '' }
+  ]);
+
+  // Error state
+  const [errors, setErrors] = useState({});
+  const [itemErrors, setItemErrors] = useState({});
+  
+  // Loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Handle input change for main form fields
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  // Handle input change for item fields
+  const handleItemChange = (itemId, field, value) => {
+    setItems(prev => prev.map(item => 
+      item.id === itemId ? { ...item, [field]: value } : item
+    ));
+    
+    // Clear error when user starts typing
+    if (itemErrors[`${itemId}_${field}`]) {
+      setItemErrors(prev => ({
+        ...prev,
+        [`${itemId}_${field}`]: ''
+      }));
+    }
+  };
+
+  // Add new item
+  const addItem = () => {
+    const newId = Math.max(...items.map(item => item.id)) + 1;
+    setItems(prev => [...prev, { id: newId, component: '', quantity: '', requiredByDate: '' }]);
+  };
+
+  // Remove item
+  const removeItem = (itemId) => {
+    if (items.length > 1) {
+      setItems(prev => prev.filter(item => item.id !== itemId));
+      // Clear errors for removed item
+      setItemErrors(prev => {
+        const newErrors = { ...prev };
+        Object.keys(newErrors).forEach(key => {
+          if (key.startsWith(`${itemId}_`)) {
+            delete newErrors[key];
+          }
+        });
+        return newErrors;
+      });
+    }
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const newErrors = {};
+    const newItemErrors = {};
+
+    if (!formData.customerName.trim()) {
+      newErrors.customerName = 'Customer name is required';
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^[+]?[\d\s-]{10,}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Enter a valid phone number';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Enter a valid email address';
+    }
+
+    if (!formData.indentId.trim()) {
+      newErrors.indentId = 'Indent ID is required';
+    }
+
+    if (!formData.indentDate) {
+      newErrors.indentDate = 'Indent date is required';
+    }
+
+    // Validate each item
+    items.forEach(item => {
+      if (!item.component.trim()) {
+        newItemErrors[`${item.id}_component`] = 'Component is required';
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        newItemErrors[`${item.id}_quantity`] = 'Enter a valid quantity';
+      }
+      if (!item.requiredByDate) {
+        newItemErrors[`${item.id}_requiredByDate`] = 'Required by date is required';
+      }
+    });
+
+    setErrors(newErrors);
+    setItemErrors(newItemErrors);
+    return Object.keys(newErrors).length === 0 && Object.keys(newItemErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Calculate total quantity
+    const totalQuantity = items.reduce((sum, item) => sum + parseInt(item.quantity), 0);
+
+    // Create order object with multiple items
+    const newOrder = {
+      id: formData.indentId,
+      date: `Created on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
+      createdAt: new Date().toISOString(),
+      createdBy: 'QMS',
+      indentId: formData.indentId,
+      indentStatus: 'Draft (QMS)',
+      indentStatusClass: 'badge-draft',
+      customerName: formData.customerName,
+      customerPhone: formData.phoneNumber,
+      customerEmail: formData.email,
+      component: items.map(item => item.component).join(', '),
+      componentDesc: `Total: ${totalQuantity} units (${items.length} items)`,
+      items: items.length,
+      priority: 'Standard',
+      priorityClass: 'badge-standard',
+      indentDate: formData.indentDate,
+      requiredByDate: items[0].requiredByDate,
+      quantity: totalQuantity,
+      orderItems: items.map(item => ({
+        component: item.component,
+        quantity: parseInt(item.quantity),
+        requiredByDate: item.requiredByDate,
+        itemStatus: 'Requested'
+      }))
+    };
+
+    // Simulate API call
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Call onSubmit callback if provided
+      if (onSubmit) {
+        onSubmit(newOrder);
+      }
+      
+      // Close modal
+      onClose();
+    } catch (error) {
+      console.error('Error creating order:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
         <div className="modal-header">
           <h2 className="modal-title">New Customer Order</h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} type="button">
             <Icons.Close />
           </button>
         </div>
 
         {/* Scrollable Body */}
-        <div className="modal-body">
-          <div className="form-content-wrapper">
-            
-            {/* --- Section 1: Customer Information --- */}
-            <div className="form-section">
-              <h3 className="section-title">Customer Information</h3>
-              <p className="section-subtitle">Enter the contact details for the customer placing the order.</p>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-content-wrapper">
+              
+              {/* --- Section 1: Customer Information --- */}
+              <div className="form-section">
+                <h3 className="section-title">Customer Information</h3>
+                <p className="section-subtitle">Enter the contact details for the customer placing the order.</p>
 
-              {/* Customer Name */}
-              <div className="form-group">
-                <label className="input-label">Customer Name</label>
-                <div className="input-wrapper">
-                  <div className="input-icon"><Icons.User /></div>
-                  <input type="text" className="form-input has-icon" placeholder="e.g. Acme Industries Ltd." />
+                {/* Customer Name */}
+                <div className="form-group">
+                  <label className="input-label">Customer Name <span className="required">*</span></label>
+                  <div className="input-wrapper">
+                    <div className="input-icon"><Icons.User /></div>
+                    <input 
+                      type="text" 
+                      name="customerName"
+                      className={`form-input has-icon ${errors.customerName ? 'input-error' : ''}`}
+                      placeholder="e.g. Acme Industries Ltd." 
+                      value={formData.customerName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {errors.customerName && <span className="error-message">{errors.customerName}</span>}
+                </div>
+
+                {/* Phone & Email Row */}
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label className="input-label">Phone Number <span className="required">*</span></label>
+                    <div className="input-wrapper">
+                      <div className="input-icon"><Icons.Phone /></div>
+                      <input 
+                        type="text" 
+                        name="phoneNumber"
+                        className={`form-input has-icon ${errors.phoneNumber ? 'input-error' : ''}`}
+                        placeholder="+91 98765 43210" 
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.phoneNumber && <span className="error-message">{errors.phoneNumber}</span>}
+                  </div>
+                  <div className="form-group half-width">
+                    <label className="input-label">Email Address <span className="required">*</span></label>
+                    <div className="input-wrapper">
+                      <div className="input-icon"><Icons.Mail /></div>
+                      <input 
+                        type="email" 
+                        name="email"
+                        className={`form-input has-icon ${errors.email ? 'input-error' : ''}`}
+                        placeholder="contact@company.com" 
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.email && <span className="error-message">{errors.email}</span>}
+                  </div>
                 </div>
               </div>
 
-              {/* Phone & Email Row */}
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label className="input-label">Phone Number</label>
-                  <div className="input-wrapper">
-                    <div className="input-icon"><Icons.Phone /></div>
-                    <input type="text" className="form-input has-icon" placeholder="+91 98765 43210" />
+              <hr className="divider" />
+
+              {/* --- Section 2: Order Details --- */}
+              <div className="form-section">
+                <h3 className="section-title">Order Details</h3>
+                <p className="section-subtitle">Specify the indent ID and order items.</p>
+
+                {/* Indent ID & Indent Date Row */}
+                <div className="form-row">
+                  <div className="form-group half-width">
+                    <label className="input-label">Indent ID <span className="required">*</span></label>
+                    <div className="input-wrapper">
+                      <div className="input-icon"><Icons.Hash /></div>
+                      <input 
+                        type="text" 
+                        name="indentId"
+                        className={`form-input has-icon ${errors.indentId ? 'input-error' : ''}`}
+                        placeholder="e.g. IND-2026-001" 
+                        value={formData.indentId}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.indentId && <span className="error-message">{errors.indentId}</span>}
                   </div>
-                </div>
-                <div className="form-group half-width">
-                  <label className="input-label">Email Address</label>
-                  <div className="input-wrapper">
-                    <div className="input-icon"><Icons.Mail /></div>
-                    <input type="email" className="form-input has-icon" placeholder="contact@company.com" />
+                  <div className="form-group half-width">
+                    <label className="input-label">Indent Date <span className="required">*</span></label>
+                    <div className="input-wrapper">
+                      <div className="input-icon"><Icons.Calendar /></div>
+                      <input 
+                        type="date" 
+                        name="indentDate"
+                        className={`form-input has-icon ${errors.indentDate ? 'input-error' : ''}`}
+                        value={formData.indentDate}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.indentDate && <span className="error-message">{errors.indentDate}</span>}
                   </div>
                 </div>
               </div>
+
+              <hr className="divider" />
+
+              {/* --- Section 3: Order Items --- */}
+              <div className="form-section">
+                <div className="section-header-row">
+                  <div>
+                    <h3 className="section-title">Order Items</h3>
+                    <p className="section-subtitle">Add components and quantities for this order.</p>
+                  </div>
+                  <button type="button" className="btn btn-add-item" onClick={addItem}>
+                    <Icons.Plus />
+                    Add Item
+                  </button>
+                </div>
+
+                {/* Items List */}
+                <div className="items-list">
+                  {items.map((item, index) => (
+                    <div key={item.id} className="item-card">
+                      <div className="item-header">
+                        <span className="item-number">Item {index + 1}</span>
+                        {items.length > 1 && (
+                          <button 
+                            type="button" 
+                            className="btn-remove-item" 
+                            onClick={() => removeItem(item.id)}
+                            title="Remove item"
+                          >
+                            <Icons.Trash />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Component Requested */}
+                      <div className="form-group">
+                        <label className="input-label">Component Requested <span className="required">*</span></label>
+                        <div className="input-wrapper">
+                          <div className="input-icon"><Icons.Box /></div>
+                          <input 
+                            type="text" 
+                            className={`form-input has-icon ${itemErrors[`${item.id}_component`] ? 'input-error' : ''}`}
+                            placeholder="e.g. 500ml PET Bottle Preform" 
+                            value={item.component}
+                            onChange={(e) => handleItemChange(item.id, 'component', e.target.value)}
+                          />
+                        </div>
+                        {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
+                      </div>
+
+                      {/* Quantity & Date Row */}
+                      <div className="form-row">
+                        <div className="form-group half-width">
+                          <label className="input-label">Quantity <span className="required">*</span></label>
+                          <input 
+                            type="number" 
+                            className={`form-input ${itemErrors[`${item.id}_quantity`] ? 'input-error' : ''}`}
+                            placeholder="0" 
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
+                          />
+                          {itemErrors[`${item.id}_quantity`] && <span className="error-message">{itemErrors[`${item.id}_quantity`]}</span>}
+                        </div>
+                        <div className="form-group half-width">
+                          <label className="input-label">Required By Date <span className="required">*</span></label>
+                          <div className="input-wrapper">
+                            <div className="input-icon"><Icons.Calendar /></div>
+                            <input 
+                              type="date" 
+                              className={`form-input has-icon ${itemErrors[`${item.id}_requiredByDate`] ? 'input-error' : ''}`}
+                              value={item.requiredByDate}
+                              onChange={(e) => handleItemChange(item.id, 'requiredByDate', e.target.value)}
+                            />
+                          </div>
+                          {itemErrors[`${item.id}_requiredByDate`] && <span className="error-message">{itemErrors[`${item.id}_requiredByDate`]}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
             </div>
-
-            <hr className="divider" />
-
-            {/* --- Section 2: Order Details --- */}
-            <div className="form-section">
-              <h3 className="section-title">Order Details</h3>
-              <p className="section-subtitle">Specify the component and quantity required.</p>
-
-              {/* Component Requested */}
-              <div className="form-group">
-                <label className="input-label">Component Requested</label>
-                <div className="input-wrapper">
-                  <div className="input-icon"><Icons.Box /></div>
-                  <input type="text" className="form-input has-icon" placeholder="e.g. 500ml PET Bottle Preform" />
-                </div>
-              </div>
-
-              {/* Quantity & Date Row */}
-              <div className="form-row">
-                <div className="form-group half-width">
-                  <label className="input-label">Quantity</label>
-                  <input type="number" className="form-input" placeholder="0" />
-                </div>
-                <div className="form-group half-width">
-                  <label className="input-label">Required By Date</label>
-                  <div className="input-wrapper">
-                    <div className="input-icon"><Icons.Calendar /></div>
-                    <input type="text" className="form-input has-icon" placeholder="DD/MM/YYYY" onFocus={(e) => e.target.type = 'date'} onBlur={(e) => e.target.type = 'text'} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary">
-            <Icons.Plus />
-            Create Order
-          </button>
-        </div>
+          {/* Footer */}
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>Creating...</>
+              ) : (
+                <>
+                  <Icons.Plus />
+                  Create Order
+                </>
+              )}
+            </button>
+          </div>
+        </form>
 
       </div>
     </div>

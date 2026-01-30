@@ -29,13 +29,21 @@
 .modal-container {
   background-color: var(--bg-modal);
   width: 100%;
-  max-width: 700px; /* Adjust based on preference */
+  max-width: 700px;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  max-height: 90vh; /* Prevents modal from being taller than screen */
+  max-height: 90vh;
+  overflow: hidden;
   animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-container form {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1;
 }
 
 @keyframes modalFadeIn {
@@ -80,15 +88,18 @@
 
 /* Body */
 .modal-body {
-  padding: 32px; /* Generous padding like image */
+  padding: 24px 32px 16px 32px;
   overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .form-content-wrapper {
-  background-color: #ffffff; /* Explicit white within body */
+  background-color: #ffffff;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  padding: 24px;
+  padding: 24px 24px 20px 24px;
+  min-height: 0;
 }
 
 /* Form Typography */
@@ -118,9 +129,18 @@
   margin-bottom: 16px;
 }
 
+.form-group:last-child,
+.form-row:last-child {
+  margin-bottom: 0;
+}
+
 .form-row {
   display: flex;
   gap: 16px;
+}
+
+.form-row .form-group {
+  margin-bottom: 0;
 }
 
 .half-width {
@@ -221,4 +241,134 @@
 .btn-primary:hover {
   background-color: var(--primary-blue-hover);
   border-color: var(--primary-blue-hover);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Required field indicator */
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+/* Error states */
+.input-error {
+  border-color: #ef4444 !important;
+}
+
+.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.error-message {
+  display: block;
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 4px;
+}
+
+/* Section header with button */
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.section-header-row .section-title {
+  margin-bottom: 4px;
+}
+
+.section-header-row .section-subtitle {
+  margin-bottom: 0;
+}
+
+/* Add Item Button */
+.btn-add-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: #f0f9ff;
+  color: var(--primary-blue);
+  border: 1px dashed var(--primary-blue);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-add-item:hover {
+  background-color: #e0f2fe;
+  border-style: solid;
+}
+
+/* Items List */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Item Card */
+.item-card {
+  background-color: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.item-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary-blue);
+  background-color: #e0f2fe;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* Remove Item Button */
+.btn-remove-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: #fff1f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-remove-item:hover {
+  background-color: #fee2e2;
+  border-color: #f87171;
+}
+
+/* Item Card Form Group Adjustments */
+.item-card .form-group {
+  margin-bottom: 12px;
+}
+
+.item-card .form-row {
+  margin-bottom: 0;
+}
+
+.item-card .form-row .form-group {
+  margin-bottom: 0;
 }
