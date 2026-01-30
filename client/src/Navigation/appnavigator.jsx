@@ -10,7 +10,11 @@ import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
 import StockAdjustment from '../Pages/StoreOfficer/StockAdjustment/StockAdjustment';
 import VerifyPurchaseIndents from '../Pages/StoreOfficer/VerifyIndent/VerifyPurchaseIndents';
 import MaterialRequest from '../Pages/StoreOfficer/MaterialRequest/MaterialRequest';
+
+// Admin page
 import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
+import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
+import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
 
 const AppNavigator = () => {
   return (
@@ -27,7 +31,11 @@ const AppNavigator = () => {
       <Route path="/stock-adjustment" element={<StockAdjustment />} />
       <Route path="/verify-indents" element={<VerifyPurchaseIndents />} />
       <Route path="/material-request" element={<MaterialRequest />} />
+
+      {/* Admin Page's */}
       <Route path="/admin-dashboard" element={<AdminDashboard/>}></Route>
+      <Route path="/user-management" element={<UserManagement/>}></Route>
+      <Route path="/qms-approval" element={<QMSApproval/>}></Route>
     </Routes>
   );
 };

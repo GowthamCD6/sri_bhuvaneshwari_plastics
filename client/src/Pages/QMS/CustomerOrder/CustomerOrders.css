@@ -18,12 +18,6 @@
   --badge-green-text: #ffffff;
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-light);
-}
-
 .container {
   padding: 24px;
   min-height: 100vh;

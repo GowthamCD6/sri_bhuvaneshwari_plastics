@@ -10,13 +10,6 @@
   --mr-accent-red: #ef4444; /* The red from the radio button */
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--mr-bg);
-  color: var(--mr-text-dark);
-}
-
 .mr-container {
   padding: 32px 40px;
   max-width: 900px;

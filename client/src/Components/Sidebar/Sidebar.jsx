@@ -14,6 +14,9 @@ import {
   Send,
   AlertTriangle,
   Settings,
+  Shield,
+  ClipboardCheck,
+  UserCog,
 } from "lucide-react";
 import logo from "../../assets/SBP logo.png";
 import "./Sidebar.css";
@@ -80,15 +83,19 @@ const Sidebar = ({ onToggle, userRole }) => {
     ],
     admin: [
       { path: "/admin-dashboard", label: "Admin Dashboard", icon: LayoutDashboard },
-      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       {
-        path: "/purchase-orders",
-        label: "Purchase Orders",
-        icon: ShoppingCart,
+        label: "Approvals",
+        section: true,
       },
-      { path: "/inventory", label: "Inventory", icon: Package },
-      { path: "/suppliers", label: "Suppliers", icon: Users },
+      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
+      { path: "/qms-approval", label: "QMS Approvals", icon: ClipboardCheck },
+      {
+        label: "Administration",
+        section: true,
+      },
+      { path: "/user-management", label: "User Management", icon: UserCog },
       { path: "/reports", label: "Reports", icon: BarChart3 },
+      { path: "/settings", label: "Settings", icon: Settings },
     ],
     store: [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
