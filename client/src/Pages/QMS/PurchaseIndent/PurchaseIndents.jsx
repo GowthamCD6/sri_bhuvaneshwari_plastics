@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check } from 'lucide-react';
+import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User } from 'lucide-react';
 import './PurchaseIndents.css';
 
 const NewPurchaseIndent = () => {
@@ -72,6 +72,78 @@ const NewPurchaseIndent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showStock, setShowStock] = useState(false);
   const [groupBySupplier, setGroupBySupplier] = useState(false);
+  const [showWorkflow, setShowWorkflow] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Clear validation errors when user starts typing
+  const clearFieldError = (fieldName) => {
+    if (validationErrors[fieldName]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
+  };
+
+  const workflowSteps = [
+    {
+      key: 'qms-init',
+      title: 'QMS Initiated',
+      subtitle: 'Quality team created indent',
+      actor: 'QMS',
+      user: 'S. Chen (QMS)',
+      date: 'Oct 24, 09:30 AM',
+      status: 'completed'
+    },
+    {
+      key: 'store-officer',
+      title: 'Store Officer Review',
+      subtitle: 'Stock and requirement verification',
+      actor: 'Store Officer',
+      user: 'R. Kumar (Store)',
+      date: 'Oct 24, 11:45 AM',
+      note: '"Specs match production requirement. Approved."',
+      status: 'completed'
+    },
+    {
+      key: 'qms-verified',
+      title: 'QMS Verified',
+      subtitle: 'Final quality verification',
+      actor: 'QMS',
+      user: null,
+      date: null,
+      status: 'current'
+    },
+    {
+      key: 'admin',
+      title: 'Admin Approval',
+      subtitle: 'Pending final authorization',
+      actor: 'Admin',
+      user: null,
+      date: null,
+      status: 'pending'
+    },
+    {
+      key: 'accountant',
+      title: 'Accountant Processing',
+      subtitle: 'Purchase order and billing process',
+      actor: 'Accountant',
+      user: null,
+      date: null,
+      status: 'pending'
+    },
+  ];
+
+  const getCurrentWorkflowIndex = () => {
+    const status = String(formData.status || '').toLowerCase();
+    if (status === 'draft') return 2; // Awaiting Admin
+    if (status === 'submitted') return 2; // Awaiting Admin
+    if (status === 'approved') return 3; // Purchase Order
+    return 2;
+  };
+
+  const currentWorkflowIndex = getCurrentWorkflowIndex();
 
   // Save to localStorage on changes
   useEffect(() => {
@@ -107,8 +179,8 @@ const NewPurchaseIndent = () => {
       isEditing: true
     };
     setMaterials([...materials, newMaterial]);
-    setIsEditingMaterial(newMaterial.id);
-  };
+    setIsEditingMaterial(newMaterial.id);    clearFieldError('materials');
+    };
 
   // Handle remove material
   const handleRemoveMaterial = (id) => {
@@ -148,25 +220,47 @@ const NewPurchaseIndent = () => {
 
   // Handle form submission
   const handleSubmit = (action) => {
+    // Clear any existing success messages
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.success;
+      return newErrors;
+    });
+
     if (action === 'save') {
       setFormData({...formData, status: 'draft'});
-      alert('Draft saved successfully!');
+      setValidationErrors({ success: 'Draft saved successfully!' });
+      setTimeout(() => setValidationErrors({}), 3000);
     } else if (action === 'submit') {
-      if (!formData.department || !formData.requestedBy || !formData.justification) {
-        alert('Please fill in all required fields');
+      const errors = {};
+      
+      // Check required fields
+      if (!formData.department || formData.department.trim() === '') {
+        errors.department = 'Department is required';
+      }
+      if (!formData.requestedBy || formData.requestedBy.trim() === '') {
+        errors.requestedBy = 'Requested by field is required';
+      }
+      if (!materials || materials.length === 0) {
+        errors.materials = 'Please add at least one material';
+      }
+      
+      // If there are validation errors, show them and don't submit
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        console.log('Validation errors:', errors); // Debug log
         return;
       }
-      if (materials.length === 0) {
-        alert('Please add at least one material');
-        return;
-      }
+      
+      // If validation passes, submit the form
       setFormData({
         ...formData, 
         status: 'submitted',
         indentNumber: generateIndentNumber(),
         submittedDate: new Date().toISOString()
       });
-      alert('Purchase indent submitted for approval!');
+      setValidationErrors({ success: 'Purchase indent submitted for approval!' });
+      setTimeout(() => setValidationErrors({}), 3000);
     }
   };
 
@@ -332,6 +426,15 @@ const NewPurchaseIndent = () => {
             <p>Capture material requirements and send to purchasing for approval.</p>
           </div>
           <div className="pi-header-right">
+            <button
+              type="button"
+              className="pi-workflow-btn"
+              onClick={() => setShowWorkflow(true)}
+              title="View workflow status"
+              aria-label="View workflow status"
+            >
+              <GitBranch size={18} />
+            </button>
             <div className="pi-draft-status">
               {formData.status === 'draft' ? 'Draft' : 'Submitted'} • {formData.indentNumber}
             </div>
@@ -342,6 +445,87 @@ const NewPurchaseIndent = () => {
           </div>
         </div>
 
+        {/* Workflow Status Modal */}
+        {showWorkflow && (
+          <div className="pi-workflow-overlay" onClick={() => setShowWorkflow(false)}>
+            <div className="pi-workflow-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="pi-workflow-header">
+                <div>
+                  <div className="pi-workflow-title">Workflow Status</div>
+                  <div className="pi-workflow-subtitle">Indent {formData.indentNumber}</div>
+                </div>
+                <button
+                  type="button"
+                  className="pi-workflow-close"
+                  onClick={() => setShowWorkflow(false)}
+                  aria-label="Close workflow"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="pi-workflow-body">
+                <div className="pi-workflow-timeline">
+                  {workflowSteps.map((step, index) => {
+                    const isCompleted = step.status === 'completed';
+                    const isCurrent = step.status === 'current';
+                    const isPending = step.status === 'pending';
+                    return (
+                      <div key={step.key} className={`pi-workflow-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''} ${isPending ? 'pending' : ''}`}>
+                        <div className="pi-workflow-marker">
+                          <div className="pi-workflow-icon">
+                            {isCompleted ? (
+                              <Check size={12} strokeWidth={3} />
+                            ) : isCurrent ? (
+                              <div className="pi-current-dot" />
+                            ) : (
+                              <div className="pi-pending-dot" />
+                            )}
+                          </div>
+                          {index !== workflowSteps.length - 1 && <div className="pi-workflow-line" />}
+                        </div>
+                        <div className="pi-workflow-content">
+                          <div className="pi-workflow-step-header">
+                            <div className="pi-workflow-step-title">{step.title}</div>
+                            {isCurrent && <span className="pi-current-badge">Current Step</span>}
+                          </div>
+                          <div className="pi-workflow-step-subtitle">{step.subtitle}</div>
+                          {step.date && (
+                            <div className="pi-workflow-timestamp">{step.date}</div>
+                          )}
+                          {step.user && (
+                            <div className="pi-workflow-user">
+                              <div className="pi-user-avatar">
+                                <User size={14} />
+                              </div>
+                              <span className="pi-user-name">{step.user}</span>
+                            </div>
+                          )}
+                          {step.note && (
+                            <div className="pi-workflow-note">{step.note}</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success/Error Messages */}
+        {(validationErrors.success || Object.keys(validationErrors).filter(key => key !== 'success').length > 0) && (
+          <div className="pi-message-container">
+            {validationErrors.success && (
+              <div className="pi-success-message">
+                <Check size={16} />
+                {validationErrors.success}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Form Content */}
         <div className="pi-form-content">
           {/* Indent Details Section */}
@@ -350,11 +534,10 @@ const NewPurchaseIndent = () => {
             <p className="pi-section-subtitle">Basic information used to identify and track this indent.</p>
 
             <div className="pi-form-grid">
-              {/* PO Number */}
+              {/* Indent Number */}
               <div className="pi-form-field">
                 <div className="pi-label-with-tag">
-                  <label className="pi-label">PO number</label>
-                  <span className="pi-label-tag">Auto generated</span>
+                  <label className="pi-label">Indent number</label>
                 </div>
                 <input
                   type="text"
@@ -365,9 +548,9 @@ const NewPurchaseIndent = () => {
                 />
               </div>
 
-              {/* PO Date */}
+              {/* Indent Date */}
               <div className="pi-form-field">
-                <label className="pi-label">PO date</label>
+                <label className="pi-label">Indent date</label>
                 <div className="pi-input-wrapper">
                   <input
                     type="date"
@@ -401,8 +584,11 @@ const NewPurchaseIndent = () => {
                 <label className="pi-label">Department *</label>
                 <select
                   value={formData.department}
-                  onChange={(e) => setFormData({...formData, department: e.target.value})}
-                  className="pi-select"
+                  onChange={(e) => {
+                    setFormData({...formData, department: e.target.value});
+                    clearFieldError('department');
+                  }}
+                  className={`pi-select ${validationErrors.department ? 'pi-input-error' : ''}`}
                   required
                 >
                   <option value="">Choose department</option>
@@ -412,6 +598,9 @@ const NewPurchaseIndent = () => {
                   <option value="stores">Stores</option>
                   <option value="engineering">Engineering</option>
                 </select>
+                {validationErrors.department && (
+                  <div className="pi-error-message">{validationErrors.department}</div>
+                )}
               </div>
 
               {/* Requested By */}
@@ -420,8 +609,11 @@ const NewPurchaseIndent = () => {
                 <div className="pi-input-wrapper">
                   <select
                     value={formData.requestedBy}
-                    onChange={(e) => setFormData({...formData, requestedBy: e.target.value})}
-                    className="pi-input pi-input-with-icon"
+                    onChange={(e) => {
+                      setFormData({...formData, requestedBy: e.target.value});
+                      clearFieldError('requestedBy');
+                    }}
+                    className={`pi-input pi-input-with-icon ${validationErrors.requestedBy ? 'pi-input-error' : ''}`}
                     required
                   >
                     <option value="">Select requester</option>
@@ -460,6 +652,9 @@ const NewPurchaseIndent = () => {
               <div>
                 <h2 className="pi-section-title">Materials requested</h2>
                 <p className="pi-section-subtitle">List all raw materials or components to be purchased.</p>
+                {validationErrors.materials && (
+                  <div className="pi-error-message">{validationErrors.materials}</div>
+                )}
                 <div className="pi-total-order">
                   Total Order Quantity: {calculateTotalOrder()} units
                 </div>
@@ -579,31 +774,28 @@ const NewPurchaseIndent = () => {
             </div>
 
             <div className="pi-form-grid-2">
-              {/* PO Number */}
+              {/* Purchase Number */}
               <div className="pi-form-field">
-                <label className="pi-label">PO number</label>
+                <label className="pi-label">Purchase number</label>
                 <input
                   type="text"
-                  placeholder="Enter PO number (optional)"
+                  placeholder="Enter purchase number (optional)"
                   value={formData.poNumber}
                   onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
                   className="pi-input"
                 />
               </div>
 
-              {/* PO Date */}
+              {/* RM Cost */}
               <div className="pi-form-field">
-                <label className="pi-label">PO date</label>
-                <div className="pi-input-wrapper">
-                  <input
-                    type="date"
-                    placeholder="Select date"
-                    value={formData.poDate}
-                    onChange={(e) => setFormData({...formData, poDate: e.target.value})}
-                    className="pi-input pi-input-with-icon"
-                  />
-                  <Calendar size={16} className="pi-input-icon" />
-                </div>
+                <label className="pi-label">RM cost</label>
+                <input
+                  type="number"
+                  placeholder="Enter raw material cost"
+                  value={formData.rmCost || ''}
+                  onChange={(e) => setFormData({...formData, rmCost: e.target.value})}
+                  className="pi-input"
+                />
               </div>
             </div>
 
