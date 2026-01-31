@@ -118,8 +118,8 @@ const Sidebar = ({ onToggle, userRole }) => {
         label: "Procurement",
         section: true,
       },
-      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
+      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       {
         path: "/material-request",
         label: "Material Request",

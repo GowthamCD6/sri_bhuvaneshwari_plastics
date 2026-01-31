@@ -1,128 +1,758 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Plus, FileText, Eye, Edit, Trash2, Calendar, X, Check, Package } from 'lucide-react';
 import './MaterialRequest.css';
 
-// SVG Icons
-const Icons = {
-  ChevronDown: () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-  )
-};
-
 const MaterialRequest = () => {
-  const [itemType, setItemType] = useState('stock'); // 'stock' or 'component'
+  const navigate = useNavigate();
+  
+  // State management
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(5);
+  const [selectedRequests, setSelectedRequests] = useState([]);
+  const [urgencyFilter, setUrgencyFilter] = useState('');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  
+  // New request form state
+  const [newRequest, setNewRequest] = useState({
+    itemType: 'stock',
+    rmCode: '',
+    rmName: '',
+    color: '',
+    storageLocation: '',
+    neededQuantity: '',
+    unit: 'Kg',
+    neededDate: '',
+    reason: '',
+    priority: 'Normal'
+  });
+
+  // Mock Data for material requests
+  const allRequests = [
+    {
+      id: "MR-2024-045",
+      rmCode: "RM-10024",
+      rmName: "Polypropylene Granules",
+      itemType: "Stock",
+      color: "Natural White",
+      quantity: "500 Kg",
+      neededDate: "15 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "28 Jan 2024",
+      priority: "Critical",
+      priorityClass: "badge-critical",
+      status: "Pending",
+      statusClass: "status-orange",
+      reason: "Customer order requirement"
+    },
+    {
+      id: "MR-2024-044",
+      rmCode: "RM-10018",
+      rmName: "HDPE Sheets 3mm",
+      itemType: "Stock",
+      color: "Blue",
+      quantity: "200 Sheets",
+      neededDate: "18 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "27 Jan 2024",
+      priority: "Urgent",
+      priorityClass: "badge-urgent",
+      status: "Approved",
+      statusClass: "status-green",
+      reason: "Regular stock replenishment"
+    },
+    {
+      id: "MR-2024-043",
+      rmCode: "CP-5012",
+      rmName: "Motor Bearing Assembly",
+      itemType: "Component",
+      color: "-",
+      quantity: "25 Pcs",
+      neededDate: "20 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "26 Jan 2024",
+      priority: "Normal",
+      priorityClass: "badge-normal",
+      status: "Pending",
+      statusClass: "status-orange",
+      reason: "Machine maintenance"
+    },
+    {
+      id: "MR-2024-042",
+      rmCode: "RM-10015",
+      rmName: "ABS Plastic Granules",
+      itemType: "Stock",
+      color: "Black",
+      quantity: "300 Kg",
+      neededDate: "12 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "25 Jan 2024",
+      priority: "Urgent",
+      priorityClass: "badge-urgent",
+      status: "Rejected",
+      statusClass: "status-red",
+      reason: "Production line requirement"
+    },
+    {
+      id: "MR-2024-041",
+      rmCode: "RM-10012",
+      rmName: "Nylon 6 Granules",
+      itemType: "Stock",
+      color: "Transparent",
+      quantity: "150 Kg",
+      neededDate: "22 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "24 Jan 2024",
+      priority: "Normal",
+      priorityClass: "badge-normal",
+      status: "Approved",
+      statusClass: "status-green",
+      reason: "Inventory restocking"
+    },
+    {
+      id: "MR-2024-040",
+      rmCode: "CP-5008",
+      rmName: "Hydraulic Pump Seal Kit",
+      itemType: "Component",
+      color: "-",
+      quantity: "10 Sets",
+      neededDate: "25 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "23 Jan 2024",
+      priority: "Critical",
+      priorityClass: "badge-critical",
+      status: "Pending",
+      statusClass: "status-orange",
+      reason: "Urgent machine repair"
+    },
+    {
+      id: "MR-2024-039",
+      rmCode: "RM-10008",
+      rmName: "PVC Compound",
+      itemType: "Stock",
+      color: "Grey",
+      quantity: "400 Kg",
+      neededDate: "28 Feb 2024",
+      requestedBy: "Store Officer",
+      requestDate: "22 Jan 2024",
+      priority: "Normal",
+      priorityClass: "badge-normal",
+      status: "Approved",
+      statusClass: "status-green",
+      reason: "Monthly requirement"
+    }
+  ];
+
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    return {
+      all: allRequests.length,
+      pending: allRequests.filter(r => r.status === 'Pending').length,
+      approved: allRequests.filter(r => r.status === 'Approved').length,
+      rejected: allRequests.filter(r => r.status === 'Rejected').length,
+    };
+  }, [allRequests]);
+
+  // Filtered data based on tab, search, and priority filter
+  const filteredRequests = useMemo(() => {
+    let filtered = allRequests;
+
+    // Filter by tab
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(req => req.status.toLowerCase() === activeTab);
+    }
+
+    // Filter by priority
+    if (urgencyFilter) {
+      filtered = filtered.filter(req => req.priority === urgencyFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(req =>
+        req.id.toLowerCase().includes(query) ||
+        req.rmCode.toLowerCase().includes(query) ||
+        req.rmName.toLowerCase().includes(query) ||
+        req.reason.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [allRequests, activeTab, searchQuery, urgencyFilter]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredRequests.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedRequests = filteredRequests.slice(startIndex, endIndex);
+
+  // Handlers
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    setSelectedRequests([]);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePriorityFilter = (priority) => {
+    setUrgencyFilter(priority);
+    setShowFilterDropdown(false);
+    setCurrentPage(1);
+  };
+
+  const clearPriorityFilter = () => {
+    setUrgencyFilter('');
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const handlePageClick = (page) => {
+    setCurrentPage(page);
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRequests(paginatedRequests.map(req => req.id));
+    } else {
+      setSelectedRequests([]);
+    }
+  };
+
+  const handleSelectRequest = (id) => {
+    setSelectedRequests(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleViewRequest = (request) => {
+    alert(`Viewing details for ${request.id}\n\nMaterial: ${request.rmName}\nQuantity: ${request.quantity}\nNeeded Date: ${request.neededDate}\nReason: ${request.reason}`);
+  };
+
+  const handleEditRequest = (request) => {
+    setNewRequest({
+      itemType: request.itemType.toLowerCase(),
+      rmCode: request.rmCode,
+      rmName: request.rmName,
+      color: request.color,
+      storageLocation: '',
+      neededQuantity: request.quantity.split(' ')[0],
+      unit: request.quantity.split(' ')[1] || 'Kg',
+      neededDate: request.neededDate,
+      reason: request.reason,
+      priority: request.priority
+    });
+    setShowNewRequestModal(true);
+  };
+
+  const handleDeleteRequest = (request) => {
+    if (window.confirm(`Are you sure you want to delete ${request.id}?`)) {
+      alert(`Request ${request.id} deleted successfully!`);
+    }
+  };
+
+  const handleNewRequestChange = (field, value) => {
+    setNewRequest(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitNewRequest = (e) => {
+    e.preventDefault();
+    if (!newRequest.rmCode || !newRequest.rmName || !newRequest.neededQuantity || !newRequest.neededDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    alert(`Material Request submitted successfully!\n\nCode: ${newRequest.rmCode}\nName: ${newRequest.rmName}\nQuantity: ${newRequest.neededQuantity} ${newRequest.unit}\nNeeded By: ${newRequest.neededDate}`);
+    setShowNewRequestModal(false);
+    resetNewRequestForm();
+  };
+
+  const resetNewRequestForm = () => {
+    setNewRequest({
+      itemType: 'stock',
+      rmCode: '',
+      rmName: '',
+      color: '',
+      storageLocation: '',
+      neededQuantity: '',
+      unit: 'Kg',
+      neededDate: '',
+      reason: '',
+      priority: 'Normal'
+    });
+  };
 
   return (
     <div className="mr-container">
       {/* Page Header */}
-      <div className="mr-page-header">
-        <h1 className="mr-title">Material Request</h1>
-        <p className="mr-subtitle">Request purchase for insufficient raw materials or components.</p>
+      <div className="mr-header-section">
+        <div className="mr-header-left">
+          <h1 className="mr-title">Material Request</h1>
+          <p className="mr-subtitle">Request purchase for insufficient raw materials or components.</p>
+        </div>
+        <div className="mr-header-right">
+          <button className="mr-btn-primary" onClick={() => setShowNewRequestModal(true)}>
+            <Plus size={18} />
+            New Request
+          </button>
+        </div>
       </div>
 
-      {/* Main Form Card */}
-      <div className="mr-card">
-        
-        {/* Section Header */}
+      {/* Tabs and Search Section */}
+      <div className="mr-controls-section">
+        <div className="mr-tabs">
+          <button 
+            className={`mr-tab ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => handleTabChange('all')}
+          >
+            All Requests
+            <span className="mr-tab-count">{tabCounts.all}</span>
+          </button>
+          <button 
+            className={`mr-tab ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => handleTabChange('pending')}
+          >
+            Pending
+            <span className="mr-tab-count">{tabCounts.pending}</span>
+          </button>
+          <button 
+            className={`mr-tab ${activeTab === 'approved' ? 'active' : ''}`}
+            onClick={() => handleTabChange('approved')}
+          >
+            Approved
+            <span className="mr-tab-count">{tabCounts.approved}</span>
+          </button>
+          <button 
+            className={`mr-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+            onClick={() => handleTabChange('rejected')}
+          >
+            Rejected
+            <span className="mr-tab-count">{tabCounts.rejected}</span>
+          </button>
+        </div>
+
+        <div className="mr-search-filter">
+          <div className="mr-search-box">
+            <Search size={18} className="mr-search-icon" />
+            <input
+              type="text"
+              placeholder="Search by ID, code, or name..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="mr-search-input"
+            />
+          </div>
+          <div className="mr-filter-wrapper">
+            <button 
+              className="mr-filter-btn"
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            >
+              <Filter size={16} />
+              Filter by Priority
+            </button>
+            {showFilterDropdown && (
+              <div className="mr-filter-dropdown">
+                <button onClick={() => handlePriorityFilter('Critical')} className="mr-filter-option">
+                  Critical
+                </button>
+                <button onClick={() => handlePriorityFilter('Urgent')} className="mr-filter-option">
+                  Urgent
+                </button>
+                <button onClick={() => handlePriorityFilter('Normal')} className="mr-filter-option">
+                  Normal
+                </button>
+              </div>
+            )}
+          </div>
+          {urgencyFilter && (
+            <div className="mr-active-filter">
+              <span>Priority: {urgencyFilter}</span>
+              <button onClick={clearPriorityFilter} className="mr-clear-filter">
+                <X size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Table Card */}
+      <div className="mr-card mr-table-card">
         <div className="mr-card-header">
-          <h2 className="mr-section-title">Item Details</h2>
-          <p className="mr-section-desc">Fill the key details for the material you need to purchase.</p>
+          <Package size={20} className="mr-header-icon" />
+          <h2 className="mr-card-heading">Material Requests List</h2>
+          <span className="mr-result-count">
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredRequests.length)} of {filteredRequests.length} results
+          </span>
         </div>
-        
-        <hr className="mr-divider" />
 
-        <div className="mr-form-body">
-          
-          {/* Radio Group */}
-          <div className="mr-form-group">
-            <label className="mr-label">Item Type</label>
-            <div className="mr-radio-group">
-              <label className="mr-radio-label">
-                <input 
-                  type="radio" 
-                  name="itemType" 
-                  checked={itemType === 'stock'} 
-                  onChange={() => setItemType('stock')}
-                  className="mr-radio-input"
-                />
-                <span className="mr-radio-text">Stock / Raw Material</span>
-              </label>
-
-              <label className="mr-radio-label">
-                <input 
-                  type="radio" 
-                  name="itemType" 
-                  checked={itemType === 'component'} 
-                  onChange={() => setItemType('component')}
-                  className="mr-radio-input"
-                />
-                <span className="mr-radio-text">Component</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Row 1: Code & Name */}
-          <div className="mr-form-row">
-            <div className="mr-form-group">
-              <label className="mr-label">RM / Component Code</label>
-              <input type="text" className="mr-input" placeholder="e.g. RM-10024" />
-            </div>
-            <div className="mr-form-group">
-              <label className="mr-label">RM / Component Name</label>
-              <input type="text" className="mr-input" placeholder="e.g. Polypropylene Granules" />
-            </div>
-          </div>
-
-          {/* Row 2: Color & Storage */}
-          <div className="mr-form-row">
-            <div className="mr-form-group">
-              <label className="mr-label">Color</label>
-              <input type="text" className="mr-input" placeholder="e.g. Natural White" />
-            </div>
-            <div className="mr-form-group">
-              <label className="mr-label">Storage Location</label>
-              <div className="mr-select-wrapper">
-                <select className="mr-select">
-                  <option value="" disabled selected>Select location...</option>
-                  <option>Warehouse A</option>
-                  <option>Warehouse B</option>
-                </select>
-                <div className="mr-select-icon"><Icons.ChevronDown /></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 3: Quantity */}
-          <div className="mr-form-group">
-            <label className="mr-label">Needed Quantity</label>
-            <div className="mr-qty-row">
-              <input type="number" className="mr-input" placeholder="0.00" style={{ flex: 1 }} />
-              <div className="mr-select-wrapper" style={{ width: '120px' }}>
-                <select className="mr-select">
-                  <option>Kg</option>
-                  <option>Ltr</option>
-                  <option>Pcs</option>
-                </select>
-                <div className="mr-select-icon"><Icons.ChevronDown /></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Row 4: Reason */}
-          <div className="mr-form-group">
-            <label className="mr-label">Used For / Reason</label>
-            <textarea 
-              className="mr-textarea" 
-              placeholder="Mention why this item is needed (e.g. customer order, regular stock, machine maintenance)..."
-            ></textarea>
-          </div>
-
+        <div className="mr-table-responsive">
+          <table className="mr-table">
+            <thead>
+              <tr>
+                <th style={{width: '4%'}}>
+                  <input 
+                    type="checkbox" 
+                    onChange={handleSelectAll}
+                    checked={selectedRequests.length === paginatedRequests.length && paginatedRequests.length > 0}
+                    className="mr-checkbox"
+                  />
+                </th>
+                <th style={{width: '10%'}}>Request ID</th>
+                <th style={{width: '18%'}}>Material Details</th>
+                <th style={{width: '10%'}}>Type</th>
+                <th style={{width: '10%'}}>Quantity</th>
+                <th style={{width: '12%'}}>Needed Date</th>
+                <th style={{width: '10%'}}>Priority</th>
+                <th style={{width: '12%'}}>Status</th>
+                <th style={{width: '14%', textAlign: 'center'}}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedRequests.length > 0 ? (
+                paginatedRequests.map((item, index) => (
+                  <tr key={index} className={selectedRequests.includes(item.id) ? 'selected-row' : ''}>
+                    <td>
+                      <input 
+                        type="checkbox"
+                        checked={selectedRequests.includes(item.id)}
+                        onChange={() => handleSelectRequest(item.id)}
+                        className="mr-checkbox"
+                      />
+                    </td>
+                    <td>
+                      <div className="mr-id-text">{item.id}</div>
+                      <div className="mr-sub-text">{item.requestDate}</div>
+                    </td>
+                    <td>
+                      <div className="mr-bold-text">{item.rmName}</div>
+                      <div className="mr-sub-text">{item.rmCode} • {item.color}</div>
+                    </td>
+                    <td>
+                      <span className={`mr-type-badge ${item.itemType === 'Stock' ? 'type-stock' : 'type-component'}`}>
+                        {item.itemType}
+                      </span>
+                    </td>
+                    <td className="mr-std-text">{item.quantity}</td>
+                    <td>
+                      <div className="mr-date-cell">
+                        <Calendar size={14} />
+                        <span>{item.neededDate}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`mr-priority-badge ${item.priorityClass}`}>
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`mr-status-pill ${item.statusClass}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="mr-action-btns">
+                        {item.status === 'Pending' && (
+                          <>
+                            <button 
+                              className="mr-btn-icon mr-btn-edit"
+                              onClick={() => handleEditRequest(item)}
+                              title="Edit Request"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button 
+                              className="mr-btn-icon mr-btn-delete"
+                              onClick={() => handleDeleteRequest(item)}
+                              title="Delete Request"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="mr-no-data">
+                    No material requests found matching your criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
+
+        {/* Pagination */}
+        {filteredRequests.length > 0 && (
+          <div className="mr-pagination">
+            <div className="mr-pagination-info">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredRequests.length)} of {filteredRequests.length} entries
+            </div>
+            <div className="mr-pagination-controls">
+              <button 
+                className="mr-page-btn"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </button>
+              
+              <div className="mr-page-numbers">
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span key={index} className="mr-page-ellipsis">...</span>
+                  ) : (
+                    <button
+                      key={index}
+                      className={`mr-page-number ${currentPage === page ? 'active' : ''}`}
+                      onClick={() => handlePageClick(page)}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+              </div>
+              
+              <button 
+                className="mr-page-btn"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-      
-      {/* Scrollbar Mock (Visual only to match image) */}
-      <div className="mr-scrollbar-track">
-        <div className="mr-scrollbar-thumb"></div>
-      </div>
+
+      {/* New Request Modal */}
+      {showNewRequestModal && (
+        <div className="mr-modal-overlay" onClick={() => setShowNewRequestModal(false)}>
+          <div className="mr-modal" onClick={e => e.stopPropagation()}>
+            <div className="mr-modal-header">
+              <h2>New Material Request</h2>
+              <button className="mr-modal-close" onClick={() => setShowNewRequestModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmitNewRequest} className="mr-modal-body">
+              {/* Item Type */}
+              <div className="mr-form-group">
+                <label className="mr-label">Item Type</label>
+                <div className="mr-radio-group">
+                  <label className="mr-radio-label">
+                    <input 
+                      type="radio" 
+                      name="itemType" 
+                      checked={newRequest.itemType === 'stock'} 
+                      onChange={() => handleNewRequestChange('itemType', 'stock')}
+                      className="mr-radio-input"
+                    />
+                    <span className="mr-radio-text">Stock / Raw Material</span>
+                  </label>
+                  <label className="mr-radio-label">
+                    <input 
+                      type="radio" 
+                      name="itemType" 
+                      checked={newRequest.itemType === 'component'} 
+                      onChange={() => handleNewRequestChange('itemType', 'component')}
+                      className="mr-radio-input"
+                    />
+                    <span className="mr-radio-text">Component</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Code & Name */}
+              <div className="mr-form-row">
+                <div className="mr-form-group">
+                  <label className="mr-label">RM / Component Code *</label>
+                  <input 
+                    type="text" 
+                    className="mr-input" 
+                    placeholder="e.g. RM-10024" 
+                    value={newRequest.rmCode}
+                    onChange={(e) => handleNewRequestChange('rmCode', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="mr-form-group">
+                  <label className="mr-label">RM / Component Name *</label>
+                  <input 
+                    type="text" 
+                    className="mr-input" 
+                    placeholder="e.g. Polypropylene Granules" 
+                    value={newRequest.rmName}
+                    onChange={(e) => handleNewRequestChange('rmName', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Color & Storage */}
+              <div className="mr-form-row">
+                <div className="mr-form-group">
+                  <label className="mr-label">Color</label>
+                  <input 
+                    type="text" 
+                    className="mr-input" 
+                    placeholder="e.g. Natural White" 
+                    value={newRequest.color}
+                    onChange={(e) => handleNewRequestChange('color', e.target.value)}
+                  />
+                </div>
+                <div className="mr-form-group">
+                  <label className="mr-label">Storage Location</label>
+                  <div className="mr-select-wrapper">
+                    <select 
+                      className="mr-select"
+                      value={newRequest.storageLocation}
+                      onChange={(e) => handleNewRequestChange('storageLocation', e.target.value)}
+                    >
+                      <option value="">Select location...</option>
+                      <option value="warehouse-a">Warehouse A</option>
+                      <option value="warehouse-b">Warehouse B</option>
+                      <option value="warehouse-c">Warehouse C</option>
+                    </select>
+                    <ChevronDown size={16} className="mr-select-icon" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity & Unit */}
+              <div className="mr-form-row">
+                <div className="mr-form-group">
+                  <label className="mr-label">Needed Quantity *</label>
+                  <div className="mr-qty-row">
+                    <input 
+                      type="number" 
+                      className="mr-input" 
+                      placeholder="0.00" 
+                      value={newRequest.neededQuantity}
+                      onChange={(e) => handleNewRequestChange('neededQuantity', e.target.value)}
+                      required
+                    />
+                    <div className="mr-select-wrapper mr-unit-select">
+                      <select 
+                        className="mr-select"
+                        value={newRequest.unit}
+                        onChange={(e) => handleNewRequestChange('unit', e.target.value)}
+                      >
+                        <option value="Kg">Kg</option>
+                        <option value="Ltr">Ltr</option>
+                        <option value="Pcs">Pcs</option>
+                        <option value="Sets">Sets</option>
+                        <option value="Sheets">Sheets</option>
+                      </select>
+                      <ChevronDown size={16} className="mr-select-icon" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mr-form-group">
+                  <label className="mr-label">Material Needed Date *</label>
+                  <div className="mr-date-input-wrapper">
+                    <input 
+                      type="date" 
+                      className="mr-input mr-date-input" 
+                      value={newRequest.neededDate}
+                      onChange={(e) => handleNewRequestChange('neededDate', e.target.value)}
+                      required
+                    />
+                    <Calendar size={16} className="mr-date-icon" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority */}
+              <div className="mr-form-group">
+                <label className="mr-label">Priority</label>
+                <div className="mr-select-wrapper">
+                  <select 
+                    className="mr-select"
+                    value={newRequest.priority}
+                    onChange={(e) => handleNewRequestChange('priority', e.target.value)}
+                  >
+                    <option value="Normal">Normal</option>
+                    <option value="Urgent">Urgent</option>
+                    <option value="Critical">Critical</option>
+                  </select>
+                  <ChevronDown size={16} className="mr-select-icon" />
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div className="mr-form-group">
+                <label className="mr-label">Used For / Reason</label>
+                <textarea 
+                  className="mr-textarea" 
+                  placeholder="Mention why this item is needed (e.g. customer order, regular stock, machine maintenance)..."
+                  value={newRequest.reason}
+                  onChange={(e) => handleNewRequestChange('reason', e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="mr-modal-actions">
+                <button 
+                  type="button" 
+                  className="mr-btn-secondary" 
+                  onClick={() => { setShowNewRequestModal(false); resetNewRequestForm(); }}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="mr-btn-primary">
+                  <Check size={16} />
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
