@@ -24,8 +24,6 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--lsa-border);
 }
 
 .lsa-title {
@@ -102,67 +100,144 @@
 .lsa-filter-bar {
   background: var(--lsa-white);
   border: 1px solid var(--lsa-border);
-  border-radius: 8px;
-  padding: 12px 20px;
+  border-radius: 12px;
+  padding: 16px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .lsa-filter-group {
   display: flex;
-  gap: 24px;
+  gap: 28px;
   align-items: center;
 }
 
 .lsa-filter-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .lsa-filter-label {
   font-size: 13px;
-  color: #94a3b8;
+  font-weight: 500;
+  color: var(--lsa-text-light);
+}
+
+.lsa-dropdown {
+  position: relative;
 }
 
 .lsa-dropdown-btn {
-  background: #f8fafc;
+  background: var(--lsa-bg);
   border: 1px solid var(--lsa-border);
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--lsa-text-medium);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.lsa-dropdown-btn:hover {
+  border-color: var(--lsa-primary);
+  background: white;
+}
+
+.lsa-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: white;
+  border: 1px solid var(--lsa-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  z-index: 100;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lsa-dropdown-item {
+  padding: 11px 16px;
+  font-size: 13px;
+  color: var(--lsa-text-medium);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lsa-dropdown-item:hover {
+  background: var(--lsa-bg);
+}
+
+.lsa-dropdown-item.active {
+  background: #eff6ff;
+  color: var(--lsa-primary);
+  font-weight: 600;
+}
+
+.lsa-dropdown-item.active::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--lsa-primary);
+  border-radius: 50%;
 }
 
 .lsa-search-wrapper {
   position: relative;
-  width: 260px;
+  width: 280px;
 }
 
 .lsa-search-icon {
   position: absolute;
-  left: 10px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  color: #94a3b8;
+  color: var(--lsa-text-light);
 }
 
 .lsa-search-input {
   width: 100%;
-  padding: 8px 12px 8px 34px;
+  padding: 10px 14px 10px 42px;
   border: 1px solid var(--lsa-border);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   outline: none;
   box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.lsa-search-input:focus {
+  border-color: var(--lsa-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.lsa-search-input::placeholder {
+  color: #94a3b8;
 }
 
 /* --- Table --- */
@@ -246,53 +321,59 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
   font-size: 12px;
-  font-weight: 700;
-  min-width: 90px;
-  justify-content: flex-start;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .lsa-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: currentColor; /* Inherits text color */
 }
 
-/* 1. Light Red Badge (Out of Stock) */
-.lsa-badge.light-red {
-  background-color: #eff6ff; /* Actually light blue in image row 1 */
-  color: #ef4444; /* Red Text */
-}
-/* Note: The image shows Row 1 "Out of Stock" has blue-ish BG and red text/dot */
-
-/* 2. Solid Red Badge (Critical) */
-.lsa-badge.solid-red {
-  background-color: #ef4444;
-  color: white;
-}
-.lsa-badge.solid-red .lsa-dot {
-  background-color: white;
+/* Out of Stock - Red */
+.lsa-badge-red {
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
-/* 3. Solid Orange Badge (Low Stock) */
-.lsa-badge.solid-orange {
-  background-color: #f59e0b;
-  color: white;
+.lsa-badge-red .lsa-dot {
+  background-color: #dc2626;
 }
-.lsa-badge.solid-orange .lsa-dot {
-  background-color: white;
+
+/* Critical - Orange */
+.lsa-badge-orange {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.lsa-badge-orange .lsa-dot {
+  background-color: #ea580c;
+}
+
+/* Low Stock - Yellow */
+.lsa-badge-yellow {
+  background-color: #fefce8;
+  color: #ca8a04;
+}
+
+.lsa-badge-yellow .lsa-dot {
+  background-color: #ca8a04;
 }
 
 /* Action Button */
 .lsa-btn-restock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background-color: var(--lsa-primary);
   color: white;
   border: none;
-  padding: 8px 18px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -323,20 +404,64 @@
 
 .lsa-pagination {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .lsa-page-btn {
-  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
   border: 1px solid var(--lsa-border);
   color: var(--lsa-text-medium);
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.lsa-page-btn:hover {
-  background: #f1f5f9;
+.lsa-page-btn:hover:not(:disabled) {
+  border-color: var(--lsa-primary);
+  color: var(--lsa-primary);
+  background: #eff6ff;
+}
+
+.lsa-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lsa-page-numbers {
+  display: flex;
+  gap: 4px;
+}
+
+.lsa-page-num {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid var(--lsa-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lsa-text-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lsa-page-num:hover {
+  border-color: var(--lsa-primary);
+  color: var(--lsa-primary);
+}
+
+.lsa-page-num.active {
+  background: var(--lsa-primary);
+  border-color: var(--lsa-primary);
+  color: white;
 }
