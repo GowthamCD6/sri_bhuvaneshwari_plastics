@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Filter, ChevronLeft, ChevronRight, FileText, Eye, CheckCircle, XCircle, X } from 'lucide-react';
 import './VerifyPurchaseIndents.css';
 
-// SVG Icons
-const Icons = {
-  FileText: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-  )
-};
-
 const VerifyPurchaseIndents = () => {
-  const indents = [
+  const navigate = useNavigate();
+  
+  // State management
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(5); // Default pagination size
+  const [selectedIndents, setSelectedIndents] = useState([]);
+  const [urgencyFilter, setUrgencyFilter] = useState('');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  // Mock Data
+  const allIndents = [
     {
       id: "PI-2024-089",
       subId: "Customer Order #CO-1023",
@@ -20,9 +27,8 @@ const VerifyPurchaseIndents = () => {
       urgency: "Critical",
       urgencyClass: "badge-critical",
       items: "3 Materials",
-      status: "Pending Store Verification",
+      status: "Pending",
       statusClass: "status-orange",
-      isPrimaryAction: true // The top button is red
     },
     {
       id: "PI-2024-086",
@@ -34,9 +40,8 @@ const VerifyPurchaseIndents = () => {
       urgency: "Urgent",
       urgencyClass: "badge-urgent",
       items: "5 Materials",
-      status: "Verified & Sent to QMS",
+      status: "Verified",
       statusClass: "status-green",
-      isPrimaryAction: false
     },
     {
       id: "PI-2024-080",
@@ -48,9 +53,8 @@ const VerifyPurchaseIndents = () => {
       urgency: "Normal",
       urgencyClass: "badge-normal",
       items: "2 Materials",
-      status: "With Admin",
-      statusClass: "status-emerald",
-      isPrimaryAction: false
+      status: "Verified",
+      statusClass: "status-green",
     },
     {
       id: "PI-2024-075",
@@ -62,47 +66,304 @@ const VerifyPurchaseIndents = () => {
       urgency: "Urgent",
       urgencyClass: "badge-urgent",
       items: "4 Materials",
-      status: "Rejected by Store",
+      status: "Rejected",
       statusClass: "status-red",
-      isPrimaryAction: false
-    }
+    },
+    {
+      id: "PI-2024-072",
+      subId: "Customer Order #CO-998",
+      reqName: "Meena R",
+      reqRole: "QMS Officer",
+      dept: "QMS",
+      date: "05 Jan 2024, 02:20 PM",
+      urgency: "Normal",
+      urgencyClass: "badge-normal",
+      items: "6 Materials",
+      status: "Pending",
+      statusClass: "status-orange",
+    },
+    {
+      id: "PI-2024-068",
+      subId: "Stock Replenishment",
+      reqName: "Vijay K",
+      reqRole: "QMS Engineer",
+      dept: "QMS",
+      date: "03 Jan 2024, 11:30 AM",
+      urgency: "Critical",
+      urgencyClass: "badge-critical",
+      items: "8 Materials",
+      status: "Pending",
+      statusClass: "status-orange",
+    },
+    {
+      id: "PI-2024-065",
+      subId: "Customer Order #CO-995",
+      reqName: "Lakshmi P",
+      reqRole: "QMS Coordinator",
+      dept: "QMS",
+      date: "02 Jan 2024, 04:15 PM",
+      urgency: "Urgent",
+      urgencyClass: "badge-urgent",
+      items: "3 Materials",
+      status: "Verified",
+      statusClass: "status-green",
+    },
+    {
+      id: "PI-2024-062",
+      subId: "Customer Order #CO-990",
+      reqName: "Ramesh S",
+      reqRole: "QMS Officer",
+      dept: "QMS",
+      date: "01 Jan 2024, 10:00 AM",
+      urgency: "Normal",
+      urgencyClass: "badge-normal",
+      items: "2 Materials",
+      status: "Rejected",
+      statusClass: "status-red",
+    },
   ];
+
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    return {
+      all: allIndents.length,
+      pending: allIndents.filter(i => i.status === 'Pending').length,
+      verified: allIndents.filter(i => i.status === 'Verified').length,
+      rejected: allIndents.filter(i => i.status === 'Rejected').length,
+    };
+  }, [allIndents]);
+
+  // Filtered data based on tab, search, and urgency
+  const filteredIndents = useMemo(() => {
+    let filtered = allIndents;
+
+    // Filter by tab
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(indent => indent.status.toLowerCase() === activeTab);
+    }
+
+    // Filter by urgency
+    if (urgencyFilter) {
+      filtered = filtered.filter(indent => indent.urgency === urgencyFilter);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(indent =>
+        indent.id.toLowerCase().includes(query) ||
+        indent.reqName.toLowerCase().includes(query) ||
+        indent.subId.toLowerCase().includes(query) ||
+        indent.dept.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [allIndents, activeTab, searchQuery, urgencyFilter]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredIndents.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedIndents = filteredIndents.slice(startIndex, endIndex);
+
+  // Reset to page 1 when tab or search changes
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    setSelectedIndents([]);
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1);
+  };
+
+  // Pagination handlers
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePageClick = (page) => {
+    setCurrentPage(page);
+  };
+
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
+  // Selection handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIndents(paginatedIndents.map(indent => indent.id));
+    } else {
+      setSelectedIndents([]);
+    }
+  };
+
+  const handleSelectIndent = (id) => {
+    setSelectedIndents(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  // Action handlers
+  const handleViewIndent = (indent) => {
+    // Navigate to purchase indent page for store officer
+    navigate('/purchase-indents', { 
+      state: { 
+        indentData: indent,
+        viewMode: true 
+      } 
+    });
+  };
+
+  const handleVerifyIndent = (indent) => {
+    if (window.confirm(`Are you sure you want to verify indent ${indent.id}?`)) {
+      console.log('Verifying indent:', indent);
+      alert(`Indent ${indent.id} has been verified successfully!`);
+    }
+  };
+
+  const handleRejectIndent = (indent) => {
+    if (window.confirm(`Are you sure you want to reject indent ${indent.id}?`)) {
+      console.log('Rejecting indent:', indent);
+      alert(`Indent ${indent.id} has been rejected.`);
+    }
+  };
+
+  const handleUrgencyFilter = (urgency) => {
+    setUrgencyFilter(urgency);
+    setShowFilterDropdown(false);
+    setCurrentPage(1);
+  };
+
+  const clearUrgencyFilter = () => {
+    setUrgencyFilter('');
+  };
 
   return (
     <div className="vpi-container">
       
       {/* Page Header */}
       <div className="vpi-header-section">
-        <h1 className="vpi-title">Verify Purchase Indents</h1>
-        <p className="vpi-subtitle">Review and verify purchase indents submitted by QMS before sending back for approval.</p>
+        <div className="vpi-header-left">
+          <h1 className="vpi-title">Verify Purchase Indents</h1>
+          <p className="vpi-subtitle">Review and verify purchase indents submitted by QMS before sending back for approval.</p>
+        </div>
       </div>
 
-      {/* Stepper Card */}
-      <div className="vpi-card vpi-stepper-card">
-        <div className="vpi-stepper-wrapper">
-          
-          {/* Step 2 (Active) */}
-          <div className="vpi-step active">
-            <div className="vpi-step-circle">2</div>
-            <span className="vpi-step-label">Store Officer Verification</span>
-          </div>
-          
-          <div className="vpi-step-line"></div>
-          
-          {/* Step 3 (Inactive) */}
-          <div className="vpi-step inactive">
-            <div className="vpi-step-circle">3</div>
-            <span className="vpi-step-label">QMS Review</span>
-          </div>
+      {/* Tabs and Search Section */}
+      <div className="vpi-controls-section">
+        <div className="vpi-tabs">
+          <button 
+            className={`vpi-tab ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => handleTabChange('all')}
+          >
+            All Indents
+            <span className="vpi-tab-count">{tabCounts.all}</span>
+          </button>
+          <button 
+            className={`vpi-tab ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => handleTabChange('pending')}
+          >
+            Pending
+            <span className="vpi-tab-count">{tabCounts.pending}</span>
+          </button>
+          <button 
+            className={`vpi-tab ${activeTab === 'verified' ? 'active' : ''}`}
+            onClick={() => handleTabChange('verified')}
+          >
+            Verified
+            <span className="vpi-tab-count">{tabCounts.verified}</span>
+          </button>
+          <button 
+            className={`vpi-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+            onClick={() => handleTabChange('rejected')}
+          >
+            Rejected
+            <span className="vpi-tab-count">{tabCounts.rejected}</span>
+          </button>
+        </div>
 
-          <div className="vpi-step-line"></div>
-
-          {/* Step 4 (Inactive) */}
-          <div className="vpi-step inactive">
-            <div className="vpi-step-circle">4</div>
-            <span className="vpi-step-label">Admin Approval</span>
+        <div className="vpi-search-filter">
+          <div className="vpi-search-box">
+            <Search size={18} className="vpi-search-icon" />
+            <input
+              type="text"
+              placeholder="Search by ID, name, or order..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="vpi-search-input"
+            />
           </div>
-
+          <div className="vpi-filter-wrapper">
+            <button 
+              className="vpi-filter-btn"
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            >
+              <Filter size={16} />
+              Filter by Urgency
+            </button>
+            {showFilterDropdown && (
+              <div className="vpi-filter-dropdown">
+                <button onClick={() => handleUrgencyFilter('Critical')} className="vpi-filter-option">
+                  Critical
+                </button>
+                <button onClick={() => handleUrgencyFilter('Urgent')} className="vpi-filter-option">
+                  Urgent
+                </button>
+                <button onClick={() => handleUrgencyFilter('Normal')} className="vpi-filter-option">
+                  Normal
+                </button>
+              </div>
+            )}
+          </div>
+          {urgencyFilter && (
+            <div className="vpi-active-filter">
+              <span>Urgency: {urgencyFilter}</span>
+              <button onClick={clearUrgencyFilter} className="vpi-clear-filter">
+                <X size={14} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -111,8 +372,11 @@ const VerifyPurchaseIndents = () => {
         
         {/* Card Header */}
         <div className="vpi-card-header">
-          <Icons.FileText />
+          <FileText size={20} className="vpi-header-icon" />
           <h2 className="vpi-card-heading">QMS Requested Purchase Indents</h2>
+          <span className="vpi-result-count">
+            Showing {startIndex + 1}-{Math.min(endIndex, filteredIndents.length)} of {filteredIndents.length} results
+          </span>
         </div>
 
         {/* Table */}
@@ -120,65 +384,159 @@ const VerifyPurchaseIndents = () => {
           <table className="vpi-table">
             <thead>
               <tr>
-                <th style={{width: '18%'}}>Indent ID</th>
-                <th style={{width: '15%'}}>Requested By (QMS)</th>
+                <th style={{width: '4%'}}>
+                  <input 
+                    type="checkbox" 
+                    onChange={handleSelectAll}
+                    checked={selectedIndents.length === paginatedIndents.length && paginatedIndents.length > 0}
+                    className="vpi-checkbox"
+                  />
+                </th>
+                <th style={{width: '16%'}}>Indent ID</th>
+                <th style={{width: '14%'}}>Requested By</th>
                 <th style={{width: '10%'}}>Department</th>
-                <th style={{width: '18%'}}>Created Date</th>
+                <th style={{width: '16%'}}>Created Date</th>
                 <th style={{width: '10%'}}>Urgency</th>
-                <th style={{width: '10%'}}>Items</th>
-                <th style={{width: '18%'}}>Status</th>
+                <th style={{width: '8%'}}>Items</th>
+                <th style={{width: '12%'}}>Status</th>
                 <th style={{width: '10%', textAlign: 'center'}}>Action</th>
               </tr>
             </thead>
             <tbody>
-              {indents.map((item, index) => (
-                <tr key={index}>
-                  {/* Indent ID */}
-                  <td>
-                    <div className="vpi-id-text">{item.id}</div>
-                    <div className="vpi-sub-text-blue">{item.subId}</div>
-                  </td>
+              {paginatedIndents.length > 0 ? (
+                paginatedIndents.map((item, index) => (
+                  <tr key={index} className={selectedIndents.includes(item.id) ? 'selected-row' : ''}>
+                    {/* Checkbox */}
+                    <td>
+                      <input 
+                        type="checkbox"
+                        checked={selectedIndents.includes(item.id)}
+                        onChange={() => handleSelectIndent(item.id)}
+                        className="vpi-checkbox"
+                      />
+                    </td>
 
-                  {/* Requested By */}
-                  <td>
-                    <div className="vpi-bold-text">{item.reqName}</div>
-                    <div className="vpi-role-text">{item.reqRole}</div>
-                  </td>
+                    {/* Indent ID */}
+                    <td>
+                      <div className="vpi-id-text">{item.id}</div>
+                      <div className="vpi-sub-text-blue">{item.subId}</div>
+                    </td>
 
-                  {/* Department */}
-                  <td className="vpi-std-text">{item.dept}</td>
+                    {/* Requested By */}
+                    <td>
+                      <div className="vpi-bold-text">{item.reqName}</div>
+                      <div className="vpi-role-text">{item.reqRole}</div>
+                    </td>
 
-                  {/* Date */}
-                  <td className="vpi-std-text" style={{ maxWidth: '140px' }}>{item.date}</td>
+                    {/* Department */}
+                    <td className="vpi-std-text">{item.dept}</td>
 
-                  {/* Urgency Badge */}
-                  <td>
-                    <span className={`vpi-urgency-badge ${item.urgencyClass}`}>
-                      {item.urgency}
-                    </span>
-                  </td>
+                    {/* Date */}
+                    <td className="vpi-std-text">{item.date}</td>
 
-                  {/* Items */}
-                  <td className="vpi-std-text">{item.items}</td>
+                    {/* Urgency Badge */}
+                    <td>
+                      <span className={`vpi-urgency-badge ${item.urgencyClass}`}>
+                        {item.urgency}
+                      </span>
+                    </td>
 
-                  {/* Status Pill */}
-                  <td>
-                    <span className={`vpi-status-pill ${item.statusClass}`}>
-                      {item.status}
-                    </span>
-                  </td>
+                    {/* Items */}
+                    <td className="vpi-std-text">{item.items}</td>
 
-                  {/* Action Button */}
-                  <td style={{textAlign: 'center'}}>
-                    <button className={item.isPrimaryAction ? "vpi-btn-primary" : "vpi-btn-outline"}>
-                      {item.isPrimaryAction ? 'View' : 'View'}
-                    </button>
+                    {/* Status Pill */}
+                    <td>
+                      <span className={`vpi-status-pill ${item.statusClass}`}>
+                        {item.status}
+                      </span>
+                    </td>
+
+                    {/* Action Buttons */}
+                    <td>
+                      <div className="vpi-action-btns">
+                        <button 
+                          className="vpi-btn-icon vpi-btn-view"
+                          onClick={() => handleViewIndent(item)}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        {item.status === 'Pending' && (
+                          <>
+                            <button 
+                              className="vpi-btn-icon vpi-btn-verify"
+                              onClick={() => handleVerifyIndent(item)}
+                              title="Verify Indent"
+                            >
+                              <CheckCircle size={16} />
+                            </button>
+                            <button 
+                              className="vpi-btn-icon vpi-btn-reject"
+                              onClick={() => handleRejectIndent(item)}
+                              title="Reject Indent"
+                            >
+                              <XCircle size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="vpi-no-data">
+                    No indents found matching your criteria.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredIndents.length > 0 && (
+          <div className="vpi-pagination">
+            <div className="vpi-pagination-info">
+              Showing {startIndex + 1} to {Math.min(endIndex, filteredIndents.length)} of {filteredIndents.length} entries
+            </div>
+            <div className="vpi-pagination-controls">
+              <button 
+                className="vpi-page-btn"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </button>
+              
+              <div className="vpi-page-numbers">
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span key={index} className="vpi-page-ellipsis">...</span>
+                  ) : (
+                    <button
+                      key={index}
+                      className={`vpi-page-number ${currentPage === page ? 'active' : ''}`}
+                      onClick={() => handlePageClick(page)}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+              </div>
+              
+              <button 
+                className="vpi-page-btn"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
