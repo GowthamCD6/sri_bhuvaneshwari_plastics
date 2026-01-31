@@ -1,234 +1,391 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Package, ArrowDownCircle, ArrowUpCircle, Scan, Minus, Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import './StockAdjustment.css';
 
-// SVG Icons
-const Icons = {
-  ArrowDown: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <polyline points="19 12 12 19 5 12"></polyline>
-    </svg>
-  ),
-  ArrowUp: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="19" x2="12" y2="5"></line>
-      <polyline points="5 12 12 5 19 12"></polyline>
-    </svg>
-  ),
-  Box: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-      <line x1="12" y1="22.08" x2="12" y2="12"></line>
-    </svg>
-  ),
-  Scan: () => (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-      <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-      <line x1="12" y1="17" x2="12" y2="7"></line>
-    </svg>
-  ),
-  Minus: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  Plus: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"></line>
-      <line x1="5" y1="12" x2="19" y2="12"></line>
-    </svg>
-  ),
-  Search: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-  ),
-  ChevronDown: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9"></polyline>
-    </svg>
-  )
-};
-
 const StockAdjustment = () => {
-  const [quantity, setQuantity] = useState(150);
-  const [selectedMaterial, setSelectedMaterial] = useState('HDPE Granules – High Density');
-  const [reason, setReason] = useState('Purchase Receipt');
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Get material from navigation state
+  const passedMaterial = location.state?.material;
+
+  // Adjustment mode: 'in' or 'out'
+  const [mode, setMode] = useState('in');
+  
+  // Form state
+  const [selectedMaterial, setSelectedMaterial] = useState('');
+  const [quantity, setQuantity] = useState(0);
+  const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
+  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  const [materialSearch, setMaterialSearch] = useState('');
   
-  // Material stock data
-  const materialStocks = {
-    'HDPE Granules – High Density': 4500,
-    'LDPE Resin – Clear': 450,
-    'Polypropylene (PP) Sheets': 2100,
-    'Masterbatch – Red 404': 125,
-    'PVC Compounds': 800,
-    'ABS Pellets': 600
+  // History state
+  const [historySearch, setHistorySearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [historyFilter, setHistoryFilter] = useState('All');
+  const itemsPerPage = 5;
+  
+  // Success modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [adjustmentResult, setAdjustmentResult] = useState(null);
+
+  // Materials list
+  const [materials] = useState([
+    { id: 'RM-1024', name: 'HDPE Granules – High Density', stock: 4500, unit: 'kg', minStock: 500, maxStock: 10000, supplier: 'Polymer Inc.', location: 'Main Store A1' },
+    { id: 'RM-2055', name: 'LDPE Resin – Clear', stock: 450, unit: 'kg', minStock: 500, maxStock: 5000, supplier: 'ChemWorld', location: 'Main Store B2' },
+    { id: 'RM-1033', name: 'Polypropylene (PP) Sheets', stock: 2100, unit: 'sheets', minStock: 200, maxStock: 5000, supplier: 'Plasticos Ltd.', location: 'Main Store A3' },
+    { id: 'AD-5002', name: 'Masterbatch – Red 404', stock: 125, unit: 'kg', minStock: 25, maxStock: 500, supplier: 'ColorChem', location: 'Additive Store C1' },
+    { id: 'RM-3001', name: 'PVC Compounds', stock: 800, unit: 'kg', minStock: 200, maxStock: 3000, supplier: 'VinylPro', location: 'Main Store A4' },
+    { id: 'RM-4001', name: 'ABS Pellets', stock: 600, unit: 'kg', minStock: 150, maxStock: 2000, supplier: 'PlastiTech', location: 'Main Store B1' },
+    { id: 'MAT-PL-0008', name: 'HDPE Granules - Natural', stock: 0, unit: 'kg', minStock: 250, maxStock: 1000, supplier: 'Polymer Inc.', location: 'Main Store A1' },
+    { id: 'MAT-CM-0123', name: 'PET Preform 28mm - Clear', stock: 40, unit: 'pcs', minStock: 200, maxStock: 800, supplier: 'PlastiForm Ltd.', location: 'Main Store B2' },
+  ]);
+
+  // Adjustment history
+  const [history, setHistory] = useState([
+    { id: 1, date: '2026-01-28', materialId: 'RM-1024', materialName: 'HDPE Granules – High Density', type: 'in', qty: 500, prevStock: 4000, newStock: 4500, unit: 'kg', reason: 'Purchase Receipt', notes: 'Invoice #INV-2026-001', adjustedBy: 'Suresh Kumar' },
+    { id: 2, date: '2026-01-26', materialId: 'RM-2055', materialName: 'LDPE Resin – Clear', type: 'in', qty: 200, prevStock: 250, newStock: 450, unit: 'kg', reason: 'Supplier Return Credit', notes: '', adjustedBy: 'Rajesh Patel' },
+    { id: 3, date: '2026-01-24', materialId: 'RM-1033', materialName: 'Polypropylene (PP) Sheets', type: 'in', qty: 300, prevStock: 1800, newStock: 2100, unit: 'sheets', reason: 'Inventory Correction', notes: 'Physical count adjustment', adjustedBy: 'Anitha Singh' },
+    { id: 4, date: '2026-01-22', materialId: 'AD-5002', materialName: 'Masterbatch – Red 404', type: 'in', qty: 75, prevStock: 50, newStock: 125, unit: 'kg', reason: 'New Purchase', notes: '', adjustedBy: 'Vijay Kumar' },
+    { id: 5, date: '2026-01-20', materialId: 'RM-1024', materialName: 'HDPE Granules – High Density', type: 'out', qty: 200, prevStock: 4700, newStock: 4500, unit: 'kg', reason: 'Production Usage', notes: 'Batch #B2026-015', adjustedBy: 'Suresh Kumar' },
+    { id: 6, date: '2026-01-18', materialId: 'RM-3001', materialName: 'PVC Compounds', type: 'out', qty: 150, prevStock: 950, newStock: 800, unit: 'kg', reason: 'Production Usage', notes: '', adjustedBy: 'Anitha Singh' },
+    { id: 7, date: '2026-01-16', materialId: 'RM-4001', materialName: 'ABS Pellets', type: 'in', qty: 400, prevStock: 200, newStock: 600, unit: 'kg', reason: 'Purchase Receipt', notes: 'Invoice #INV-2026-002', adjustedBy: 'Rajesh Patel' },
+  ]);
+
+  // Reasons based on mode
+  const stockInReasons = ['Purchase Receipt', 'Supplier Return Credit', 'Inventory Correction', 'Production Return', 'Quality Acceptance', 'Transfer In', 'Other'];
+  const stockOutReasons = ['Production Usage', 'Damaged/Defective', 'Expired Stock', 'Inventory Correction', 'Transfer Out', 'Sample/Testing', 'Other'];
+
+  // Initialize from passed material
+  useEffect(() => {
+    if (passedMaterial) {
+      setSelectedMaterial(passedMaterial.id);
+      setQuantity(0);
+      // If material has low/out of stock status, default to Stock In
+      if (passedMaterial.status === 'Out of Stock' || passedMaterial.status === 'Low Stock' || passedMaterial.status === 'Critical') {
+        setMode('in');
+      }
+    }
+  }, [passedMaterial]);
+
+  // Get current material data
+  const currentMaterial = useMemo(() => {
+    if (passedMaterial && selectedMaterial === passedMaterial.id) {
+      return {
+        id: passedMaterial.id,
+        name: passedMaterial.name,
+        stock: parseInt(passedMaterial.stock) || 0,
+        unit: passedMaterial.unit || 'kg',
+        minStock: parseInt(passedMaterial.minStock) || 0,
+        maxStock: parseInt(passedMaterial.maxStock) || 0,
+        supplier: passedMaterial.supplier || '',
+        location: passedMaterial.warehouseLocation || ''
+      };
+    }
+    return materials.find(m => m.id === selectedMaterial) || null;
+  }, [selectedMaterial, materials, passedMaterial]);
+
+  // Calculate new stock
+  const newStock = useMemo(() => {
+    if (!currentMaterial) return 0;
+    return mode === 'in' 
+      ? currentMaterial.stock + quantity 
+      : Math.max(0, currentMaterial.stock - quantity);
+  }, [currentMaterial, quantity, mode]);
+
+  // Filter materials for dropdown
+  const filteredMaterials = useMemo(() => {
+    if (!materialSearch.trim()) return materials;
+    const query = materialSearch.toLowerCase();
+    return materials.filter(m => 
+      m.name.toLowerCase().includes(query) || 
+      m.id.toLowerCase().includes(query)
+    );
+  }, [materials, materialSearch]);
+
+  // Filter history
+  const filteredHistory = useMemo(() => {
+    let result = [...history];
+    
+    // Filter by type
+    if (historyFilter === 'Stock In') {
+      result = result.filter(h => h.type === 'in');
+    } else if (historyFilter === 'Stock Out') {
+      result = result.filter(h => h.type === 'out');
+    }
+    
+    // Search filter
+    if (historySearch.trim()) {
+      const query = historySearch.toLowerCase();
+      result = result.filter(h => 
+        h.materialName.toLowerCase().includes(query) ||
+        h.materialId.toLowerCase().includes(query) ||
+        h.reason.toLowerCase().includes(query) ||
+        h.adjustedBy.toLowerCase().includes(query)
+      );
+    }
+    
+    return result.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [history, historyFilter, historySearch]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+  const paginatedHistory = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredHistory.slice(start, start + itemsPerPage);
+  }, [filteredHistory, currentPage, itemsPerPage]);
+
+  // Handle mode change
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    setReason('');
+    setQuantity(0);
   };
-  
-  const currentStock = materialStocks[selectedMaterial] || 0;
 
-  // Plastic Manufacturing History Data
-  const historyData = [
-    { 
-      date: "28/01/26", 
-      item: "HDPE Granules – High Density", 
-      qty: "+500", 
-      prev: "4,000 kg", 
-      new: "4,500 kg", 
-      reason: "Purchase Receipt", 
-      by: "Suresh Kumar", 
-      initial: "S", 
-      color: "avatar-blue" 
-    },
-    { 
-      date: "26/01/26", 
-      item: "LDPE Resin – Clear", 
-      qty: "+200", 
-      prev: "250 kg", 
-      new: "450 kg", 
-      reason: "Supplier Return Credit", 
-      by: "Rajesh Patel", 
-      initial: "R", 
-      color: "avatar-red" 
-    },
-    { 
-      date: "24/01/26", 
-      item: "Polypropylene (PP) Sheets", 
-      qty: "+300", 
-      prev: "1,800 kg", 
-      new: "2,100 kg", 
-      reason: "Inventory Correction", 
-      by: "Anitha Singh", 
-      initial: "A", 
-      color: "avatar-green" 
-    },
-    { 
-      date: "22/01/26", 
-      item: "Masterbatch – Red 404", 
-      qty: "+75", 
-      prev: "50 kg", 
-      new: "125 kg", 
-      reason: "New Purchase", 
-      by: "Vijay Kumar", 
-      initial: "V", 
-      color: "avatar-orange" 
-    },
-  ];
+  // Handle material select
+  const handleMaterialSelect = (material) => {
+    setSelectedMaterial(material.id);
+    setShowMaterialDropdown(false);
+    setMaterialSearch('');
+    setQuantity(0);
+  };
 
+  // Handle submit
   const handleSubmit = () => {
-    // Handle form submission logic here
-    console.log({
-      material: selectedMaterial,
-      quantity,
-      reason,
-      notes,
-      currentStock,
-      newStock: currentStock + quantity
+    if (!selectedMaterial) {
+      alert('Please select a material');
+      return;
+    }
+    if (quantity <= 0) {
+      alert('Please enter a valid quantity');
+      return;
+    }
+    if (!reason) {
+      alert('Please select a reason');
+      return;
+    }
+    if (mode === 'out' && quantity > currentMaterial.stock) {
+      alert('Cannot remove more than available stock');
+      return;
+    }
+
+    // Create history entry
+    const newEntry = {
+      id: history.length + 1,
+      date: new Date().toISOString().split('T')[0],
+      materialId: currentMaterial.id,
+      materialName: currentMaterial.name,
+      type: mode,
+      qty: quantity,
+      prevStock: currentMaterial.stock,
+      newStock: newStock,
+      unit: currentMaterial.unit,
+      reason: reason,
+      notes: notes,
+      adjustedBy: 'Current User'
+    };
+
+    setHistory(prev => [newEntry, ...prev]);
+    setAdjustmentResult({
+      material: currentMaterial.name,
+      type: mode,
+      quantity: quantity,
+      unit: currentMaterial.unit,
+      prevStock: currentMaterial.stock,
+      newStock: newStock
     });
-    // Reset form or show success message
+    setShowSuccessModal(true);
+
+    // Reset form
+    setQuantity(0);
+    setReason('');
+    setNotes('');
+  };
+
+  // Format date
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+  };
+
+  // Get initials
+  const getInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Get avatar color
+  const getAvatarColor = (name) => {
+    const colors = ['sa-avatar-blue', 'sa-avatar-green', 'sa-avatar-orange', 'sa-avatar-purple', 'sa-avatar-red'];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
   };
 
   return (
-    <div className="sa-container">
-      <h1 className="sa-title">Stock Adjustment</h1>
+    <div className="sa-container" onClick={() => setShowMaterialDropdown(false)}>
+      
+      {/* Header */}
+      <div className="sa-header">
+        <div>
+          <h1 className="sa-title">Stock Adjustment</h1>
+          <p className="sa-subtitle">Add or remove inventory stock with full tracking and audit trail.</p>
+        </div>
+      </div>
 
       {/* Toggle Buttons */}
       <div className="sa-toggle-group">
-        <button className="sa-toggle-btn active">
-          <Icons.ArrowDown /> Stock In
+        <button 
+          className={`sa-toggle-btn ${mode === 'in' ? 'active in' : ''}`}
+          onClick={() => handleModeChange('in')}
+        >
+          <ArrowDownCircle size={20} />
+          Stock In
         </button>
-        <button className="sa-toggle-btn">
-          <Icons.ArrowUp /> Stock Out
+        <button 
+          className={`sa-toggle-btn ${mode === 'out' ? 'active out' : ''}`}
+          onClick={() => handleModeChange('out')}
+        >
+          <ArrowUpCircle size={20} />
+          Stock Out
         </button>
       </div>
 
       {/* Main Form Card */}
       <div className="sa-card sa-main-card">
-        {/* Header with Blue Box Icon */}
         <div className="sa-card-header-flex">
-          <div className="sa-icon-box">
-            <Icons.Box />
+          <div className={`sa-icon-box ${mode === 'out' ? 'out' : ''}`}>
+            <Package size={28} />
           </div>
-          <h2 className="sa-card-title">Stock In - Add Materials to Inventory</h2>
+          <div>
+            <h2 className="sa-card-title">
+              {mode === 'in' ? 'Stock In - Add Materials to Inventory' : 'Stock Out - Remove Materials from Inventory'}
+            </h2>
+            <p className="sa-card-subtitle">Fill in the details below to record the stock adjustment</p>
+          </div>
         </div>
 
         <div className="sa-form-grid">
           
           {/* Material Selector */}
           <div className="sa-form-group">
-            <label className="sa-label">Material to Add</label>
+            <label className="sa-label">Select Material *</label>
             <div className="sa-input-with-action">
-              <div className="sa-select-wrapper">
-                <select 
-                  className="sa-select" 
-                  value={selectedMaterial}
-                  onChange={(e) => setSelectedMaterial(e.target.value)}
+              <div className="sa-select-wrapper" onClick={(e) => e.stopPropagation()}>
+                <div 
+                  className="sa-select-display"
+                  onClick={() => setShowMaterialDropdown(!showMaterialDropdown)}
                 >
-                  <option>HDPE Granules – High Density</option>
-                  <option>LDPE Resin – Clear</option>
-                  <option>Polypropylene (PP) Sheets</option>
-                  <option>Masterbatch – Red 404</option>
-                  <option>PVC Compounds</option>
-                  <option>ABS Pellets</option>
-                </select>
-                <div className="sa-select-icon"><Icons.ChevronDown /></div>
+                  {currentMaterial ? (
+                    <span>{currentMaterial.name}</span>
+                  ) : (
+                    <span className="sa-placeholder">Search or select a material...</span>
+                  )}
+                  <ChevronDown size={18} className="sa-select-chevron" />
+                </div>
+                
+                {showMaterialDropdown && (
+                  <div className="sa-material-dropdown">
+                    <div className="sa-dropdown-search">
+                      <Search size={16} />
+                      <input 
+                        type="text" 
+                        placeholder="Search materials..."
+                        value={materialSearch}
+                        onChange={(e) => setMaterialSearch(e.target.value)}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="sa-dropdown-list">
+                      {filteredMaterials.map(material => (
+                        <div 
+                          key={material.id}
+                          className={`sa-dropdown-item ${selectedMaterial === material.id ? 'active' : ''}`}
+                          onClick={() => handleMaterialSelect(material)}
+                        >
+                          <div className="sa-dropdown-item-main">
+                            <span className="sa-dropdown-item-name">{material.name}</span>
+                            <span className="sa-dropdown-item-code">{material.id}</span>
+                          </div>
+                          <div className="sa-dropdown-item-stock">
+                            {material.stock.toLocaleString()} {material.unit}
+                          </div>
+                        </div>
+                      ))}
+                      {filteredMaterials.length === 0 && (
+                        <div className="sa-dropdown-empty">No materials found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <button className="sa-action-btn" title="Scan Barcode">
-                <Icons.Scan />
+                <Scan size={22} />
               </button>
             </div>
+            {currentMaterial && (
+              <div className="sa-material-info">
+                <span>Location: <strong>{currentMaterial.location}</strong></span>
+                <span>Supplier: <strong>{currentMaterial.supplier}</strong></span>
+              </div>
+            )}
           </div>
 
-          {/* Quantity Counter */}
+          {/* Quantity */}
           <div className="sa-form-group">
-            <label className="sa-label">Quantity to Add (kg)</label>
+            <label className="sa-label">Quantity to {mode === 'in' ? 'Add' : 'Remove'} ({currentMaterial?.unit || 'units'}) *</label>
             <div className="sa-counter-row">
               <div className="sa-counter-controls">
                 <button 
                   className="sa-circle-btn remove" 
                   onClick={() => setQuantity(q => Math.max(0, q - 50))}
-                  title="Decrease by 50"
+                  disabled={quantity <= 0}
                 >
-                  <Icons.Minus />
+                  <Minus size={18} />
                 </button>
-                <span className="sa-counter-value">{quantity}</span>
+                <input 
+                  type="number" 
+                  className="sa-counter-input"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+                  min="0"
+                />
                 <button 
                   className="sa-circle-btn add" 
                   onClick={() => setQuantity(q => q + 50)}
-                  title="Increase by 50"
                 >
-                  <Icons.Plus />
+                  <Plus size={18} />
                 </button>
               </div>
-              <div className="sa-helper-text">
-                Current: <span className="sa-text-gray">{currentStock.toLocaleString()} kg</span> → <span className="sa-text-green">New: {(currentStock + quantity).toLocaleString()} kg</span>
-              </div>
+              {currentMaterial && (
+                <div className="sa-stock-preview">
+                  <span className="sa-stock-current">
+                    Current: <strong>{currentMaterial.stock.toLocaleString()} {currentMaterial.unit}</strong>
+                  </span>
+                  <span className="sa-stock-arrow">→</span>
+                  <span className={`sa-stock-new ${mode === 'in' ? 'increase' : 'decrease'}`}>
+                    New: <strong>{newStock.toLocaleString()} {currentMaterial.unit}</strong>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Reason */}
           <div className="sa-form-group">
-            <label className="sa-label">Reason for Adjustment</label>
+            <label className="sa-label">Reason for Adjustment *</label>
             <div className="sa-select-wrapper">
               <select 
                 className="sa-select"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               >
-                <option>Purchase Receipt</option>
-                <option>Supplier Return Credit</option>
-                <option>Inventory Correction</option>
-                <option>Production Return</option>
-                <option>Quality Acceptance</option>
-                <option>Other</option>
+                <option value="">Select a reason...</option>
+                {(mode === 'in' ? stockInReasons : stockOutReasons).map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
               </select>
-              <div className="sa-select-icon"><Icons.ChevronDown /></div>
+              <ChevronDown size={18} className="sa-select-icon" />
             </div>
           </div>
 
@@ -238,7 +395,7 @@ const StockAdjustment = () => {
             <input 
               type="text" 
               className="sa-input" 
-              placeholder="e.g. Lot number, supplier invoice reference, quality notes..." 
+              placeholder="e.g. Invoice number, batch ID, quality notes..." 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -247,19 +404,46 @@ const StockAdjustment = () => {
         </div>
 
         <div className="sa-form-footer">
-          <button className="sa-btn-submit" onClick={handleSubmit}>
-            <Icons.Plus /> Add to Stock
+          <button className="sa-btn-cancel" onClick={() => navigate(-1)}>
+            Cancel
+          </button>
+          <button 
+            className={`sa-btn-submit ${mode === 'out' ? 'out' : ''}`} 
+            onClick={handleSubmit}
+            disabled={!selectedMaterial || quantity <= 0 || !reason}
+          >
+            {mode === 'in' ? <Plus size={18} /> : <Minus size={18} />}
+            {mode === 'in' ? 'Add to Stock' : 'Remove from Stock'}
           </button>
         </div>
       </div>
 
-      {/* History Table Card */}
+      {/* History Table */}
       <div className="sa-card sa-history-card">
         <div className="sa-history-header">
-          <h2 className="sa-card-title-sm">Recent Stock In History</h2>
-          <div className="sa-search-wrapper">
-            <div className="sa-search-icon"><Icons.Search /></div>
-            <input type="text" className="sa-search-input" placeholder="Search history..." />
+          <h2 className="sa-card-title-sm">Recent Adjustment History</h2>
+          <div className="sa-history-filters">
+            <div className="sa-filter-tabs">
+              {['All', 'Stock In', 'Stock Out'].map(filter => (
+                <button 
+                  key={filter}
+                  className={`sa-filter-tab ${historyFilter === filter ? 'active' : ''}`}
+                  onClick={() => { setHistoryFilter(filter); setCurrentPage(1); }}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+            <div className="sa-search-wrapper">
+              <Search size={16} className="sa-search-icon" />
+              <input 
+                type="text" 
+                className="sa-search-input" 
+                placeholder="Search history..."
+                value={historySearch}
+                onChange={(e) => { setHistorySearch(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
           </div>
         </div>
 
@@ -269,38 +453,136 @@ const StockAdjustment = () => {
               <tr>
                 <th>Date</th>
                 <th>Material</th>
+                <th>Type</th>
                 <th>Quantity</th>
-                <th>Previous Stock</th>
+                <th>Previous</th>
                 <th>New Stock</th>
                 <th>Reason</th>
                 <th>Adjusted By</th>
               </tr>
             </thead>
             <tbody>
-              {historyData.map((row, idx) => (
-                <tr key={idx}>
-                  <td>{row.date}</td>
-                  <td className="sa-text-theme">{row.item}</td>
-                  <td>
-                    <span className="sa-badge-green">{row.qty}</span>
-                  </td>
-                  <td>{row.prev}</td>
-                  <td className="sa-font-bold">{row.new}</td>
-                  <td>{row.reason}</td>
-                  <td>
-                    <div className="sa-user-cell">
-                      <div className={`sa-avatar ${row.color}`}>
-                        {row.initial}
+              {paginatedHistory.length > 0 ? (
+                paginatedHistory.map((row) => (
+                  <tr key={row.id}>
+                    <td className="sa-date-cell">{formatDate(row.date)}</td>
+                    <td>
+                      <div className="sa-material-cell">
+                        <span className="sa-material-name">{row.materialName}</span>
+                        <span className="sa-material-code">{row.materialId}</span>
                       </div>
-                      <span>{row.by}</span>
-                    </div>
+                    </td>
+                    <td>
+                      <span className={`sa-type-badge ${row.type}`}>
+                        {row.type === 'in' ? <ArrowDownCircle size={14} /> : <ArrowUpCircle size={14} />}
+                        {row.type === 'in' ? 'Stock In' : 'Stock Out'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`sa-qty-badge ${row.type}`}>
+                        {row.type === 'in' ? '+' : '-'}{row.qty} {row.unit}
+                      </span>
+                    </td>
+                    <td className="sa-stock-cell">{row.prevStock.toLocaleString()} {row.unit}</td>
+                    <td className="sa-stock-cell sa-font-bold">{row.newStock.toLocaleString()} {row.unit}</td>
+                    <td>{row.reason}</td>
+                    <td>
+                      <div className="sa-user-cell">
+                        <div className={`sa-avatar ${getAvatarColor(row.adjustedBy)}`}>
+                          {getInitials(row.adjustedBy)}
+                        </div>
+                        <span>{row.adjustedBy}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8" className="sa-empty-row">
+                    <Package size={40} />
+                    <p>No adjustment history found</p>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredHistory.length > 0 && (
+          <div className="sa-pagination-footer">
+            <span className="sa-pagination-info">
+              Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredHistory.length)} of {filteredHistory.length} entries
+            </span>
+            <div className="sa-pagination">
+              <button 
+                className="sa-page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </button>
+              <div className="sa-page-numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    className={`sa-page-num ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                className="sa-page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && adjustmentResult && (
+        <div className="sa-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="sa-modal" onClick={e => e.stopPropagation()}>
+            <div className={`sa-modal-icon ${adjustmentResult.type}`}>
+              <Check size={32} />
+            </div>
+            <h3 className="sa-modal-title">Stock Adjustment Successful!</h3>
+            <div className="sa-modal-content">
+              <p><strong>{adjustmentResult.material}</strong></p>
+              <div className="sa-modal-stats">
+                <div className="sa-modal-stat">
+                  <span className="sa-modal-stat-label">Previous Stock</span>
+                  <span className="sa-modal-stat-value">{adjustmentResult.prevStock.toLocaleString()} {adjustmentResult.unit}</span>
+                </div>
+                <div className="sa-modal-stat-arrow">
+                  {adjustmentResult.type === 'in' ? <Plus size={20} /> : <Minus size={20} />}
+                  {adjustmentResult.quantity} {adjustmentResult.unit}
+                </div>
+                <div className="sa-modal-stat">
+                  <span className="sa-modal-stat-label">New Stock</span>
+                  <span className={`sa-modal-stat-value ${adjustmentResult.type}`}>{adjustmentResult.newStock.toLocaleString()} {adjustmentResult.unit}</span>
+                </div>
+              </div>
+            </div>
+            <div className="sa-modal-actions">
+              <button className="sa-btn-secondary" onClick={() => setShowSuccessModal(false)}>
+                Add Another
+              </button>
+              <button className="sa-btn-primary" onClick={() => navigate('/store-officer/goods-inventory')}>
+                View Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

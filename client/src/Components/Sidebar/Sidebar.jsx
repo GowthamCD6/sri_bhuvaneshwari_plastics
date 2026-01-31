@@ -17,6 +17,8 @@ import {
   Shield,
   ClipboardCheck,
   UserCog,
+  Inbox,
+  Truck,
 } from "lucide-react";
 import "./Sidebar.css";
 
@@ -57,28 +59,16 @@ const Sidebar = ({ onToggle, userRole }) => {
       },
       { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
-    procurement: [
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    purchase: [
       {
-        label: "Purchase",
-        icon: ShoppingCart,
-        isDropdown: true,
-        children: [
-          {
-            path: "/purchase-indents",
-            label: "Purchase Indents",
-            icon: FileText,
-          },
-          {
-            path: "/purchase-orders",
-            label: "Purchase Orders",
-            icon: ShoppingCart,
-          },
-        ],
+        label: "Inventory Suite",
+        section: true,
       },
-      { path: "/inventory", label: "Inventory", icon: Package },
-      { path: "/suppliers", label: "Suppliers", icon: Users },
-      { path: "/reports", label: "Reports", icon: BarChart3 },
+      { path: "/purchase/overview", label: "Overview", icon: LayoutDashboard },
+      { path: "/purchase/qms-indents", label: "QMS Indents", icon: FileText },
+      { path: "/purchase/store-requests", label: "Store Requests", icon: Inbox, badge: 3 },
+      { path: "/purchase/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
+      { path: "/purchase/suppliers", label: "Suppliers", icon: Truck },
     ],
     admin: [
       {
@@ -230,7 +220,13 @@ const Sidebar = ({ onToggle, userRole }) => {
             >
               {isActive && <div className="active-indicator" />}
               <Icon className="nav-icon" size={22} />
-              {!collapsed && <span className="nav-label">{item.label}</span>}
+              {!collapsed && (
+                <>
+                  <span className="nav-label">{item.label}</span>
+                  {item.badge && <span className="nav-badge">{item.badge}</span>}
+                </>
+              )}
+              {collapsed && item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
             </Link>
           );
         })}

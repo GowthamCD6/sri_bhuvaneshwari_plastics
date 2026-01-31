@@ -23,6 +23,10 @@ import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
 import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
 import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
 
+// ===== PURCHASE DEPARTMENT ROLE PAGES =====
+import PurchaseOverview from '../Pages/PurchaseDepartment/Overview/Overview';
+import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
+
 const AppNavigator = () => {
   return (
     <Routes>
@@ -49,6 +53,10 @@ const AppNavigator = () => {
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/qms-approval" element={<QMSApproval />} />
+
+      {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
+      <Route path="/purchase/overview" element={<PurchaseOverview />} />
+      <Route path="/purchase/store-requests" element={<StoreRequests />} />
     </Routes>
   );
 };

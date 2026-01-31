@@ -145,7 +145,7 @@ const Login = ({ onLogin }) => {
                 <option value="qms">QMS (Quality Management System)</option>
                 <option value="store">Store Manager</option>
                 <option value="admin">Admin</option>
-                <option value="procurement">Procurement Manager</option>
+                <option value="purchase">Purchase Department</option>
               </select>
             </div>
 
