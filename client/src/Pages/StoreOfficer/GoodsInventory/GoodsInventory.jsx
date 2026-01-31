@@ -1,19 +1,54 @@
-import React, { useState } from 'react';
-import { Plus, Search, Edit, ArrowUpRight, X } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, Edit, ArrowUpRight, X, Trash2, ChevronDown, Package } from 'lucide-react';
 import './GoodsInventory.css';
 
 const MaterialManager = () => {
+  const navigate = useNavigate();
   const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [activeCategory, setActiveCategory] = useState('Raw Materials');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
+  
+  // New Category Form
+  const [newCategory, setNewCategory] = useState({ name: '' });
+  
+  // New/Edit Material Form
+  const [materialForm, setMaterialForm] = useState({
+    id: '',
+    name: '',
+    supplier: '',
+    stock: '',
+    unit: 'kg',
+    minStock: '',
+    maxStock: '',
+    type: '',
+    warehouseLocation: ''
+  });
+
+  // Unit options
+  const unitOptions = ['kg', 'g', 'pcs', 'sheets', 'ltr', 'ml', 'boxes', 'rolls', 'bags'];
   
   // Sidebar Data
   const categories = [
-    { name: "Raw Materials", count: "38 items", active: true },
-    { name: "Finished Goods", count: "52 items", active: false },
-    { name: "Semi-Finished Goods", count: "21 items", active: false },
-    { name: "Packaging Materials", count: "18 items", active: false },
-    { name: "Additives & Colors", count: "13 items", active: false },
-    { name: "Scrap & Regrind", count: "7 items", active: false },
+    { name: "Raw Materials", count: 38 },
+    { name: "Finished Goods", count: 52 },
+    { name: "Semi-Finished Goods", count: 21 },
+    { name: "Packaging Materials", count: 18 },
+    { name: "Additives & Colors", count: 13 },
+    { name: "Scrap & Regrind", count: 7 },
   ];
+
+  // Filter categories based on search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter(cat => 
+      cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categorySearch]);
 
   // Middle Panel Data
   const materials = [
@@ -27,6 +62,8 @@ const MaterialManager = () => {
       statusClass: "mm-badge-green",
       stockClass: "mm-text-dark",
       type: "Bulk Material",
+      minStock: "500",
+      maxStock: "10,000",
       reorderLevel: "1,000",
       warehouseLocation: "Main Store A1",
       remarks: "Used for extrusion products; no expiry tracking required."
@@ -41,6 +78,8 @@ const MaterialManager = () => {
       statusClass: "mm-badge-orange",
       stockClass: "mm-text-orange",
       type: "Bulk Material",
+      minStock: "500",
+      maxStock: "5,000",
       reorderLevel: "500",
       warehouseLocation: "Main Store B2",
       remarks: "Monitor stock levels closely."
@@ -50,11 +89,13 @@ const MaterialManager = () => {
       name: "Polypropylene (PP) Sheets",
       supplier: "Plasticos Ltd.",
       stock: "2,100",
-      unit: "kg",
+      unit: "sheets",
       status: "In Stock",
       statusClass: "mm-badge-green",
       stockClass: "mm-text-dark",
       type: "Sheet",
+      minStock: "200",
+      maxStock: "5,000",
       reorderLevel: "800",
       warehouseLocation: "Main Store A3",
       remarks: "High-quality sheets for industrial use."
@@ -69,6 +110,8 @@ const MaterialManager = () => {
       statusClass: "mm-badge-green",
       stockClass: "mm-text-dark",
       type: "Color Additive",
+      minStock: "25",
+      maxStock: "500",
       reorderLevel: "50",
       warehouseLocation: "Additive Store C1",
       remarks: "Store in cool, dry place."
@@ -83,11 +126,121 @@ const MaterialManager = () => {
       statusClass: "mm-badge-red",
       stockClass: "mm-text-red",
       type: "Scrap",
+      minStock: "100",
+      maxStock: "2,000",
       reorderLevel: "200",
       warehouseLocation: "Scrap Yard D1",
       remarks: "Urgent reorder required."
     }
   ];
+
+  // Filter materials based on search
+  const filteredMaterials = useMemo(() => {
+    if (!materialSearch.trim()) return materials;
+    const query = materialSearch.toLowerCase();
+    return materials.filter(mat =>
+      mat.name.toLowerCase().includes(query) ||
+      mat.id.toLowerCase().includes(query) ||
+      mat.supplier.toLowerCase().includes(query) ||
+      mat.warehouseLocation.toLowerCase().includes(query)
+    );
+  }, [materialSearch]);
+
+  // Handle Add Category
+  const handleAddCategory = () => {
+    setNewCategory({ name: '' });
+    setShowAddCategoryModal(true);
+  };
+
+  // Handle Submit Category
+  const handleSubmitCategory = (e) => {
+    e.preventDefault();
+    if (!newCategory.name.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    alert(`Category "${newCategory.name}" added successfully!`);
+    setShowAddCategoryModal(false);
+    setNewCategory({ name: '' });
+  };
+
+  // Handle Add Material
+  const handleAddMaterial = () => {
+    setMaterialForm({
+      id: '',
+      name: '',
+      supplier: '',
+      stock: '',
+      unit: 'kg',
+      minStock: '',
+      maxStock: '',
+      type: '',
+      warehouseLocation: ''
+    });
+    setShowAddMaterialModal(true);
+  };
+
+  // Handle Submit Material
+  const handleSubmitMaterial = (e) => {
+    e.preventDefault();
+    if (!materialForm.name.trim() || !materialForm.id.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    alert(`Material "${materialForm.name}" added successfully!`);
+    setShowAddMaterialModal(false);
+  };
+
+  // Handle Delete Material
+  const handleDeleteMaterial = () => {
+    if (selectedMaterial && window.confirm(`Are you sure you want to delete ${selectedMaterial.name}?`)) {
+      alert(`${selectedMaterial.name} deleted successfully!`);
+      setSelectedMaterial(null);
+    }
+  };
+
+  // Handle Update Stock
+  const handleUpdateStock = () => {
+    if (selectedMaterial) {
+      navigate('/store-officer/stock-adjustment', { 
+        state: { material: selectedMaterial } 
+      });
+    }
+  };
+
+  // Handle Edit Material
+  const handleEditMaterial = () => {
+    if (selectedMaterial) {
+      setMaterialForm({
+        id: selectedMaterial.id,
+        name: selectedMaterial.name,
+        supplier: selectedMaterial.supplier,
+        stock: selectedMaterial.stock,
+        unit: selectedMaterial.unit,
+        minStock: selectedMaterial.minStock || '',
+        maxStock: selectedMaterial.maxStock || '',
+        type: selectedMaterial.type,
+        warehouseLocation: selectedMaterial.warehouseLocation
+      });
+      setShowEditMaterialModal(true);
+    }
+  };
+
+  // Handle Submit Edit Material
+  const handleSubmitEditMaterial = (e) => {
+    e.preventDefault();
+    if (!materialForm.name.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    alert(`Material "${materialForm.name}" updated successfully!`);
+    setShowEditMaterialModal(false);
+  };
+
+  // Handle Material Form Change
+  const handleMaterialFormChange = (field, value) => {
+    setMaterialForm(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="mm-container">
@@ -96,7 +249,7 @@ const MaterialManager = () => {
       <div className="mm-sidebar">
         <div className="mm-sidebar-header">
           <h2 className="mm-panel-title">Material<br/>Categories</h2>
-          <button className="mm-btn-outline">
+          <button className="mm-btn-outline" onClick={handleAddCategory}>
             <Plus size={16} />
             Add Category
           </button>
@@ -104,14 +257,24 @@ const MaterialManager = () => {
 
         <div className="mm-search-box">
           <div className="mm-search-icon"><Search size={18} className="icon-gray" /></div>
-          <input type="text" placeholder="Search categories..." className="mm-input-search" />
+          <input 
+            type="text" 
+            placeholder="Search categories..." 
+            className="mm-input-search"
+            value={categorySearch}
+            onChange={(e) => setCategorySearch(e.target.value)}
+          />
         </div>
 
         <div className="mm-category-list">
-          {categories.map((cat, idx) => (
-            <div key={idx} className={`mm-category-item ${cat.active ? 'active' : ''}`}>
+          {filteredCategories.map((cat, idx) => (
+            <div 
+              key={idx} 
+              className={`mm-category-item ${activeCategory === cat.name ? 'active' : ''}`}
+              onClick={() => { setActiveCategory(cat.name); setSelectedMaterial(null); }}
+            >
               <div className="mm-cat-name">{cat.name}</div>
-              <div className="mm-cat-count">{cat.count}</div>
+              <div className="mm-cat-count">{cat.count} items</div>
             </div>
           ))}
         </div>
@@ -121,41 +284,61 @@ const MaterialManager = () => {
       <div className="mm-main-list">
         <div className="mm-main-header">
           <div>
-            <h2 className="mm-panel-title-lg">Items in Raw Materials</h2>
+            <h2 className="mm-panel-title-lg">Items in {activeCategory}</h2>
             <p className="mm-subtitle">Click a material to view full stock details and update quantities.</p>
           </div>
-          <button className="mm-btn-primary">
+          <button className="mm-btn-primary" onClick={handleAddMaterial}>
             <Plus size={18} />
             Add Material
           </button>
         </div>
 
+        {/* Search Materials */}
+        <div className="mm-material-search">
+          <div className="mm-search-icon"><Search size={18} className="icon-gray" /></div>
+          <input 
+            type="text" 
+            placeholder="Search materials by name, code, supplier..." 
+            className="mm-input-search"
+            value={materialSearch}
+            onChange={(e) => setMaterialSearch(e.target.value)}
+          />
+        </div>
+
         <div className="mm-items-scroll">
-          {materials.map((item, idx) => (
-            <div 
-              key={idx} 
-              className={`mm-item-card ${selectedMaterial?.id === item.id ? 'active' : ''}`}
-              onClick={() => setSelectedMaterial(item)}
-            >
-              <div className="mm-item-row-top">
-                <div className="mm-item-name">{item.name}</div>
-                <div className="mm-item-stock-group">
-                  <span className={`mm-stock-val ${item.stockClass}`}>{item.stock}</span>
-                  <span className={`mm-stock-unit ${item.stockClass}`}>{item.unit}</span>
+          {filteredMaterials.length > 0 ? (
+            filteredMaterials.map((item, idx) => (
+              <div 
+                key={idx} 
+                className={`mm-item-card ${selectedMaterial?.id === item.id ? 'active' : ''}`}
+                onClick={() => setSelectedMaterial(item)}
+              >
+                <div className="mm-item-row-top">
+                  <div className="mm-item-name">{item.name}</div>
+                  <div className="mm-item-right-info">
+                    <div className="mm-item-stock-group">
+                      <span className={`mm-stock-val ${item.stockClass}`}>{item.stock}</span>
+                      <span className={`mm-stock-unit ${item.stockClass}`}>{item.unit}</span>
+                    </div>
+                    <div className="mm-item-badges">
+                      <span className={`mm-status-badge ${item.statusClass}`}>{item.status}</span>
+                      <span className="mm-type-badge">{item.type}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mm-item-row-btm">
+                  <div className="mm-item-meta">
+                    Code: <span className="mm-code">{item.id}</span> • Supplier: <span className="mm-supplier">{item.supplier}</span> • Location: <span className="mm-location">{item.warehouseLocation}</span>
+                  </div>
                 </div>
               </div>
-              
-              <div className="mm-item-row-btm">
-                <div className="mm-item-meta">
-                  Code: <span className="mm-code">{item.id}</span> • Supplier: <span className="mm-supplier">{item.supplier}</span>
-                </div>
-                <div className="mm-item-badges">
-                  <span className={`mm-status-badge ${item.statusClass}`}>{item.status}</span>
-                  <span className="mm-type-badge">{item.type}</span>
-                </div>
-              </div>
+            ))
+          ) : (
+            <div className="mm-no-results">
+              <p>No materials found matching "{materialSearch}"</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
 
@@ -183,7 +366,7 @@ const MaterialManager = () => {
                 />
               </div>
 
-              {/* Row 1 */}
+              {/* Row 1: Current Stock & Unit */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Current Stock</label>
@@ -205,7 +388,29 @@ const MaterialManager = () => {
                 </div>
               </div>
 
-              {/* Row 2 */}
+              {/* Row 2: Min & Max Stock */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Minimum Stock</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={`${selectedMaterial.minStock || '0'} ${selectedMaterial.unit}`} 
+                    readOnly 
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Maximum Stock</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={`${selectedMaterial.maxStock || '0'} ${selectedMaterial.unit}`} 
+                    readOnly 
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Location & Status */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Warehouse Location</label>
@@ -227,28 +432,46 @@ const MaterialManager = () => {
                 </div>
               </div>
 
-              {/* Remarks */}
-              <div className="mm-form-group">
-                <label className="mm-label">Remarks</label>
-                <textarea 
-                  className="mm-textarea" 
-                  readOnly 
-                  value={selectedMaterial.remarks}
-                />
+              {/* Supplier & Type */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Supplier</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={selectedMaterial.supplier} 
+                    readOnly 
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Type</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={selectedMaterial.type} 
+                    readOnly 
+                  />
+                </div>
               </div>
 
             </div>
 
             {/* Footer Actions */}
             <div className="mm-details-footer">
-              <button className="mm-btn-secondary">
-                <Edit size={16} />
-                Edit Material
+              <button className="mm-btn-danger" onClick={handleDeleteMaterial}>
+                <Trash2 size={16} />
+                Delete
               </button>
-              <button className="mm-btn-primary">
-                <ArrowUpRight size={16} />
-                Update Stock
-              </button>
+              <div className="mm-footer-right">
+                <button className="mm-btn-secondary" onClick={handleEditMaterial}>
+                  <Edit size={16} />
+                  Edit
+                </button>
+                <button className="mm-btn-primary" onClick={handleUpdateStock}>
+                  <ArrowUpRight size={16} />
+                  Update Stock
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -257,6 +480,306 @@ const MaterialManager = () => {
           </div>
         )}
       </div>
+
+      {/* ============ ADD CATEGORY MODAL ============ */}
+      {showAddCategoryModal && (
+        <div className="mm-modal-overlay" onClick={() => setShowAddCategoryModal(false)}>
+          <div className="mm-modal" onClick={e => e.stopPropagation()}>
+            <div className="mm-modal-header">
+              <h2>Add New Category</h2>
+              <button className="mm-modal-close" onClick={() => setShowAddCategoryModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitCategory} className="mm-modal-body">
+              <div className="mm-form-group">
+                <label className="mm-label">Category Name *</label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  value={newCategory.name}
+                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="mm-modal-actions">
+                <button type="button" className="mm-btn-secondary" onClick={() => setShowAddCategoryModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="mm-btn-primary">
+                  <Plus size={16} />
+                  Add Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============ ADD MATERIAL MODAL ============ */}
+      {showAddMaterialModal && (
+        <div className="mm-modal-overlay" onClick={() => setShowAddMaterialModal(false)}>
+          <div className="mm-modal mm-modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="mm-modal-header">
+              <h2>Add New Material</h2>
+              <button className="mm-modal-close" onClick={() => setShowAddMaterialModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitMaterial} className="mm-modal-body">
+              {/* Material Code & Name */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Code *</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.id}
+                    onChange={(e) => handleMaterialFormChange('id', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Name *</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.name}
+                    onChange={(e) => handleMaterialFormChange('name', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Supplier & Type */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Supplier</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.supplier}
+                    onChange={(e) => handleMaterialFormChange('supplier', e.target.value)}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Type</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.type}
+                    onChange={(e) => handleMaterialFormChange('type', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Current Stock & Unit */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Opening Stock</label>
+                  <input 
+                    type="number" 
+                    className="mm-input" 
+                    value={materialForm.stock}
+                    onChange={(e) => handleMaterialFormChange('stock', e.target.value)}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Unit of Measurement *</label>
+                  <div className="mm-select-wrapper">
+                    <select 
+                      className="mm-select"
+                      value={materialForm.unit}
+                      onChange={(e) => handleMaterialFormChange('unit', e.target.value)}
+                    >
+                      {unitOptions.map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="mm-select-icon" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Min & Max Stock */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Minimum Stock Level</label>
+                  <input 
+                    type="number" 
+                    className="mm-input" 
+                    value={materialForm.minStock}
+                    onChange={(e) => handleMaterialFormChange('minStock', e.target.value)}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Maximum Stock Level</label>
+                  <input 
+                    type="number" 
+                    className="mm-input" 
+                    value={materialForm.maxStock}
+                    onChange={(e) => handleMaterialFormChange('maxStock', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="mm-form-group">
+                <label className="mm-label">Warehouse Location</label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  value={materialForm.warehouseLocation}
+                  onChange={(e) => handleMaterialFormChange('warehouseLocation', e.target.value)}
+                />
+              </div>
+
+              <div className="mm-modal-actions">
+                <button type="button" className="mm-btn-secondary" onClick={() => setShowAddMaterialModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="mm-btn-primary">
+                  <Package size={16} />
+                  Add Material
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============ EDIT MATERIAL MODAL ============ */}
+      {showEditMaterialModal && (
+        <div className="mm-modal-overlay" onClick={() => setShowEditMaterialModal(false)}>
+          <div className="mm-modal mm-modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="mm-modal-header">
+              <h2>Edit Material</h2>
+              <button className="mm-modal-close" onClick={() => setShowEditMaterialModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitEditMaterial} className="mm-modal-body">
+              {/* Material Code & Name */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Code</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.id}
+                    readOnly
+                    style={{ backgroundColor: '#f1f5f9' }}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Name *</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.name}
+                    onChange={(e) => handleMaterialFormChange('name', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Supplier & Type */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Supplier</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.supplier}
+                    onChange={(e) => handleMaterialFormChange('supplier', e.target.value)}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Material Type</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.type}
+                    onChange={(e) => handleMaterialFormChange('type', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Current Stock & Unit */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Current Stock</label>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.stock}
+                    readOnly
+                    style={{ backgroundColor: '#f1f5f9' }}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Unit of Measurement *</label>
+                  <div className="mm-select-wrapper">
+                    <select 
+                      className="mm-select"
+                      value={materialForm.unit}
+                      onChange={(e) => handleMaterialFormChange('unit', e.target.value)}
+                    >
+                      {unitOptions.map(unit => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="mm-select-icon" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Min & Max Stock */}
+              <div className="mm-form-row">
+                <div className="mm-form-group half">
+                  <label className="mm-label">Minimum Stock Level</label>
+                  <input 
+                    type="number" 
+                    className="mm-input" 
+                    value={materialForm.minStock}
+                    onChange={(e) => handleMaterialFormChange('minStock', e.target.value)}
+                  />
+                </div>
+                <div className="mm-form-group half">
+                  <label className="mm-label">Maximum Stock Level</label>
+                  <input 
+                    type="number" 
+                    className="mm-input" 
+                    value={materialForm.maxStock}
+                    onChange={(e) => handleMaterialFormChange('maxStock', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Location */}
+              <div className="mm-form-group">
+                <label className="mm-label">Warehouse Location</label>
+                <input 
+                  type="text" 
+                  className="mm-input" 
+                  value={materialForm.warehouseLocation}
+                  onChange={(e) => handleMaterialFormChange('warehouseLocation', e.target.value)}
+                />
+              </div>
+
+              <div className="mm-modal-actions">
+                <button type="button" className="mm-btn-secondary" onClick={() => setShowEditMaterialModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="mm-btn-primary">
+                  <Edit size={16} />
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
