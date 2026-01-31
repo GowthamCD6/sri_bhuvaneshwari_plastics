@@ -7,8 +7,9 @@ const NewPurchaseIndent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Check if we're in verify mode
+  // Check if we're in verify mode or view mode
   const isVerifyMode = location.state?.verifyMode || false;
+  const isViewMode = location.state?.viewMode || false;
   const indentToVerify = location.state?.indentData || null;
   
   // Initialize with localStorage data or defaults
@@ -88,9 +89,9 @@ const NewPurchaseIndent = () => {
     }
   };
 
-  // Populate form data when in verify mode
+  // Populate form data when in verify mode or view mode
   useEffect(() => {
-    if (isVerifyMode && indentToVerify) {
+    if ((isVerifyMode || isViewMode) && indentToVerify) {
       setFormData({
         department: indentToVerify.project || '',
         requestedBy: indentToVerify.raisedBy || '',
@@ -484,8 +485,22 @@ const NewPurchaseIndent = () => {
         {/* Header */}
         <div className="pi-header">
           <div className="pi-header-left">
-            <h1>{isVerifyMode ? `Verify Store Indent - ${indentToVerify?.id}` : 'New Purchase Indent'}</h1>
-            <p>{isVerifyMode ? `Review and verify the indent raised by ${indentToVerify?.raisedBy} for ${indentToVerify?.project}` : 'Capture material requirements and send to purchasing for approval.'}</p>
+            <h1>
+              {isVerifyMode 
+                ? `Verify Store Indent - ${indentToVerify?.id}` 
+                : isViewMode
+                ? `Review Purchase Indent - ${indentToVerify?.id}`
+                : 'Review QMS Purchase Indent'
+              }
+            </h1>
+            <p>
+              {isVerifyMode 
+                ? `Review and verify the indent raised by ${indentToVerify?.raisedBy} for ${indentToVerify?.project}` 
+                : isViewMode
+                ? `Review and fill store-related details for indent requested by ${indentToVerify?.reqName} (${indentToVerify?.reqRole})`
+                : 'Review purchase indent initiated by QMS and provide store inventory details.'
+              }
+            </p>
           </div>
           <div className="pi-header-right">
             {isVerifyMode && (
@@ -508,7 +523,17 @@ const NewPurchaseIndent = () => {
                 </button>
               </>
             )}
-            {!isVerifyMode && (
+            {isViewMode && (
+              <button
+                type="button"
+                className="pi-btn-secondary"
+                onClick={() => navigate('/verify-indents')}
+              >
+                <X size={16} />
+                Back to List
+              </button>
+            )}
+            {!isVerifyMode && !isViewMode && (
               <button
                 type="button"
                 className="pi-workflow-btn"
