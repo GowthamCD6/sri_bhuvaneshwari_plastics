@@ -26,6 +26,8 @@ import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
 // ===== PURCHASE DEPARTMENT ROLE PAGES =====
 import PurchaseOverview from '../Pages/PurchaseDepartment/Overview/Overview';
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
+import Suppliers from '../Pages/PurchaseDepartment/Suppliers/Suppliers';
+import QMSIndents from '../Pages/PurchaseDepartment/QMSIndents/QMSIndents';
 
 const AppNavigator = () => {
   return (
@@ -57,6 +59,8 @@ const AppNavigator = () => {
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
       <Route path="/purchase/overview" element={<PurchaseOverview />} />
       <Route path="/purchase/store-requests" element={<StoreRequests />} />
+      <Route path="/purchase/suppliers" element={<Suppliers />} />
+      <Route path="/purchase/qms-indents" element={<QMSIndents />} />
     </Routes>
   );
 };

@@ -1,0 +1,457 @@
+import React, { useState, useMemo } from 'react';
+import { Search, ChevronDown, Eye, Calendar, FileText, X, Package, User, MapPin, Clock } from 'lucide-react';
+import './QMSIndents.css';
+
+const QMSIndents = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('this-month');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedIndent, setSelectedIndent] = useState(null);
+  const itemsPerPage = 5;
+
+  const [indents, setIndents] = useState([
+    {
+      id: 'IND-2024-089',
+      date: 'Oct 24, 2024',
+      material: 'HDPE Granules',
+      category: 'Raw Material',
+      priority: 'HIGH',
+      status: 'Pending',
+      origin: 'QMS Dept',
+      quantity: '500 kg',
+      requestedBy: 'Rajesh Kumar',
+      remarks: 'Urgent requirement for production batch'
+    },
+    {
+      id: 'IND-2024-088',
+      date: 'Oct 23, 2024',
+      material: 'Packing Film Roll',
+      category: 'Packaging',
+      priority: 'NORMAL',
+      status: 'Verified',
+      origin: 'QMS Dept',
+      quantity: '200 Rolls',
+      requestedBy: 'Priya Sharma',
+      remarks: 'Regular stock replenishment'
+    },
+    {
+      id: 'IND-2024-085',
+      date: 'Oct 21, 2024',
+      material: 'Safety Gloves',
+      category: 'Consumables',
+      priority: 'NORMAL',
+      status: 'Pending',
+      origin: 'Store Request',
+      quantity: '100 Pairs',
+      requestedBy: 'Store Officer',
+      remarks: 'Monthly safety equipment requirement'
+    },
+    {
+      id: 'IND-2024-082',
+      date: 'Oct 18, 2024',
+      material: 'Masterbatch Blue',
+      category: 'Additives',
+      priority: 'HIGH',
+      status: 'Rejected',
+      origin: 'QMS Dept',
+      quantity: '50 kg',
+      requestedBy: 'Suresh Menon',
+      remarks: 'Color requirement for custom order',
+      rejectionReason: 'Duplicate request - already in process'
+    },
+    {
+      id: 'IND-2024-080',
+      date: 'Oct 15, 2024',
+      material: 'Testing Solution A',
+      category: 'Lab Supplies',
+      priority: 'NORMAL',
+      status: 'Processed',
+      origin: 'Lab',
+      quantity: '10 Liters',
+      requestedBy: 'Dr. Anand Kumar',
+      remarks: 'Quality testing chemicals',
+      poNumber: 'PO-2024-156'
+    },
+    {
+      id: 'IND-2024-078',
+      date: 'Oct 14, 2024',
+      material: 'PP Compound Natural',
+      category: 'Raw Material',
+      priority: 'HIGH',
+      status: 'Processed',
+      origin: 'QMS Dept',
+      quantity: '800 kg',
+      requestedBy: 'Rajesh Kumar',
+      remarks: 'Production requirement',
+      poNumber: 'PO-2024-154'
+    },
+    {
+      id: 'IND-2024-075',
+      date: 'Oct 12, 2024',
+      material: 'Lubricant Oil',
+      category: 'Maintenance',
+      priority: 'NORMAL',
+      status: 'Verified',
+      origin: 'Store Request',
+      quantity: '50 Liters',
+      requestedBy: 'Store Officer',
+      remarks: 'Machine maintenance schedule'
+    },
+    {
+      id: 'IND-2024-072',
+      date: 'Oct 10, 2024',
+      material: 'Stretch Film',
+      category: 'Packaging',
+      priority: 'NORMAL',
+      status: 'Processed',
+      origin: 'QMS Dept',
+      quantity: '100 Rolls',
+      requestedBy: 'Priya Sharma',
+      remarks: 'Packaging material stock',
+      poNumber: 'PO-2024-150'
+    },
+    {
+      id: 'IND-2024-070',
+      date: 'Oct 08, 2024',
+      material: 'ABS Granules White',
+      category: 'Raw Material',
+      priority: 'HIGH',
+      status: 'Pending',
+      origin: 'QMS Dept',
+      quantity: '600 kg',
+      requestedBy: 'Rajesh Kumar',
+      remarks: 'Special order production'
+    },
+    {
+      id: 'IND-2024-068',
+      date: 'Oct 05, 2024',
+      material: 'Cleaning Solvent',
+      category: 'Maintenance',
+      priority: 'NORMAL',
+      status: 'Rejected',
+      origin: 'Store Request',
+      quantity: '20 Liters',
+      requestedBy: 'Store Officer',
+      remarks: 'Mould cleaning',
+      rejectionReason: 'Budget exceeded for this month'
+    },
+    {
+      id: 'IND-2024-065',
+      date: 'Oct 03, 2024',
+      material: 'Color Pigment Red',
+      category: 'Additives',
+      priority: 'NORMAL',
+      status: 'Processed',
+      origin: 'QMS Dept',
+      quantity: '25 kg',
+      requestedBy: 'Suresh Menon',
+      remarks: 'Regular color stock',
+      poNumber: 'PO-2024-145'
+    },
+    {
+      id: 'IND-2024-062',
+      date: 'Oct 01, 2024',
+      material: 'Calibration Kit',
+      category: 'Lab Supplies',
+      priority: 'HIGH',
+      status: 'Verified',
+      origin: 'Lab',
+      quantity: '2 Sets',
+      requestedBy: 'Dr. Anand Kumar',
+      remarks: 'Annual calibration requirement'
+    }
+  ]);
+
+  // Filter and search logic
+  const filteredIndents = useMemo(() => {
+    let result = [...indents];
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      result = result.filter(i => i.status.toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(i =>
+        i.id.toLowerCase().includes(query) ||
+        i.material.toLowerCase().includes(query) ||
+        i.category.toLowerCase().includes(query) ||
+        i.origin.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [indents, statusFilter, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredIndents.length / itemsPerPage);
+  const paginatedIndents = filteredIndents.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleViewDetails = (indent) => {
+    setSelectedIndent(indent);
+    setShowDetailModal(true);
+  };
+
+  const getStatusClass = (status) => {
+    switch (status.toLowerCase()) {
+      case 'pending': return 'status-pending';
+      case 'verified': return 'status-verified';
+      case 'processed': return 'status-processed';
+      case 'rejected': return 'status-rejected';
+      default: return 'status-pending';
+    }
+  };
+
+  const getPriorityClass = (priority) => {
+    return priority === 'HIGH' ? 'priority-high' : 'priority-normal';
+  };
+
+  return (
+    <div className="qi-container">
+      <div className="qi-content">
+        {/* Header with Search and Filters */}
+        <div className="qi-toolbar">
+          <div className="qi-search">
+            <Search size={16} className="qi-search-icon" />
+            <input
+              type="text"
+              placeholder="Search indent ID or item..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
+          <div className="qi-filters">
+            <div className="qi-filter-dropdown">
+              <select 
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              >
+                <option value="all">Status: All</option>
+                <option value="pending">Pending</option>
+                <option value="verified">Verified</option>
+                <option value="processed">Processed</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <ChevronDown size={14} className="qi-dropdown-icon" />
+            </div>
+            <div className="qi-filter-dropdown">
+              <Calendar size={14} className="qi-calendar-icon" />
+              <select 
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              >
+                <option value="this-month">This Month</option>
+                <option value="last-month">Last Month</option>
+                <option value="last-3-months">Last 3 Months</option>
+                <option value="all-time">All Time</option>
+              </select>
+              <ChevronDown size={14} className="qi-dropdown-icon" />
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="qi-table-container">
+          <table className="qi-table">
+            <thead>
+              <tr>
+                <th>Indent ID</th>
+                <th>Date</th>
+                <th>Requested Material</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Origin</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedIndents.length > 0 ? (
+                paginatedIndents.map((indent) => (
+                  <tr key={indent.id}>
+                    <td className="qi-td-id">{indent.id}</td>
+                    <td className="qi-td-date">{indent.date}</td>
+                    <td className="qi-td-material">
+                      <div className="qi-material-name">{indent.material}</div>
+                      <div className="qi-material-category">{indent.category}</div>
+                    </td>
+                    <td className="qi-td-priority">
+                      <span className={`qi-priority-badge ${getPriorityClass(indent.priority)}`}>
+                        {indent.priority}
+                      </span>
+                    </td>
+                    <td className="qi-td-status">
+                      <span className={`qi-status-badge ${getStatusClass(indent.status)}`}>
+                        <span className="qi-status-icon">⊙</span>
+                        {indent.status}
+                      </span>
+                    </td>
+                    <td className="qi-td-origin">{indent.origin}</td>
+                    <td className="qi-td-actions">
+                      <button 
+                        className="qi-btn-view"
+                        onClick={() => handleViewDetails(indent)}
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="qi-empty">
+                    <div className="qi-empty-content">
+                      <FileText size={40} />
+                      <p>No indents found</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="qi-pagination">
+          <span className="qi-pagination-info">
+            Showing {filteredIndents.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0}-{Math.min(currentPage * itemsPerPage, filteredIndents.length)} of {filteredIndents.length} records
+          </span>
+          <div className="qi-pagination-controls">
+            <button
+              className="qi-page-btn"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <button
+              className="qi-page-btn"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* View Details Modal */}
+      {showDetailModal && selectedIndent && (
+        <div className="qi-modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="qi-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="qi-modal-header">
+              <h3>Indent Details</h3>
+              <button className="qi-modal-close" onClick={() => setShowDetailModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="qi-modal-body">
+              <div className="qi-detail-header">
+                <div className="qi-detail-id">{selectedIndent.id}</div>
+                <div className="qi-detail-badges">
+                  <span className={`qi-priority-badge ${getPriorityClass(selectedIndent.priority)}`}>
+                    {selectedIndent.priority}
+                  </span>
+                  <span className={`qi-status-badge ${getStatusClass(selectedIndent.status)}`}>
+                    <span className="qi-status-icon">⊙</span>
+                    {selectedIndent.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="qi-detail-grid">
+                <div className="qi-detail-item">
+                  <div className="qi-detail-icon">
+                    <Package size={18} />
+                  </div>
+                  <div className="qi-detail-content">
+                    <span className="qi-detail-label">Material</span>
+                    <span className="qi-detail-value">{selectedIndent.material}</span>
+                    <span className="qi-detail-sub">{selectedIndent.category}</span>
+                  </div>
+                </div>
+
+                <div className="qi-detail-item">
+                  <div className="qi-detail-icon">
+                    <FileText size={18} />
+                  </div>
+                  <div className="qi-detail-content">
+                    <span className="qi-detail-label">Quantity</span>
+                    <span className="qi-detail-value">{selectedIndent.quantity}</span>
+                  </div>
+                </div>
+
+                <div className="qi-detail-item">
+                  <div className="qi-detail-icon">
+                    <Clock size={18} />
+                  </div>
+                  <div className="qi-detail-content">
+                    <span className="qi-detail-label">Date</span>
+                    <span className="qi-detail-value">{selectedIndent.date}</span>
+                  </div>
+                </div>
+
+                <div className="qi-detail-item">
+                  <div className="qi-detail-icon">
+                    <MapPin size={18} />
+                  </div>
+                  <div className="qi-detail-content">
+                    <span className="qi-detail-label">Origin</span>
+                    <span className="qi-detail-value">{selectedIndent.origin}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="qi-detail-section">
+                <div className="qi-detail-icon">
+                  <User size={18} />
+                </div>
+                <div className="qi-detail-content">
+                  <span className="qi-detail-label">Requested By</span>
+                  <span className="qi-detail-value">{selectedIndent.requestedBy}</span>
+                </div>
+              </div>
+
+              <div className="qi-detail-section">
+                <span className="qi-detail-label">Remarks</span>
+                <p className="qi-detail-remarks">{selectedIndent.remarks}</p>
+              </div>
+
+              {selectedIndent.status === 'Processed' && selectedIndent.poNumber && (
+                <div className="qi-detail-section qi-po-info">
+                  <span className="qi-detail-label">Purchase Order</span>
+                  <span className="qi-detail-value qi-po-number">{selectedIndent.poNumber}</span>
+                </div>
+              )}
+
+              {selectedIndent.status === 'Rejected' && selectedIndent.rejectionReason && (
+                <div className="qi-detail-section qi-rejection-info">
+                  <span className="qi-detail-label">Rejection Reason</span>
+                  <p className="qi-detail-remarks">{selectedIndent.rejectionReason}</p>
+                </div>
+              )}
+            </div>
+            <div className="qi-modal-footer">
+              <button className="qi-btn-secondary" onClick={() => setShowDetailModal(false)}>
+                Close
+              </button>
+              {selectedIndent.status === 'Verified' && (
+                <button className="qi-btn-primary">
+                  Create PO
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default QMSIndents;
