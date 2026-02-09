@@ -1,128 +1,63 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, Filter, Clock, CheckCircle, ShoppingBag, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, Search, Filter, Clock, CheckCircle, ShoppingBag, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import './VerifyStoreIndents.css';
+import { purchaseIndentService } from '../../../services/apiService';
+import useAuthStore from '../../../store/authStore';
 
 const VerifyStoreIndents = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   // State management
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(5); // Default pagination size
+  const [pageSize] = useState(5);
   const [selectedIndents, setSelectedIndents] = useState([]);
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
-  
-  // Mock Data corresponding to the image rows (expanded with more entries)
-  const allIndents = [
-    {
-      id: "#IND-24-082",
-      date: "25 Jan, 2024",
-      project: "Alpha Industrial Pump",
-      orderId: "Order #ORD-9921",
-      raisedBy: "Priya S.",
-      avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-      itemCount: "12 Items",
-      priority: "High Priority",
-      storeAvailable: 8,
-      storeToBuy: 4,
-      isFullStock: false,
-      status: "Pending QMS",
-      statusClass: "badge-pending",
-    },
-    {
-      id: "#IND-24-081",
-      date: "24 Jan, 2024",
-      project: "Beta Machinery Ltd",
-      orderId: "Order #ORD-9918",
-      raisedBy: "Rajesh K.",
-      avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-      itemCount: "5 Items",
-      priority: "Normal Priority",
-      storeAvailable: 0,
-      storeToBuy: 5,
-      isFullStock: false,
-      status: "Pending QMS",
-      statusClass: "badge-pending",
-    },
-    {
-      id: "#IND-24-079",
-      date: "24 Jan, 2024",
-      project: "Gamma Tech Solutions",
-      orderId: "Order #ORD-9915",
-      raisedBy: "Sarah M.",
-      avatar: "https://i.pravatar.cc/150?u=a04258114e29026302d",
-      itemCount: "8 Items",
-      priority: "Normal Priority",
-      storeAvailable: 8,
-      storeToBuy: 0,
-      isFullStock: true,
-      status: "Store Verified",
-      statusClass: "badge-verified",
-    },
-    {
-      id: "#IND-24-075",
-      date: "22 Jan, 2024",
-      project: "Omega Structures",
-      orderId: "Order #ORD-9902",
-      raisedBy: "David W.",
-      avatar: "https://i.pravatar.cc/150?u=a048581f4e29026701d",
-      itemCount: "24 Items",
-      priority: "Low Priority",
-      storeAvailable: 20,
-      storeToBuy: 4,
-      isFullStock: false,
-      status: "Pending QMS",
-      statusClass: "badge-pending",
-    },
-    {
-      id: "#IND-24-074",
-      date: "21 Jan, 2024",
-      project: "Delta Manufacturing",
-      orderId: "Order #ORD-9900",
-      raisedBy: "Mike R.",
-      avatar: "https://i.pravatar.cc/150?u=a048581f4e29026801d",
-      itemCount: "15 Items",
-      priority: "High Priority",
-      storeAvailable: 10,
-      storeToBuy: 5,
-      isFullStock: false,
-      status: "Store Verified",
-      statusClass: "badge-verified",
-    },
-    {
-      id: "#IND-24-073",
-      date: "21 Jan, 2024",
-      project: "Epsilon Corp",
-      orderId: "Order #ORD-9899",
-      raisedBy: "Lisa T.",
-      avatar: "https://i.pravatar.cc/150?u=a048581f4e29026901d",
-      itemCount: "6 Items",
-      priority: "Normal Priority",
-      storeAvailable: 6,
-      storeToBuy: 0,
-      isFullStock: true,
-      status: "Store Verified",
-      statusClass: "badge-verified",
-    },
-    {
-      id: "#IND-24-072",
-      date: "20 Jan, 2024",
-      project: "Zeta Industries",
-      orderId: "Order #ORD-9898",
-      raisedBy: "John D.",
-      avatar: "https://i.pravatar.cc/150?u=a048581f4e29027001d",
-      itemCount: "18 Items",
-      priority: "Low Priority",
-      storeAvailable: 12,
-      storeToBuy: 6,
-      isFullStock: false,
-      status: "Pending QMS",
-      statusClass: "badge-pending",
-    },
-  ];
+  const [allIndents, setAllIndents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch indents assigned to QMS for verification (workflow_stage = 'QMS Verified')
+  useEffect(() => {
+    const fetchIndents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' });
+        
+        if (response.success) {
+          const transformedData = response.data.map(indent => ({
+            id: indent.indent_number,
+            indentId: indent.indent_id,
+            date: new Date(indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+            project: indent.customer_name || 'Stock Replenishment',
+            orderId: indent.customer_order_indent_id ? `Order #${indent.customer_order_indent_id}` : 'N/A',
+            raisedBy: indent.requested_by_name || 'N/A',
+            itemCount: `${indent.total_materials || 0} Items`,
+            priority: indent.priority === 'Urgent' ? 'High Priority' : 'Normal Priority',
+            status: indent.status === 'Pending QMS Verification' ? 'Pending QMS' : 'Verified',
+            statusClass: indent.status === 'Pending QMS Verification' ? 'badge-pending' : 'badge-verified',
+            poNumber: indent.po_number,
+            poReference: indent.po_reference
+          }));
+          
+          setAllIndents(transformedData);
+        }
+      } catch (err) {
+        console.error('Error fetching indents:', err);
+        setError('Failed to load indents');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIndents();
+  }, []);
 
   // Filter and search logic
   const filteredIndents = useMemo(() => {
@@ -148,17 +83,16 @@ const VerifyStoreIndents = () => {
     }
 
     return filtered;
-  }, [searchQuery, activeTab]);
+  }, [allIndents, searchQuery, activeTab]);
 
   // Calculate stats
   const stats = useMemo(() => {
     const pending = allIndents.filter(i => i.status === 'Pending QMS').length;
-    const verified = allIndents.filter(i => i.status === 'Store Verified').length;
-    const requiresPurchase = allIndents.filter(i => i.storeToBuy > 0).length;
-    const fullyStocked = allIndents.filter(i => i.isFullStock).length;
+    const verified = allIndents.filter(i => i.status === 'Verified').length;
+    const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
 
-    return { pending, verified, requiresPurchase, fullyStocked };
-  }, []);
+    return { pending, verified, requiresPurchase };
+  }, [allIndents]);
 
   // Pagination logic
   const totalItems = filteredIndents.length;
@@ -198,6 +132,15 @@ const VerifyStoreIndents = () => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
     }
+  };
+
+  // Navigate to view indent details
+  const handleViewIndent = (indent) => {
+    navigate('/qms-purchase-indents', {
+      state: {
+        indentId: indent.indentId
+      }
+    });
   };
 
   return (
@@ -293,19 +236,28 @@ const VerifyStoreIndents = () => {
 
         {/* Table */}
         <div className="vsi-table-container">
-          <table className="vsi-table">
-            <thead>
-              <tr>
-                <th>INDENT ID</th>
-                <th>PROJECT / CUSTOMER</th>
-                <th>RAISED BY</th>
-                <th>ITEMS</th>
-                <th>STORE STATUS</th>
-                <th>VERIFICATION STATUS</th>
-                <th style={{textAlign: 'right'}}>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+              Loading indents...
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+              {error}
+            </div>
+          ) : (
+            <table className="vsi-table">
+              <thead>
+                <tr>
+                  <th>INDENT ID</th>
+                  <th>PROJECT / CUSTOMER</th>
+                  <th>RAISED BY</th>
+                  <th>ITEMS</th>
+                  <th>PO NUMBER</th>
+                  <th>VERIFICATION STATUS</th>
+                  <th style={{textAlign: 'right'}}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
               {currentIndents.length > 0 ? (
                 currentIndents.map((item, idx) => (
                   <tr key={idx}>
@@ -336,23 +288,10 @@ const VerifyStoreIndents = () => {
                       <div className="vsi-subtext">{item.priority}</div>
                     </td>
 
-                    {/* Store Status (Progress Bar) */}
-                    <td style={{ minWidth: '180px' }}>
-                      <div className="vsi-stock-text">
-                        <span className="vsi-bold-dark">{item.storeAvailable} Available</span>
-                        {item.isFullStock ? (
-                           <span className="vsi-success-text">Full Stock</span>
-                        ) : (
-                           <span className="vsi-subtext-blue"> {item.storeToBuy} to Buy</span>
-                        )}
-                      </div>
-                      {/* Progress Bar Visual */}
-                      <div className="vsi-progress-track">
-                        <div 
-                          className="vsi-progress-fill" 
-                          style={{ width: `${(item.storeAvailable / (item.storeAvailable + item.storeToBuy || 1)) * 100}%` }}
-                        ></div>
-                      </div>
+                    {/* PO Number */}
+                    <td>
+                      <div className="vsi-text-bold">{item.poNumber || 'N/A'}</div>
+                      <div className="vsi-subtext">{item.poReference || ''}</div>
                     </td>
 
                     {/* Verification Status */}
@@ -366,10 +305,10 @@ const VerifyStoreIndents = () => {
                     <td style={{textAlign: 'right'}}>
                       <button 
                         className="vsi-btn-verify"
-                        onClick={() => handleVerify(item.id)}
-                        disabled={item.status === 'Store Verified'}
+                        onClick={() => handleViewIndent(item)}
                       >
-                        {item.status === 'Store Verified' ? 'Verified' : 'Verify'}
+                        <Eye size={16} style={{marginRight: '4px'}} />
+                        View
                       </button>
                     </td>
 
@@ -384,43 +323,46 @@ const VerifyStoreIndents = () => {
               )}
             </tbody>
           </table>
+          )}
         </div>
 
         {/* Footer / Pagination */}
-        <div className="vsi-footer">
-          <span className="vsi-footer-text">
-            Showing {currentIndents.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, totalItems)} of {totalItems} items
-          </span>
-          <div className="vsi-pagination">
-            <button 
-              className="vsi-page-btn"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft size={16} />
-              Previous
-            </button>
-            <div className="vsi-page-numbers">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  className={`vsi-page-btn ${page === currentPage ? 'active' : ''}`}
-                  onClick={() => handlePageChange(page)}
-                >
-                  {page}
-                </button>
-              ))}
+        {!loading && !error && (
+          <div className="vsi-footer">
+            <span className="vsi-footer-text">
+              Showing {currentIndents.length > 0 ? startIndex + 1 : 0}-{Math.min(endIndex, totalItems)} of {totalItems} items
+            </span>
+            <div className="vsi-pagination">
+              <button 
+                className="vsi-page-btn"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </button>
+              <div className="vsi-page-numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    className={`vsi-page-btn ${page === currentPage ? 'active' : ''}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                className="vsi-page-btn"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
             </div>
-            <button 
-              className="vsi-page-btn"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              Next
-              <ChevronRight size={16} />
-            </button>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

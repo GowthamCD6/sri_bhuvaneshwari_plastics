@@ -1,53 +1,22 @@
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User } from 'lucide-react';
-import './PurchaseIndents.css';
+// This file is deprecated - using unified PurchaseIndents component from QMS folder
+// See: src/Pages/QMS/PurchaseIndent/PurchaseIndents.jsx
+// This component is now role-dynamic and handles all user roles (QMS, StoreOfficer, Admin, Accountant)
 
-const NewPurchaseIndent = () => {
-  const location = useLocation();
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+
+const PurchaseIndents = () => {
   const navigate = useNavigate();
   
-  // Check if we're in verify mode or view mode
-  const isVerifyMode = location.state?.verifyMode || false;
-  const isViewMode = location.state?.viewMode || false;
-  const indentToVerify = location.state?.indentData || null;
+  useEffect(() => {
+    // Redirect to unified component
+    navigate('/purchase-indents', { replace: true });
+  }, [navigate]);
   
-  // Initialize with localStorage data or defaults
-  const [materials, setMaterials] = useState(() => {
-    const saved = localStorage.getItem('purchaseIndentMaterials');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 1,
-        description: 'EN8 Round Bar – 20 mm',
-        preferredSupplier: 'ABC Steels Pvt Ltd',
-        requiredQuantity: '1,000 kg',
-        requiredDate: '25 Jan 2026',
-        onHand: '250 kg',
-        order: '750 kg',
-        status: 'pending',
-        uom: 'kg'
-      },
-      {
-        id: 2,
-        description: 'CI Bush – Size 30 × 40 × 25',
-        preferredSupplier: 'Universal Castings',
-        requiredQuantity: '500 Nos',
-        requiredDate: '28 Jan 2026',
-        onHand: '60 Nos',
-        order: '440 Nos',
-        status: 'pending',
-        uom: 'Nos'
-      },
-      {
-        id: 3,
-        description: 'MS Sheet – 2 mm',
-        preferredSupplier: 'Metro Metals',
-        requiredQuantity: '50 Sheets',
-        requiredDate: '30 Jan 2026',
-        onHand: '0',
-        order: '50',
-        status: 'pending',
-        uom: 'Sheets'
+  return null;
+};
+
+export default PurchaseIndents;
       }
     ];
   });

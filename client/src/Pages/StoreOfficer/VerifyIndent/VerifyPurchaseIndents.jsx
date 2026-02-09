@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Filter, ChevronLeft, ChevronRight, FileText, Eye, CheckCircle, XCircle, X } from 'lucide-react';
+import { Search, Filter, ChevronLeft, ChevronRight, FileText, Eye, X } from 'lucide-react';
 import './VerifyPurchaseIndents.css';
+import { purchaseIndentService } from '../../../services/apiService';
+import useAuthStore from '../../../store/authStore';
 
 const VerifyPurchaseIndents = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   // State management
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,9 +17,59 @@ const VerifyPurchaseIndents = () => {
   const [selectedIndents, setSelectedIndents] = useState([]);
   const [urgencyFilter, setUrgencyFilter] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [allIndents, setAllIndents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock Data
-  const allIndents = [
+  // Fetch purchase indents assigned to Store Officer
+  useEffect(() => {
+    const fetchIndents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch indents where workflow_stage = 'Store Officer'
+        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
+        
+        if (response.success) {
+          // Transform API data to match UI format
+          const transformedData = response.data.map(indent => ({
+            id: indent.indent_number,
+            indentId: indent.indent_id,
+            subId: indent.customer_order_indent_id ? `Customer Order #${indent.customer_order_indent_id}` : 'Stock Replenishment',
+            reqName: indent.requested_by_name || 'N/A',
+            reqRole: 'QMS Officer',
+            dept: 'QMS',
+            date: new Date(indent.created_at).toLocaleString('en-IN', { 
+              day: '2-digit', 
+              month: 'short', 
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            }),
+            urgency: indent.priority || 'Normal',
+            urgencyClass: indent.priority === 'Urgent' ? 'badge-urgent' : indent.priority === 'High' ? 'badge-critical' : 'badge-normal',
+            items: `${indent.total_materials || 0} Materials`,
+            status: indent.status === 'Pending Store Review' ? 'Pending' : 'Verified',
+            statusClass: indent.status === 'Pending Store Review' ? 'status-orange' : 'status-green',
+          }));
+          
+          setAllIndents(transformedData);
+        }
+      } catch (err) {
+        console.error('Error fetching indents:', err);
+        setError('Failed to load purchase indents');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIndents();
+  }, []);
+
+  // Mock Data (fallback - remove this in production)
+  const mockIndents = [
     {
       id: "PI-2024-089",
       subId: "Customer Order #CO-1023",
@@ -246,28 +299,15 @@ const VerifyPurchaseIndents = () => {
 
   // Action handlers
   const handleViewIndent = (indent) => {
-    // Navigate to purchase indent page for store officer
-    navigate('/purchase-indents', { 
+    // Navigate to unified purchase indent page with indent ID
+    navigate('/qms-purchase-indents', { 
       state: { 
-        indentData: indent,
-        viewMode: true 
+        indentId: indent.indentId
       } 
     });
   };
 
-  const handleVerifyIndent = (indent) => {
-    if (window.confirm(`Are you sure you want to verify indent ${indent.id}?`)) {
-      console.log('Verifying indent:', indent);
-      alert(`Indent ${indent.id} has been verified successfully!`);
-    }
-  };
 
-  const handleRejectIndent = (indent) => {
-    if (window.confirm(`Are you sure you want to reject indent ${indent.id}?`)) {
-      console.log('Rejecting indent:', indent);
-      alert(`Indent ${indent.id} has been rejected.`);
-    }
-  };
 
   const handleUrgencyFilter = (urgency) => {
     setUrgencyFilter(urgency);
@@ -285,10 +325,18 @@ const VerifyPurchaseIndents = () => {
       {/* Page Header */}
       <div className="vpi-header-section">
         <div className="vpi-header-left">
-          <h1 className="vpi-title">Verify Purchase Indents</h1>
-          <p className="vpi-subtitle">Review and verify purchase indents submitted by QMS before sending back for approval.</p>
+          <h1 className="vpi-title">Purchase Indents - Store Officer</h1>
+          <p className="vpi-subtitle">Review purchase indents from QMS and fill PO details before sending back for verification.</p>
         </div>
       </div>
+
+      {/* Loading and Error States */}
+      {loading && (
+        <div style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>Loading indents...</div>
+      )}
+      {error && (
+        <div style={{padding: '20px', backgroundColor: '#fee', color: '#c00', borderRadius: '8px', marginBottom: '20px'}}>{error}</div>
+      )}
 
       {/* Tabs and Search Section */}
       <div className="vpi-controls-section">
@@ -457,28 +505,10 @@ const VerifyPurchaseIndents = () => {
                         <button 
                           className="vpi-btn-icon vpi-btn-view"
                           onClick={() => handleViewIndent(item)}
-                          title="View Details"
+                          title="View and Fill PO Details"
                         >
                           <Eye size={16} />
                         </button>
-                        {item.status === 'Pending' && (
-                          <>
-                            <button 
-                              className="vpi-btn-icon vpi-btn-verify"
-                              onClick={() => handleVerifyIndent(item)}
-                              title="Verify Indent"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                            <button 
-                              className="vpi-btn-icon vpi-btn-reject"
-                              onClick={() => handleRejectIndent(item)}
-                              title="Reject Indent"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </>
-                        )}
                       </div>
                     </td>
                   </tr>

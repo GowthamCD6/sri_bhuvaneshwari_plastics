@@ -1,11 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check } from 'lucide-react';
-import './PurchaseIndents.css';
+// This file is deprecated - using unified PurchaseIndents component from QMS folder
+// See: src/Pages/QMS/PurchaseIndent/PurchaseIndents.jsx
+// This component is now role-dynamic and handles all user roles (QMS, StoreOfficer, Admin, Accountant)
 
-const NewPurchaseIndent = () => {
-  // Initialize with localStorage data or defaults
-  const [materials, setMaterials] = useState(() => {
-    const saved = localStorage.getItem('purchaseIndentMaterials');
+import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+
+const PurchaseIndents = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Redirect to unified component
+    navigate('/qms-purchase-indents', { replace: true });
+  }, [navigate]);
+  
+  return null;
+};
+
+export default PurchaseIndents;
     return saved ? JSON.parse(saved) : [
       {
         id: 1,

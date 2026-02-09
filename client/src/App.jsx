@@ -1,32 +1,63 @@
-import { BrowserRouter as Router } from 'react-router-dom';
-import { useState } from 'react';
+import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Components/Sidebar/Sidebar';
 import AppNavigator from './Navigation/Appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
+import useAuthStore from './store/authStore';
+import { useEffect } from 'react';
 import './App.css';
 
-function App() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+function AppContent() {
+  const { isAuthenticated, user, login, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleLogin = (userData) => {
-    setIsAuthenticated(true);
-    setUserRole(userData.role);
+  const handleLogin = (loginData) => {
+    const userData = loginData.user;
+    const token = loginData.token;
+    login(userData, token);
+    console.log('User logged in with role:', userData?.roleName);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  // Redirect to home after login to trigger role-based routing
+  useEffect(() => {
+    if (isAuthenticated && location.pathname === '/') {
+      // The AppNavigator will handle redirecting to the correct default route
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
+
+  // Get user role for sidebar
+  const userRole = user?.roleName?.toLowerCase() || 'qms';
+
   return (
-    <Router>
+    <>
       {!isAuthenticated ? (
         <Login onLogin={handleLogin} />
       ) : (
         <div className="app-container">
-          <Sidebar onToggle={setSidebarCollapsed} userRole={userRole} />
-          <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          <Sidebar 
+            userRole={userRole} 
+            userData={user}
+            onLogout={handleLogout}
+          />
+          <main className="main-content">
             <AppNavigator />
           </main>
         </div>
       )}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

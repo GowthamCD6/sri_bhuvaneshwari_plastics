@@ -19,23 +19,35 @@ import {
   UserCog,
   Inbox,
   Truck,
+  User,
+  LogOut,
 } from "lucide-react";
 import "./Sidebar.css";
+import "./SidebarUserProfile.css";
 
-const Sidebar = ({ onToggle, userRole }) => {
-  const [collapsed, setCollapsed] = useState(false);
+const Sidebar = ({ userRole, userData, onLogout }) => {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [orderManagementOpen, setOrderManagementOpen] = useState(true);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const location = useLocation();
 
-  useEffect(() => {
-    if (onToggle) {
-      onToggle(collapsed);
-    }
-  }, [collapsed, onToggle]);
+  // Remove onToggle effect since we're not using collapse anymore
+  // useEffect(() => {
+  //   if (onToggle) {
+  //     onToggle(collapsed);
+  //   }
+  // }, [collapsed, onToggle]);
 
   // Role-based menu configuration
   const roleMenus = {
+    admin: [
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { label: "Administration", section: true },
+      { path: "/user-management", label: "User Management", icon: UserCog },
+      { path: "/qms-approval", label: "QMS Approval", icon: Shield },
+      { label: "Reports", section: true },
+      { path: "/reports", label: "All Reports", icon: BarChart3 },
+    ],
     qms: [
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       {
@@ -116,12 +128,33 @@ const Sidebar = ({ onToggle, userRole }) => {
         icon: ShoppingCart,
       },
     ],
+    storeofficer: [
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { label: "Inventory", section: true },
+      { path: "/inventory", label: "Inventory", icon: Package },
+      { path: "/goods-inventory", label: "Goods Inventory", icon: Package },
+      { path: "/low-stock-alert", label: "Low Stock Alert", icon: AlertTriangle },
+      { path: "/stock-adjustment", label: "Stock Adjustment", icon: Settings },
+      { label: "Procurement", section: true },
+      { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
+      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
+      { path: "/material-request", label: "Material Request", icon: ShoppingCart },
+    ],
+    purchasedepartment: [
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { label: "Purchase", section: true },
+      { path: "/suppliers", label: "Suppliers", icon: Truck },
+      { path: "/qms-indents", label: "QMS Indents", icon: FileText },
+      { path: "/store-requests", label: "Store Requests", icon: Inbox },
+      { path: "/overview", label: "Overview", icon: BarChart3 },
+    ],
   };
 
-  const menuItems = roleMenus[userRole] || roleMenus.procurement;
+  // Get menu items for the user's role, with fallback to qms if role not found
+  const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
 
   return (
-    <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
+    <div className="sidebar">
       {/* Header */}
       <div className="sidebar-header">
         <div className="header-content">
@@ -129,16 +162,11 @@ const Sidebar = ({ onToggle, userRole }) => {
             <div className="logo-icon">
               <span className="logo-text">SBP</span>
             </div>
+            <div className="company-name">
+              <div className="company-title">Sri Bhuvaneswari</div>
+              <div className="company-subtitle">Plastics</div>
+            </div>
           </div>
-
-          {/* Toggle Button */}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="toggle-btn"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-          </button>
         </div>
       </div>
 
@@ -147,7 +175,6 @@ const Sidebar = ({ onToggle, userRole }) => {
         {menuItems.map((item, index) => {
           // Render section headers
           if (item.section) {
-            if (collapsed) return null;
             return (
               <div key={index} className="nav-section">
                 <span className="section-label">{item.label}</span>
@@ -215,18 +242,13 @@ const Sidebar = ({ onToggle, userRole }) => {
             <Link
               key={item.path || index}
               to={item.path}
-              className={`nav-item ${isActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
-              title={collapsed ? item.label : ""}
+              className={`nav-item ${isActive ? "active" : ""}`}
+              title={item.label}
             >
               {isActive && <div className="active-indicator" />}
               <Icon className="nav-icon" size={22} />
-              {!collapsed && (
-                <>
-                  <span className="nav-label">{item.label}</span>
-                  {item.badge && <span className="nav-badge">{item.badge}</span>}
-                </>
-              )}
-              {collapsed && item.badge && <span className="nav-badge-collapsed">{item.badge}</span>}
+              <span className="nav-label">{item.label}</span>
+              {item.badge && <span className="nav-badge">{item.badge}</span>}
             </Link>
           );
         })}
@@ -234,15 +256,25 @@ const Sidebar = ({ onToggle, userRole }) => {
 
       {/* User Profile */}
       <div className="sidebar-footer">
-        <div className={`user-profile ${collapsed ? "collapsed" : ""}`}>
-          <div className="user-avatar">RK</div>
-          {!collapsed && (
-            <div className="user-info">
-              <div className="user-name">Rajesh Kumar</div>
-              <div className="user-role">Procurement Manager</div>
-            </div>
-          )}
+        <div className="user-profile" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+          <div className="user-avatar">
+            <User size={20} />
+          </div>
+          <div className="user-info">
+            <div className="user-name">{userData?.username || 'User'}</div>
+            <div className="user-role">{userData?.roleName || 'Role'}</div>
+          </div>
+          <ChevronDown size={18} className={`user-menu-icon ${userMenuOpen ? 'open' : ''}`} />
         </div>
+        
+        {userMenuOpen && (
+          <div className="user-dropdown">
+            <button className="logout-btn" onClick={onLogout}>
+              <LogOut size={18} />
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

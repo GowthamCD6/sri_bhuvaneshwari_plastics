@@ -1,137 +1,209 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User } from 'lucide-react';
 import './PurchaseIndents.css';
+import { purchaseIndentService } from '../../../services/apiService';
+import useAuthStore from '../../../store/authStore';
 
 const NewPurchaseIndent = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { indentId } = useParams();
+  const { user } = useAuthStore();
   
-  // Check if we're in verify mode
-  const isVerifyMode = location.state?.verifyMode || false;
-  const indentToVerify = location.state?.indentData || null;
-  
-  // Initialize with localStorage data or defaults
-  const [materials, setMaterials] = useState(() => {
-    const saved = localStorage.getItem('purchaseIndentMaterials');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 1,
-        description: 'EN8 Round Bar – 20 mm',
-        preferredSupplier: 'ABC Steels Pvt Ltd',
-        requiredQuantity: '1,000 kg',
-        requiredDate: '25 Jan 2026',
-        onHand: '250 kg',
-        order: '750 kg',
-        status: 'pending',
-        uom: 'kg'
-      },
-      {
-        id: 2,
-        description: 'CI Bush – Size 30 × 40 × 25',
-        preferredSupplier: 'Universal Castings',
-        requiredQuantity: '500 Nos',
-        requiredDate: '28 Jan 2026',
-        onHand: '60 Nos',
-        order: '440 Nos',
-        status: 'pending',
-        uom: 'Nos'
-      },
-      {
-        id: 3,
-        description: 'MS Sheet – 2 mm',
-        preferredSupplier: 'Metro Metals',
-        requiredQuantity: '50 Sheets',
-        requiredDate: '30 Jan 2026',
-        onHand: '0',
-        order: '50',
-        status: 'pending',
-        uom: 'Sheets'
-      }
-    ];
-  });
+  // Check if we're viewing/editing an existing indent OR coming from customer order
+  const isViewMode = location.state?.isViewMode || false;
+  const passedIndentId = location.state?.indentId || indentId;
+  const fromCustomerOrder = location.state?.fromCustomerOrder || false;
+  const orderData = location.state?.orderData || null;
 
-  const [formData, setFormData] = useState(() => {
-    const saved = localStorage.getItem('purchaseIndentForm');
-    return saved ? JSON.parse(saved) : {
-      department: '',
-      requestedBy: '',
-      priority: 'Medium',
-      indentNumber: 'PI-2025-001',
-      indentDate: new Date().toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      }),
-      requiredByDate: '',
-      justification: '',
-      customerPart: '',
-      orderQuantity: '',
-      poNumber: '',
-      poDate: '',
-      rmRate: '',
-      piecesPerKg: '',
-      rmPercentage: '',
-      status: 'draft'
-    };
+  // State declarations - NO DUMMY DATA
+  const [materials, setMaterials] = useState([]);
+  const [showWorkflow, setShowWorkflow] = useState(false);
+  const [formData, setFormData] = useState({
+    department: '',
+    requestedBy: '',
+    priority: 'Medium',
+    indentNumber: '',
+    indentDate: new Date().toISOString().split('T')[0],
+    requiredByDate: '',
+    justification: '',
+    customerPart: '',
+    orderQuantity: '',
+    poNumber: '',
+    poReference: '',
+    rmCost: '',
+    rmRate: '',
+    piecesPerKg: '',
+    rmPercentage: '',
+    status: 'Draft',
+    workflowStage: 'QMS Init',
+    accountantNotes: ''
   });
 
   const [isEditingMaterial, setIsEditingMaterial] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Handle verification of indent
-  const handleVerifyIndent = () => {
-    if (window.confirm(`Are you sure you want to verify and approve indent ${indentToVerify?.id}?`)) {
-      // In real app, this would make an API call to verify the indent
-      alert(`Indent ${indentToVerify?.id} has been verified and approved successfully!`);
-      navigate('/verify-store-indents');
-    }
-  };
-
-  // Populate form data when in verify mode
-  useEffect(() => {
-    if (isVerifyMode && indentToVerify) {
-      setFormData({
-        department: indentToVerify.project || '',
-        requestedBy: indentToVerify.raisedBy || '',
-        priority: indentToVerify.priority?.replace(' Priority', '') || 'Medium',
-        indentNumber: indentToVerify.id || '',
-        indentDate: indentToVerify.date || '',
-        requiredByDate: indentToVerify.date || '',
-        justification: `Store indent for ${indentToVerify.project}`,
-        customerPart: indentToVerify.orderId || '',
-        orderQuantity: indentToVerify.itemCount?.replace(' Items', '') || '',
-        poNumber: indentToVerify.orderId || '',
-        poDate: indentToVerify.date || '',
-        rmRate: '',
-        piecesPerKg: '',
-        rmPercentage: '',
-        status: 'submitted'
-      });
-      
-      // Set materials based on indent data
-      if (indentToVerify.storeAvailable && indentToVerify.storeToBuy !== undefined) {
-        const verifyMaterials = [
-          {
-            id: 1,
-            description: `Materials for ${indentToVerify.project}`,
-            preferredSupplier: 'To be assigned',
-            requiredQuantity: `${indentToVerify.storeAvailable + indentToVerify.storeToBuy} units`,
-            requiredDate: indentToVerify.date,
-            onHand: `${indentToVerify.storeAvailable} units`,
-            order: `${indentToVerify.storeToBuy} units`,
-            status: 'pending',
-            uom: 'units'
-          }
-        ];
-        setMaterials(verifyMaterials);
-      }
-    }
-  }, [isVerifyMode, indentToVerify]);
   const [showStock, setShowStock] = useState(false);
   const [groupBySupplier, setGroupBySupplier] = useState(false);
-  const [showWorkflow, setShowWorkflow] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Pre-fill form if coming from customer order
+  useEffect(() => {
+    if (fromCustomerOrder && orderData) {
+      setFormData(prev => ({
+        ...prev,
+        customerPart: orderData.orderId || '',
+        requestedBy: orderData.customerName || '',
+        indentDate: orderData.indentDate ? new Date(orderData.indentDate).toISOString().split('T')[0] : prev.indentDate,
+        requiredByDate: orderData.requiredByDate ? new Date(orderData.requiredByDate).toISOString().split('T')[0] : orderData.indentDate ? new Date(orderData.indentDate).toISOString().split('T')[0] : prev.requiredByDate,
+        justification: `Purchase indent for customer order #${orderData.orderId}`,
+      }));
+
+      // Pre-fill materials from order items
+      if (orderData.orderItems && orderData.orderItems.length > 0) {
+        const orderMaterials = orderData.orderItems.map((item, idx) => ({
+          id: Date.now() + idx,
+          description: item.component_name || item.component || '',
+          preferredSupplier: item.preferred_supplier || '',
+          requiredQuantity: item.quantity || '',
+          requiredDate: item.required_date ? new Date(item.required_date).toISOString().split('T')[0] : '',
+          onHand: '0',
+          order: item.quantity || '',
+          status: 'pending',
+          uom: item.uom || 'kg',
+          isEditing: false
+        }));
+        setMaterials(orderMaterials);
+      }
+    }
+  }, [fromCustomerOrder, orderData]);
+
+  // Dynamic workflow steps based on current workflow stage
+  const workflowSteps = [
+    {
+      key: 'qms-init',
+      title: 'QMS Initiated',
+      subtitle: 'Quality team created indent',
+      actor: 'QMS',
+      user: formData.requestedBy || 'S. Chen (QMS)',
+      date: formData.indentDate ? new Date(formData.indentDate).toLocaleString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }) : null,
+      status: formData.workflowStage === 'QMS Init' ? 'current' : 'completed'
+    },
+    {
+      key: 'store-officer',
+      title: 'Store Officer Review',
+      subtitle: 'Stock and requirement verification',
+      actor: 'Store Officer',
+      user: ['Store Officer', 'QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'R. Kumar (Store)' : null,
+      date: ['Store Officer', 'QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 11:45 AM' : null,
+      note: ['QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? '"Specs match production requirement. Approved."' : null,
+      status: formData.workflowStage === 'Store Officer' ? 'current' : 
+              formData.workflowStage === 'QMS Init' ? 'pending' : 'completed'
+    },
+    {
+      key: 'qms-verified',
+      title: 'QMS Verified',
+      subtitle: 'Final quality verification',
+      actor: 'QMS',
+      user: ['Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'QMS Team' : null,
+      date: ['Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 02:15 PM' : null,
+      status: formData.workflowStage === 'QMS Verified' ? 'current' : 
+              ['QMS Init', 'Store Officer'].includes(formData.workflowStage) ? 'pending' : 'completed'
+    },
+    {
+      key: 'admin',
+      title: 'Admin Approval',
+      subtitle: 'Pending final authorization',
+      actor: 'Admin',
+      user: ['Accountant', 'Completed'].includes(formData.workflowStage) ? 'Admin' : null,
+      date: ['Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 04:30 PM' : null,
+      status: formData.workflowStage === 'Admin' ? 'current' : 
+              ['QMS Init', 'Store Officer', 'QMS Verified'].includes(formData.workflowStage) ? 'pending' : 'completed'
+    },
+    {
+      key: 'accountant',
+      title: 'Accountant Processing',
+      subtitle: 'Purchase order and billing process',
+      actor: 'Accountant',
+      user: formData.workflowStage === 'Completed' ? 'Accountant' : null,
+      date: formData.workflowStage === 'Completed' ? 'Oct 25, 09:00 AM' : null,
+      status: formData.workflowStage === 'Accountant' ? 'current' : 
+              formData.workflowStage === 'Completed' ? 'completed' : 'pending'
+    }
+  ];
+
+  // Fetch existing indent if indentId is provided
+  useEffect(() => {
+    const fetchIndent = async () => {
+      if (!passedIndentId) return;
+
+      try {
+        setLoading(true);
+        const token = useAuthStore.getState().token;
+        if (!token) {
+          setError('No authentication token found');
+          return;
+        }
+
+        const response = await purchaseIndentService.getIndentById(passedIndentId);
+        
+        if (response.success && response.data) {
+          const indent = response.data;
+          
+          setFormData({
+            department: indent.department || '',
+            requestedBy: indent.requested_by_name || '',
+            priority: indent.priority || 'Medium',
+            indentNumber: indent.indent_number || '',
+            indentDate: indent.indent_date?.split('T')[0] || '',
+            requiredByDate: indent.required_by_date?.split('T')[0] || '',
+            justification: indent.justification || '',
+            customerPart: indent.customer_order_indent_id || '',
+            orderQuantity: indent.order_quantity || '',
+            poNumber: indent.po_number || '',
+            poReference: indent.po_reference || '',
+            rmCost: indent.rm_cost || '',
+            rmRate: indent.rm_rate || '',
+            piecesPerKg: indent.pieces_per_kg || '',
+            rmPercentage: indent.rm_percentage || '',
+            status: indent.status || 'Draft',
+            workflowStage: indent.workflow_stage || 'QMS Init',
+            accountantNotes: indent.accountant_notes || ''
+          });
+
+          if (indent.materials && indent.materials.length > 0) {
+            setMaterials(indent.materials.map(m => ({
+              id: m.material_id,
+              description: m.material_description,
+              preferredSupplier: m.preferred_supplier || '',
+              requiredQuantity: m.required_quantity,
+              requiredDate: m.required_date?.split('T')[0] || '',
+              onHand: m.on_hand || '0',
+              order: m.order_quantity || '',
+              status: 'pending',
+              uom: m.uom || 'kg',
+              isEditing: false
+            })));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching indent:', err);
+        setError('Failed to load purchase indent');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIndent();
+  }, [passedIndentId]);
 
   // Clear validation errors when user starts typing
   const clearFieldError = (fieldName) => {
@@ -142,84 +214,6 @@ const NewPurchaseIndent = () => {
         return newErrors;
       });
     }
-  };
-
-  const workflowSteps = [
-    {
-      key: 'qms-init',
-      title: 'QMS Initiated',
-      subtitle: 'Quality team created indent',
-      actor: 'QMS',
-      user: 'S. Chen (QMS)',
-      date: 'Oct 24, 09:30 AM',
-      status: 'completed'
-    },
-    {
-      key: 'store-officer',
-      title: 'Store Officer Review',
-      subtitle: 'Stock and requirement verification',
-      actor: 'Store Officer',
-      user: 'R. Kumar (Store)',
-      date: 'Oct 24, 11:45 AM',
-      note: '"Specs match production requirement. Approved."',
-      status: 'completed'
-    },
-    {
-      key: 'qms-verified',
-      title: 'QMS Verified',
-      subtitle: 'Final quality verification',
-      actor: 'QMS',
-      user: null,
-      date: null,
-      status: 'current'
-    },
-    {
-      key: 'admin',
-      title: 'Admin Approval',
-      subtitle: 'Pending final authorization',
-      actor: 'Admin',
-      user: null,
-      date: null,
-      status: 'pending'
-    },
-    {
-      key: 'accountant',
-      title: 'Accountant Processing',
-      subtitle: 'Purchase order and billing process',
-      actor: 'Accountant',
-      user: null,
-      date: null,
-      status: 'pending'
-    },
-  ];
-
-  const getCurrentWorkflowIndex = () => {
-    const status = String(formData.status || '').toLowerCase();
-    if (status === 'draft') return 2; // Awaiting Admin
-    if (status === 'submitted') return 2; // Awaiting Admin
-    if (status === 'approved') return 3; // Purchase Order
-    return 2;
-  };
-
-  const currentWorkflowIndex = getCurrentWorkflowIndex();
-
-  // Save to localStorage on changes
-  useEffect(() => {
-    localStorage.setItem('purchaseIndentMaterials', JSON.stringify(materials));
-  }, [materials]);
-
-  useEffect(() => {
-    localStorage.setItem('purchaseIndentForm', JSON.stringify(formData));
-  }, [formData]);
-
-  // Generate indent number
-  const generateIndentNumber = () => {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `PI-${year}${month}${day}-${random}`;
   };
 
   // Handle add material
@@ -277,48 +271,123 @@ const NewPurchaseIndent = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (action) => {
-    // Clear any existing success messages
-    setValidationErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors.success;
-      return newErrors;
-    });
+  const handleSubmit = async (action) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (action === 'submit') {
+        const errors = {};
+        
+        if (!formData.department || formData.department.trim() === '') {
+          errors.department = 'Department is required';
+        }
+        if (!formData.requestedBy || formData.requestedBy.trim() === '') {
+          errors.requestedBy = 'Requested by field is required';
+        }
+        if (!materials || materials.length === 0) {
+          errors.materials = 'Please add at least one material';
+        }
+        
+        if (Object.keys(errors).length > 0) {
+          setValidationErrors(errors);
+          setLoading(false);
+          return;
+        }
+      }
 
-    if (action === 'save') {
-      setFormData({...formData, status: 'draft'});
-      setValidationErrors({ success: 'Draft saved successfully!' });
-      setTimeout(() => setValidationErrors({}), 3000);
-    } else if (action === 'submit') {
-      const errors = {};
-      
-      // Check required fields
-      if (!formData.department || formData.department.trim() === '') {
-        errors.department = 'Department is required';
-      }
-      if (!formData.requestedBy || formData.requestedBy.trim() === '') {
-        errors.requestedBy = 'Requested by field is required';
-      }
-      if (!materials || materials.length === 0) {
-        errors.materials = 'Please add at least one material';
-      }
-      
-      // If there are validation errors, show them and don't submit
-      if (Object.keys(errors).length > 0) {
-        setValidationErrors(errors);
-        console.log('Validation errors:', errors); // Debug log
+      const token = useAuthStore.getState().token;
+      if (!token) {
+        setError('No authentication token found. Please login again.');
+        setLoading(false);
         return;
       }
-      
-      // If validation passes, submit the form
-      setFormData({
-        ...formData, 
-        status: 'submitted',
-        indentNumber: generateIndentNumber(),
-        submittedDate: new Date().toISOString()
-      });
-      setValidationErrors({ success: 'Purchase indent submitted for approval!' });
-      setTimeout(() => setValidationErrors({}), 3000);
+
+      // Generate indent number if not exists
+      const indentNumber = formData.indentNumber || `PI-${Date.now()}`;
+
+      // Determine workflow based on role and action
+      let workflowStage = 'QMS Init';
+      let status = 'Draft';
+
+      if (action === 'submit') {
+        if (user?.role === 'StoreOfficer' && passedIndentId) {
+          // Store Officer sending back to QMS
+          workflowStage = 'QMS Verified';
+          status = 'Pending QMS Verification';
+        } else if (user?.role === 'QMS') {
+          // QMS sending to Store Officer
+          workflowStage = 'Store Officer';
+          status = 'Pending Store Review';
+        }
+      }
+
+      const indentData = {
+        indentNumber: indentNumber,
+        customerOrderId: formData.customerPart || null,
+        requestDate: formData.indentDate,
+        requiredByDate: formData.requiredByDate || formData.indentDate,
+        priority: formData.priority || 'Standard',
+        workflowStage: workflowStage,
+        status: status,
+        poNumber: formData.poNumber || null,
+        poReference: formData.poReference || null,
+        materials: materials.map(m => ({
+          description: m.description,
+          quantity: m.requiredQuantity,
+          unit: m.uom || 'kg',
+          currentStock: m.onHand || '0',
+          requiredStock: m.order || m.requiredQuantity,
+          preferredSupplier: m.preferredSupplier || '',
+          estimatedCost: null,
+          specifications: null
+        }))
+      };
+
+      console.log('Submitting indent data:', indentData);
+      console.log('Materials count:', materials.length);
+      console.log('Action:', action, 'Workflow Stage:', workflowStage, 'Status:', status);
+
+      let response;
+      if (passedIndentId) {
+        // Update existing indent
+        console.log('Updating existing indent:', passedIndentId);
+        response = await purchaseIndentService.updateIndentStatus(passedIndentId, {
+          status: status,
+          workflowStage: workflowStage,
+          poNumber: formData.poNumber || null,
+          poReference: formData.poReference || null
+        });
+      } else {
+        // Create new indent
+        console.log('Creating new indent');
+        response = await purchaseIndentService.createIndent(indentData);
+      }
+
+      console.log('API Response:', response);
+
+      if (response.success) {
+        setValidationErrors({ 
+          success: action === 'submit' 
+            ? (user?.role === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted for approval!')
+            : 'Draft saved successfully!' 
+        });
+        
+        setTimeout(() => {
+          if (action === 'submit') {
+            if (user?.role === 'StoreOfficer') {
+              navigate('/store-verify-indents');
+            } else {
+              navigate('/qms-customer-orders');
+            }
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Submit error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to process purchase indent');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -359,7 +428,7 @@ const NewPurchaseIndent = () => {
                 className="pi-input"
                 placeholder="Enter material description"
                 autoFocus
-                readOnly={isVerifyMode}
+                readOnly={isViewMode}
               />
             </div>
             <div className="pi-material-column">
@@ -370,19 +439,18 @@ const NewPurchaseIndent = () => {
                 onChange={(e) => handleMaterialChange(material.id, 'preferredSupplier', e.target.value)}
                 className="pi-input"
                 placeholder="Enter preferred supplier"
-                readOnly={isVerifyMode}
+                readOnly={isViewMode}
               />
-                placeholder="Enter supplier name"
-              
             </div>
             <div className="pi-material-column">
               <div className="pi-material-label">Required quantity</div>
               <input
-                type="text"
+                type="number"
                 value={material.requiredQuantity}
                 onChange={(e) => handleMaterialChange(material.id, 'requiredQuantity', e.target.value)}
                 className="pi-input"
-                placeholder="e.g., 100 kg"
+                placeholder="Enter quantity"
+                readOnly={isViewMode}
               />
             </div>
             <div className="pi-material-column">
@@ -441,8 +509,12 @@ const NewPurchaseIndent = () => {
           <div className="pi-material-column">
             <div className="pi-material-label">Required quantity</div>
             <div className="pi-material-value-normal">
-              {material.requiredQuantity} 
-              <span className="pi-material-required">• Required on {material.requiredDate}</span>
+              <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{material.requiredQuantity}</div>
+              {material.requiredDate && (
+                <div style={{marginTop: '4px', fontSize: '12px', color: '#64748b'}}>
+                  Required on {new Date(material.requiredDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </div>
+              )}
             </div>
           </div>
           <div className="pi-material-column">
@@ -481,34 +553,31 @@ const NewPurchaseIndent = () => {
   return (
     <div className="purchase-indent-page">
       <div className="purchase-indent-container">
+        {/* Error Display */}
+        {error && (
+          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {/* Success/Error Messages */}
+        {validationErrors.success && (
+          <div className="pi-message-container">
+            <div className="pi-success-message">
+              <Check size={16} />
+              {validationErrors.success}
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="pi-header">
           <div className="pi-header-left">
-            <h1>{isVerifyMode ? `Verify Store Indent - ${indentToVerify?.id}` : 'New Purchase Indent'}</h1>
-            <p>{isVerifyMode ? `Review and verify the indent raised by ${indentToVerify?.raisedBy} for ${indentToVerify?.project}` : 'Capture material requirements and send to purchasing for approval.'}</p>
+            <h1>{passedIndentId ? 'View Purchase Indent' : 'New Purchase Indent'}</h1>
+            <p>{passedIndentId ? `Viewing indent ${formData.indentNumber}` : 'Capture material requirements and send to purchasing for approval.'}</p>
           </div>
           <div className="pi-header-right">
-            {isVerifyMode && (
-              <>
-                <button
-                  type="button"
-                  className="pi-btn-secondary"
-                  onClick={() => navigate('/verify-store-indents')}
-                >
-                  <X size={16} />
-                  Back to List
-                </button>
-                <button
-                  type="button"
-                  className="pi-btn-success"
-                  onClick={() => handleVerifyIndent()}
-                >
-                  <Check size={16} />
-                  Verify & Approve
-                </button>
-              </>
-            )}
-            {!isVerifyMode && (
+            {passedIndentId && (
               <button
                 type="button"
                 className="pi-workflow-btn"
@@ -519,12 +588,21 @@ const NewPurchaseIndent = () => {
                 <GitBranch size={18} />
               </button>
             )}
+            {formData.workflowStage && (
+              <div className="pi-workflow-badge" style={{
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '500',
+                backgroundColor: formData.workflowStage === 'QMS Init' ? '#eff6ff' : formData.workflowStage === 'Store Officer' ? '#fef3c7' : formData.workflowStage === 'QMS Verified' ? '#dcfce7' : '#f3f4f6',
+                color: formData.workflowStage === 'QMS Init' ? '#1e40af' : formData.workflowStage === 'Store Officer' ? '#92400e' : formData.workflowStage === 'QMS Verified' ? '#166534' : '#374151',
+                marginRight: '12px'
+              }}>
+                {formData.workflowStage}
+              </div>
+            )}
             <div className="pi-draft-status">
-              {formData.status === 'draft' ? 'Draft' : 'Submitted'} • {formData.indentNumber}
-            </div>
-            <div className="pi-save-status">
-              <div className="status-indicator" />
-              Last saved {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              {formData.status} • {formData.indentNumber || 'New'}
             </div>
           </div>
         </div>
@@ -598,18 +676,6 @@ const NewPurchaseIndent = () => {
           </div>
         )}
 
-        {/* Success/Error Messages */}
-        {(validationErrors.success || Object.keys(validationErrors).filter(key => key !== 'success').length > 0) && (
-          <div className="pi-message-container">
-            {validationErrors.success && (
-              <div className="pi-success-message">
-                <Check size={16} />
-                {validationErrors.success}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Form Content */}
         <div className="pi-form-content">
           {/* Indent Details Section */}
@@ -674,7 +740,7 @@ const NewPurchaseIndent = () => {
                   }}
                   className={`pi-select ${validationErrors.department ? 'pi-input-error' : ''}`}
                   required
-                  disabled={isVerifyMode}
+                  disabled={isViewMode}
                 >
                   <option value="">Choose department</option>
                   <option value="production">Production</option>
@@ -688,26 +754,24 @@ const NewPurchaseIndent = () => {
                 )}
               </div>
 
-              {/* Requested By */}
+              {/* Requested By - Simple Text Input */}
               <div className="pi-form-field">
                 <label className="pi-label">Requested by *</label>
-                <div className="pi-input-wrapper">
-                  <select
-                    value={formData.requestedBy}
-                    onChange={(e) => {
-                      setFormData({...formData, requestedBy: e.target.value});
-                      clearFieldError('requestedBy');
-                    }}
-                    className={`pi-input pi-input-with-icon ${validationErrors.requestedBy ? 'pi-input-error' : ''}`}
-                    required
-                  >
-                    <option value="">Select requester</option>
-                    <option value="john-doe">John Doe (Production Manager)</option>
-                    <option value="jane-smith">Jane Smith (Maintenance Head)</option>
-                    <option value="robert-brown">Robert Brown (Quality Head)</option>
-                  </select>
-                  <Search size={16} className="pi-input-icon" />
-                </div>
+                <input
+                  type="text"
+                  placeholder="Enter requester name"
+                  value={formData.requestedBy}
+                  onChange={(e) => {
+                    setFormData({...formData, requestedBy: e.target.value});
+                    clearFieldError('requestedBy');
+                  }}
+                  className={`pi-input ${validationErrors.requestedBy ? 'pi-input-error' : ''}`}
+                  required
+                  disabled={isViewMode}
+                />
+                {validationErrors.requestedBy && (
+                  <div className="pi-error-message">{validationErrors.requestedBy}</div>
+                )}
               </div>
 
               {/* Priority */}
@@ -861,16 +925,38 @@ const NewPurchaseIndent = () => {
             <div className="pi-form-grid-2">
               {/* Purchase Number */}
               <div className="pi-form-field">
-                <label className="pi-label">Purchase number</label>
+                <label className="pi-label">
+                  Purchase number
+                  {user?.role !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
+                </label>
                 <input
                   type="text"
                   placeholder="Enter purchase number (optional)"
                   value={formData.poNumber}
                   onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
                   className="pi-input"
+                  readOnly={user?.role !== 'StoreOfficer'}
                 />
               </div>
 
+              {/* PO Reference */}
+              <div className="pi-form-field">
+                <label className="pi-label">
+                  PO Reference
+                  {user?.role !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter PO reference"
+                  value={formData.poReference}
+                  onChange={(e) => setFormData({...formData, poReference: e.target.value})}
+                  className="pi-input"
+                  readOnly={user?.role !== 'StoreOfficer'}
+                />
+              </div>
+            </div>
+
+            <div className="pi-form-grid-2">
               {/* RM Cost */}
               <div className="pi-form-field">
                 <label className="pi-label">RM cost</label>
@@ -927,24 +1013,24 @@ const NewPurchaseIndent = () => {
           {/* Footer */}
           <div className="pi-footer">
             <div className="pi-document-code">Document code: SBP/PI/IB/02-00 | v1.0</div>
-            {!isVerifyMode && (
-              <div className="pi-footer-actions">
-                <button 
-                  onClick={() => handleSubmit('save')}
-                  className="pi-btn pi-btn-outline"
-                >
-                  <Save size={16} />
-                  Save draft
-                </button>
-                <button 
-                  onClick={() => handleSubmit('submit')}
-                  className="pi-btn pi-btn-primary"
-                >
-                  <Send size={16} />
-                  Submit for approval
-                </button>
-              </div>
-            )}
+            <div className="pi-footer-actions">
+              <button 
+                onClick={() => handleSubmit('save')}
+                className="pi-btn pi-btn-outline"
+                disabled={loading}
+              >
+                <Save size={16} />
+                Save draft
+              </button>
+              <button 
+                onClick={() => handleSubmit('submit')}
+                className="pi-btn pi-btn-primary"
+                disabled={loading}
+              >
+                <Send size={16} />
+                {user?.role === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

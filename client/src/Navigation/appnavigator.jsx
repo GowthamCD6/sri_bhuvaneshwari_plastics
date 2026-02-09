@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import useAuthStore from '../store/authStore';
 
 // ===== COMMON PAGES =====
 import Dashboard from '../Pages/StoreOfficer/Dashboard/Dashboard';
@@ -10,7 +12,7 @@ import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreInden
 import SentToAdmin from '../Pages/QMS/SentToAdmin';
 
 // ===== STORE OFFICER ROLE PAGES =====
-import PurchaseIndents from '../Pages/StoreOfficer/PurchaseIndent/PurchaseIndents';
+// Use unified QMSPurchaseIndents for Store Officer purchase indents (role-aware component)
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
 import GoodsInventory from '../Pages/StoreOfficer/GoodsInventory/GoodsInventory';
 import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
@@ -30,10 +32,33 @@ import Suppliers from '../Pages/PurchaseDepartment/Suppliers/Suppliers';
 import QMSIndents from '../Pages/PurchaseDepartment/QMSIndents/QMSIndents';
 
 const AppNavigator = () => {
+  const { user } = useAuthStore();
+  const userRole = user?.roleName?.toLowerCase() || '';
+
+  // Role-based default routes
+  const getDefaultRoute = () => {
+    switch (userRole) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'qms':
+        return '/dashboard';
+      case 'storeofficer':
+      case 'store':
+        return '/dashboard';
+      case 'purchasedepartment':
+      case 'purchase':
+        return '/overview';
+      default:
+        return '/dashboard';
+    }
+  };
+
   return (
     <Routes>
+      {/* ===== DEFAULT REDIRECT BASED ON ROLE ===== */}
+      <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
+      
       {/* ===== COMMON ROUTES ===== */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Dashboard />} />
 
       {/* ===== QMS ROLE ROUTES ===== */}
@@ -43,7 +68,7 @@ const AppNavigator = () => {
       <Route path="/sent-to-admin" element={<SentToAdmin />} />
 
       {/* ===== STORE OFFICER ROLE ROUTES ===== */}
-      <Route path="/purchase-indents" element={<PurchaseIndents />} />
+      <Route path="/purchase-indents" element={<QMSPurchaseIndents />} />
       <Route path="/inventory" element={<Inventory />} />
       <Route path="/goods-inventory" element={<GoodsInventory />} />
       <Route path="/low-stock-alert" element={<LowStockAlerts />} />
@@ -55,12 +80,19 @@ const AppNavigator = () => {
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/qms-approval" element={<QMSApproval />} />
+      <Route path="/admin-purchase-indents" element={<QMSPurchaseIndents />} />
 
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
-      <Route path="/purchase/overview" element={<PurchaseOverview />} />
-      <Route path="/purchase/store-requests" element={<StoreRequests />} />
-      <Route path="/purchase/suppliers" element={<Suppliers />} />
-      <Route path="/purchase/qms-indents" element={<QMSIndents />} />
+      <Route path="/overview" element={<PurchaseOverview />} />
+      <Route path="/store-requests" element={<StoreRequests />} />
+      <Route path="/suppliers" element={<Suppliers />} />
+      <Route path="/qms-indents" element={<QMSIndents />} />
+
+      {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
+      <Route path="/accountant-purchase-indents" element={<QMSPurchaseIndents />} />
+
+      {/* ===== CATCH ALL - REDIRECT TO DEFAULT ROUTE ===== */}
+      <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
     </Routes>
   );
 };

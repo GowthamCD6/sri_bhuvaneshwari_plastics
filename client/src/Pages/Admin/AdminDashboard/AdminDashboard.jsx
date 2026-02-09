@@ -160,7 +160,6 @@ const AdminDashboard = () => {
             <Icons.Bell />
             <span className="ad-notification-badge">3</span>
           </button>
-          <span className="ad-last-login">Last login: Today, 09:41 AM</span>
         </div>
       </div>
 

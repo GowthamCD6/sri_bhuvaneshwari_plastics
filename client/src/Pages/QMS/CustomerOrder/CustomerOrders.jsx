@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, Plus, Search, List, X } from 'lucide-react';
-import './CustomerOrders.css'; // Import the standard CSS file
+import { useNavigate } from 'react-router-dom';
+import './CustomerOrders.css';
 import NewOrderModal from './Add-New-Customer/NewOrderModal';
+import { customerOrderService } from '../../../services/apiService';
+import useAuthStore from '../../../store/authStore';
 
 const STORAGE_KEY = 'sbp_customer_orders_v1';
 
@@ -63,10 +66,10 @@ const buildItemsSummary = (order) => {
   }
   const first = items[0];
   const remaining = items.length - 1;
-  const firstText = first?.component || '-';
+  const firstText = first?.component_name || first?.component || '-';
   return {
     title: remaining > 0 ? `${firstText} +${remaining} more` : firstText,
-    subtitle: order?.componentDesc || `Total items: ${items.length}`,
+    subtitle: order?.componentDesc || `${items.length} item${items.length > 1 ? 's' : ''}`,
   };
 };
 
@@ -76,114 +79,36 @@ const CustomerOrders = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 5;
 
-  const currentUser = { name: 'QMS', role: 'QMS' };
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const currentUser = { name: user?.username || 'QMS', role: user?.roleName || 'QMS' };
 
+  // Fetch orders from API
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        // If user has saved orders, use them; if storage is empty, fall back to demo data.
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setOrders(parsed);
-          setHasHydrated(true);
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // Fallback demo data
-    setOrders([
-      {
-        id: 'ORD-2025-001',
-        date: 'Created on 25 Jan 2025',
-        createdAt: '2025-01-25T09:10:00.000Z',
-        createdBy: 'System',
-        indentId: 'IND-2025-001',
-        indentStatus: 'Draft (QMS)',
-        indentStatusClass: 'badge-draft',
-        customerName: 'TechSol Industries',
-        customerPhone: '+91 98450 11223',
-        customerEmail: 'sales@techsol.in',
-        component: 'SS 304 Sheet 2mm',
-        componentDesc: 'Laser cut panels for enclosure',
-        items: 2,
-        priority: 'Urgent',
-        priorityClass: 'badge-urgent',
-        indentDate: '2025-01-25',
-        requiredByDate: '2025-02-10',
-        orderItems: [
-          { component: 'SS 304 Sheet 2mm', quantity: 10, requiredByDate: '2025-02-10', itemStatus: 'Requested' },
-          { component: 'SS 304 Angle 25x25', quantity: 20, requiredByDate: '2025-02-10', itemStatus: 'Requested' },
-        ],
-      },
-      {
-        id: 'ORD-2025-002',
-        date: 'Created on 25 Jan 2025',
-        createdAt: '2025-01-25T12:40:00.000Z',
-        createdBy: 'System',
-        indentId: 'IND-2025-002',
-        indentStatus: 'Pending Admin Approval',
-        indentStatusClass: 'badge-orange',
-        customerName: 'Global Motors Pvt Ltd',
-        customerPhone: '+91 99620 77445',
-        customerEmail: 'purchase@globalmotors.com',
-        component: 'Aluminium Angle 50x50',
-        componentDesc: 'Frame brackets for G...',
-        items: 1,
-        priority: 'Standard',
-        priorityClass: 'badge-standard',
-        indentDate: '2025-01-25',
-        requiredByDate: '2025-02-05',
-        orderItems: [
-          { component: 'Aluminium Angle 50x50', quantity: 12, requiredByDate: '2025-02-05', itemStatus: 'Requested' },
-        ],
-      },
-      {
-        id: 'ORD-2025-003',
-        date: 'Created on 24 Jan 2025',
-        createdAt: '2025-01-24T16:20:00.000Z',
-        createdBy: 'System',
-        indentId: 'IND-2025-003',
-        indentStatus: 'Approved',
-        indentStatusClass: 'badge-approved',
-        customerName: 'Apex Engineering',
-        customerPhone: '+91 90250 33881',
-        customerEmail: 'materials@apexeng.in',
-        component: 'MS Plates & Hardware',
-        componentDesc: 'Base plates, bolts and...',
-        items: 4,
-        priority: 'Standard',
-        priorityClass: 'badge-standard',
-        indentDate: '2025-01-24',
-        requiredByDate: '2025-02-15',
-        orderItems: [
-          { component: 'MS Base Plate 10mm', quantity: 4, requiredByDate: '2025-02-15', itemStatus: 'Requested' },
-          { component: 'MS Bolt M10', quantity: 80, requiredByDate: '2025-02-15', itemStatus: 'Requested' },
-          { component: 'MS Washer M10', quantity: 80, requiredByDate: '2025-02-15', itemStatus: 'Requested' },
-          { component: 'MS Nut M10', quantity: 80, requiredByDate: '2025-02-15', itemStatus: 'Requested' },
-        ],
-      },
-    ]);
-    setHasHydrated(true);
+    fetchOrders();
   }, []);
 
-  useEffect(() => {
-    // Don't overwrite localStorage before initial load finishes.
-    if (!hasHydrated) return;
+  const fetchOrders = async () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-    } catch {
-      // ignore
+      setLoading(true);
+      setError(null);
+      const response = await customerOrderService.getAllOrders({
+        userId: user?.userId
+      });
+      setOrders(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+      setError('Failed to load orders');
+    } finally {
+      setLoading(false);
     }
-  }, [orders, hasHydrated]);
+  };
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -193,34 +118,55 @@ const CustomerOrders = () => {
     setIsModalOpen(false);
   };
 
-  const handleAddOrder = (newOrder) => {
-    // Ensure computed fields exist for consistent UI
-    const safeOrder = {
-      ...newOrder,
-      id: newOrder.id || newOrder.indentId,
-      indentId: newOrder.indentId || newOrder.id,
-      indentStatusClass: newOrder.indentStatusClass || statusToBadgeClass(newOrder.indentStatus),
-      createdBy: newOrder.createdBy || currentUser.name,
-    };
-    setOrders(prevOrders => [safeOrder, ...prevOrders]);
+  const handleAddOrder = async (newOrder) => {
+    try {
+      const response = await customerOrderService.createOrder(newOrder);
+      if (response.success) {
+        setOrders(prev => [response.data, ...prev]);
+        handleCloseModal();
+      }
+    } catch (err) {
+      console.error('Failed to create order:', err);
+      alert('Failed to create order: ' + (err.message || 'Unknown error'));
+    }
   };
 
-  const updateOrder = (orderId, updates) => {
-    setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, ...updates } : o)));
-  };
-
-  const updateOrderStatus = (orderId, indentStatus) => {
-    updateOrder(orderId, {
-      indentStatus,
-      indentStatusClass: statusToBadgeClass(indentStatus),
+  // Handle View button - navigate to purchase indent with order data
+  const handleViewOrder = (order) => {
+    navigate('/qms-purchase-indents', {
+      state: {
+        fromCustomerOrder: true,
+        orderData: {
+          orderId: order.order_id,
+          indentId: order.indent_id,
+          customerName: order.customer_name,
+          customerPhone: order.customer_phone,
+          customerEmail: order.customer_email,
+          indentDate: order.indent_date,
+          requiredByDate: order.required_by_date || order.indent_date,
+          orderItems: order.orderItems || []
+        }
+      }
     });
+  };
+
+  const updateOrderStatus = async (orderId, status, comments = '') => {
+    try {
+      setLoading(true);
+      await customerOrderService.updateOrderStatus(orderId, { status, comments });
+      await fetchOrders();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update order status');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = useMemo(() => {
     const all = orders.length;
-    const open = orders.filter(o => isOpenStatus(o.indentStatus)).length;
+    const open = orders.filter(o => isOpenStatus(o.status || o.indentStatus)).length;
     const urgent = orders.filter(o => String(o.priority || '').toLowerCase() === 'urgent').length;
-    const mine = orders.filter(o => (o.createdBy || '') === currentUser.name).length;
+    const mine = orders.filter(o => (o.created_by || o.createdBy || '') === currentUser.name).length;
     return [
       { id: 'all', label: 'All', count: all },
       { id: 'open', label: 'Status: Open', count: open },
@@ -235,33 +181,39 @@ const CustomerOrders = () => {
 
     // Sort newest first
     list.sort((a, b) => {
-      const da = getCreatedAt(a);
-      const db = getCreatedAt(b);
+      const da = a.created_at ? new Date(a.created_at) : getCreatedAt(a);
+      const db = b.created_at ? new Date(b.created_at) : getCreatedAt(b);
       const ta = da ? da.getTime() : 0;
       const tb = db ? db.getTime() : 0;
       return tb - ta;
     });
 
     if (activeTab === 'open') {
-      list = list.filter(o => isOpenStatus(o.indentStatus));
+      list = list.filter(o => isOpenStatus(o.status || o.indentStatus));
     }
     if (activeTab === 'urgent') {
       list = list.filter(o => String(o.priority || '').toLowerCase() === 'urgent');
     }
     if (activeTab === 'mine') {
-      list = list.filter(o => (o.createdBy || '') === currentUser.name);
+      list = list.filter(o => (o.created_by || o.createdBy || '') === currentUser.name);
     }
 
     if (term) {
       list = list.filter(o => {
         const haystack = [
+          o.order_id,
           o.id,
+          o.indent_id,
           o.indentId,
+          o.customer_name,
           o.customerName,
+          o.customer_phone,
           o.customerPhone,
+          o.customer_email,
           o.customerEmail,
           o.component,
           o.componentDesc,
+          o.status,
           o.indentStatus,
           o.priority,
         ]
@@ -300,13 +252,13 @@ const CustomerOrders = () => {
   }, [pagination.safePage]);
 
   const stats = useMemo(() => {
-    const openOrders = orders.filter(o => isOpenStatus(o.indentStatus)).length;
-    const pendingAdminApproval = orders.filter(o => String(o.indentStatus || '').toLowerCase().includes('admin')).length;
+    const openOrders = orders.filter(o => isOpenStatus(o.status || o.indentStatus)).length;
+    const pendingAdminApproval = orders.filter(o => String(o.status || o.indentStatus || '').toLowerCase().includes('admin')).length;
 
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const createdToday = orders.filter(o => {
-      const d = getCreatedAt(o);
+      const d = o.created_at ? new Date(o.created_at) : getCreatedAt(o);
       if (!d) return false;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       return key === todayKey;
@@ -318,6 +270,20 @@ const CustomerOrders = () => {
   return (
     <div className="container">
       
+      {/* Error Display */}
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {/* Loading Display */}
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading orders...
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="header-row">
         <h1 className="page-title">Customer Orders</h1>
@@ -411,19 +377,32 @@ const CustomerOrders = () => {
               ) : (
                 pagination.pageItems.map((order) => {
                   const itemsSummary = buildItemsSummary(order);
+                  const indentId = order.indent_id || order.indentId || order.id;
+                  const customerName = order.customer_name || order.customerName;
+                  const customerPhone = order.customer_phone || order.customerPhone;
+                  const customerEmail = order.customer_email || order.customerEmail;
+                  const status = order.status || order.indentStatus;
+                  const priority = order.priority || 'Standard';
+                  const createdBy = order.created_by || order.createdBy || '-';
+                  const createdAt = order.created_at || order.createdAt;
+                  const dateDisplay = createdAt 
+                    ? new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : (order.date || '-');
+                  const itemsCount = order.items_count || order.items || (Array.isArray(order.orderItems) ? order.orderItems.length : 0);
+
                   return (
-                    <tr key={order.id}>
+                    <tr key={order.order_id || order.id}>
                       {/* Indent ID & Date */}
                       <td>
-                        <div className="text-main">{order.indentId || order.id}</div>
-                        <div className="text-sub">{order.date}</div>
+                        <div className="text-main">{indentId}</div>
+                        <div className="text-sub">{dateDisplay}</div>
                       </td>
 
                       {/* Customer Details */}
                       <td>
-                        <div className="text-main">{order.customerName}</div>
-                        <div className="text-sub">{order.customerPhone}</div>
-                        <div className="text-sub">{order.customerEmail}</div>
+                        <div className="text-main">{customerName}</div>
+                        <div className="text-sub">{customerPhone}</div>
+                        <div className="text-sub">{customerEmail}</div>
                       </td>
 
                       {/* Components */}
@@ -434,21 +413,21 @@ const CustomerOrders = () => {
 
                       {/* Items Count */}
                       <td>
-                        <div className="text-main">{order.items ?? (Array.isArray(order.orderItems) ? order.orderItems.length : 0)}</div>
+                        <div className="text-main">{itemsCount}</div>
                       </td>
 
                       {/* Status + Priority */}
                       <td>
                         <div className="status-priority-cell">
                           <div className="badges-row">
-                            <span className={`badge ${order.indentStatusClass || statusToBadgeClass(order.indentStatus)}`}>
-                              {order.indentStatus}
+                            <span className={`badge ${order.indentStatusClass || statusToBadgeClass(status)}`}>
+                              {status}
                             </span>
-                            <span className={`badge ${order.priorityClass || 'badge-standard'}`}>
-                              {order.priority}
+                            <span className={`badge ${order.priorityClass || (priority.toLowerCase() === 'urgent' ? 'badge-urgent' : 'badge-standard')}`}>
+                              {priority}
                             </span>
                           </div>
-                          <div className="text-sub">By: {order.createdBy || '-'}</div>
+                          <div className="text-sub">By: {createdBy}</div>
                         </div>
                       </td>
 
@@ -457,7 +436,7 @@ const CustomerOrders = () => {
                         <button
                           className="action-link"
                           type="button"
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => handleViewOrder(order)}
                         >
                           <Eye size={16} />
                           View
@@ -536,8 +515,8 @@ const CustomerOrders = () => {
           <div className="order-details-modal" onClick={(e) => e.stopPropagation()}>
             <div className="order-details-header">
               <div>
-                <div className="order-details-title">Indent Details</div>
-                <div className="order-details-subtitle">{selectedOrder.indentId || selectedOrder.id} • {selectedOrder.customerName}</div>
+                <div className="order-details-title">Order Details</div>
+                <div className="order-details-subtitle">{selectedOrder.indent_id || selectedOrder.indentId || selectedOrder.id} • {selectedOrder.customer_name || selectedOrder.customerName}</div>
               </div>
               <button className="order-details-close" type="button" onClick={() => setSelectedOrder(null)}>
                 <X size={18} />
@@ -548,22 +527,22 @@ const CustomerOrders = () => {
               <div className="details-grid">
                 <div className="detail-card">
                   <div className="detail-label">Indent ID</div>
-                  <div className="detail-value">{selectedOrder.indentId || '-'}</div>
+                  <div className="detail-value">{selectedOrder.indent_id || selectedOrder.indentId || '-'}</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Indent Date</div>
-                  <div className="detail-value">{selectedOrder.indentDate || '-'}</div>
+                  <div className="detail-value">{selectedOrder.indent_date || selectedOrder.indentDate || '-'}</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Status</div>
                   <div className="detail-value">
-                    <span className={`badge ${selectedOrder.indentStatusClass || statusToBadgeClass(selectedOrder.indentStatus)}`}>{selectedOrder.indentStatus}</span>
+                    <span className={`badge ${selectedOrder.indentStatusClass || statusToBadgeClass(selectedOrder.status || selectedOrder.indentStatus)}`}>{selectedOrder.status || selectedOrder.indentStatus}</span>
                   </div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Priority</div>
                   <div className="detail-value">
-                    <span className={`badge ${selectedOrder.priorityClass || 'badge-standard'}`}>{selectedOrder.priority}</span>
+                    <span className={`badge ${selectedOrder.priorityClass || (selectedOrder.priority?.toLowerCase() === 'urgent' ? 'badge-urgent' : 'badge-standard')}`}>{selectedOrder.priority}</span>
                   </div>
                 </div>
               </div>
@@ -571,9 +550,9 @@ const CustomerOrders = () => {
               <div className="detail-section">
                 <div className="detail-section-title">Customer</div>
                 <div className="detail-section-content">
-                  <div className="text-main">{selectedOrder.customerName}</div>
-                  <div className="text-sub">{selectedOrder.customerPhone}</div>
-                  <div className="text-sub">{selectedOrder.customerEmail}</div>
+                  <div className="text-main">{selectedOrder.customer_name || selectedOrder.customerName}</div>
+                  <div className="text-sub">{selectedOrder.customer_phone || selectedOrder.customerPhone}</div>
+                  <div className="text-sub">{selectedOrder.customer_email || selectedOrder.customerEmail}</div>
                 </div>
               </div>
 
@@ -589,11 +568,11 @@ const CustomerOrders = () => {
                     </div>
                     {(Array.isArray(selectedOrder.orderItems) ? selectedOrder.orderItems : []).map((it, idx) => (
                       <div key={idx} className="details-table-row">
-                        <div className="details-strong">{it.component || '-'}</div>
+                        <div className="details-strong">{it.component_name || it.component || '-'}</div>
                         <div>{it.quantity ?? '-'}</div>
-                        <div>{it.requiredByDate || '-'}</div>
+                        <div>{it.required_by_date || it.requiredByDate || '-'}</div>
                         <div>
-                          <span className="details-chip">{it.itemStatus || 'Requested'}</span>
+                          <span className="details-chip">{it.status || 'Requested'}</span>
                         </div>
                       </div>
                     ))}
@@ -604,10 +583,10 @@ const CustomerOrders = () => {
 
             <div className="order-details-footer">
               <div className="status-actions">
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.id, 'Draft (QMS)')}>Draft</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.id, 'Sent to Store')}>Send to Store</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.id, 'Approved')}>Approve</button>
+                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Draft')}>Draft</button>
+                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Store Review')}>Send to Store</button>
+                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
+                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Admin Approved')}>Approve</button>
               </div>
               <button className="btn-secondary" type="button" onClick={() => setSelectedOrder(null)}>Close</button>
             </div>

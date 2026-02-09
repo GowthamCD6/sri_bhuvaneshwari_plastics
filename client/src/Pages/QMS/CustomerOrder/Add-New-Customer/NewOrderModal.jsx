@@ -186,44 +186,25 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
     setIsSubmitting(true);
 
-    // Calculate total quantity
-    const totalQuantity = items.reduce((sum, item) => sum + parseInt(item.quantity), 0);
-
-    // Create order object with multiple items
+    // Format order object for backend API
     const newOrder = {
-      id: formData.indentId,
-      date: `Created on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
-      createdAt: new Date().toISOString(),
-      createdBy: 'QMS',
-      indentId: formData.indentId,
-      indentStatus: 'Draft (QMS)',
-      indentStatusClass: 'badge-draft',
-      customerName: formData.customerName,
-      customerPhone: formData.phoneNumber,
-      customerEmail: formData.email,
-      component: items.map(item => item.component).join(', '),
-      componentDesc: `Total: ${totalQuantity} units (${items.length} items)`,
-      items: items.length,
+      indent_id: formData.indentId,
+      customer_name: formData.customerName,
+      customer_phone: formData.phoneNumber,
+      customer_email: formData.email,
+      indent_date: formData.indentDate,
       priority: 'Standard',
-      priorityClass: 'badge-standard',
-      indentDate: formData.indentDate,
-      requiredByDate: items[0].requiredByDate,
-      quantity: totalQuantity,
-      orderItems: items.map(item => ({
+      items: items.map(item => ({
         component: item.component,
         quantity: parseInt(item.quantity),
-        requiredByDate: item.requiredByDate,
-        itemStatus: 'Requested'
+        required_by_date: item.requiredByDate
       }))
     };
 
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       // Call onSubmit callback if provided
       if (onSubmit) {
-        onSubmit(newOrder);
+        await onSubmit(newOrder);
       }
       
       // Close modal
