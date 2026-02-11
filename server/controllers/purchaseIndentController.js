@@ -10,9 +10,9 @@ const getAllIndents = async (req, res) => {
     let query = `
       SELECT 
         pi.*,
-        ANY_VALUE(u.username) as requested_by_name,
-        ANY_VALUE(co.indent_id) as customer_order_indent_id,
-        ANY_VALUE(co.customer_name) as customer_name,
+        MAX(u.username) as requested_by_name,
+        MAX(co.indent_id) as customer_order_indent_id,
+        MAX(co.customer_name) as customer_name,
         COUNT(pim.indent_material_id) as total_materials
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id
@@ -427,13 +427,17 @@ const sendToNextStage = async (req, res) => {
           newStatus = 'Pending QMS Verification';
           newStage = 'QMS Verified';
           // Update PO fields from Store Officer
-          if (poNumber) {
+          console.log('=== STORE OFFICER SUBMITTING ===');
+          console.log('PO Number received:', poNumber);
+          console.log('PO Reference received:', poReference);
+          
+          if (poNumber !== undefined) {
             updateFields.push('po_number = ?');
-            updateParams.push(poNumber);
+            updateParams.push(poNumber || null);
           }
-          if (poReference) {
+          if (poReference !== undefined) {
             updateFields.push('po_reference = ?');
-            updateParams.push(poReference);
+            updateParams.push(poReference || null);
           }
         }
         break;
@@ -479,6 +483,38 @@ const sendToNextStage = async (req, res) => {
       `UPDATE purchase_indents SET ${updateFields.join(', ')} WHERE indent_id = ?`,
       updateParams
     );
+
+    // Update customer order status if linked
+    const [indentInfo] = await db.query(
+      'SELECT customer_order_id FROM purchase_indents WHERE indent_id = ?',
+      [id]
+    );
+    
+    if (indentInfo[0]?.customer_order_id) {
+      let customerOrderStatus = 'Pending Store Review';
+      
+      // Map workflow stage to customer order status
+      switch (newStage) {
+        case 'Store Officer':
+          customerOrderStatus = 'Pending Store Review';
+          break;
+        case 'QMS Verified':
+          customerOrderStatus = 'Store Verified';
+          break;
+        case 'Admin':
+          customerOrderStatus = 'Pending Admin Approval';
+          break;
+        case 'Accountant':
+        case 'Completed':
+          customerOrderStatus = 'Admin Approved';
+          break;
+      }
+      
+      await db.query(
+        'UPDATE customer_orders SET status = ? WHERE order_id = ?',
+        [customerOrderStatus, indentInfo[0].customer_order_id]
+      );
+    }
 
     // Log status change
     await db.query(

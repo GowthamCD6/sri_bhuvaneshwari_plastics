@@ -640,8 +640,13 @@
 
 /* Priority Badge Styles */
 .badge-urgent {
-  background-color: #dbeafe;
-  color: #2563eb;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.badge-high {
+  background-color: #fed7aa;
+  color: #ea580c;
 }
 
 .badge-standard {

@@ -21,14 +21,15 @@ const VerifyStoreIndents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch indents assigned to Store Officer for verification (workflow_stage = 'Store Officer')
+  // Fetch indents assigned to QMS for verification after Store Officer (workflow_stage = 'QMS Verified')
   useEffect(() => {
     const fetchIndents = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
+        // Fetch indents where workflow_stage = 'QMS Verified' (sent by Store Officer)
+        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' });
         
         if (response.success) {
           const transformedData = response.data.map(indent => ({
@@ -65,9 +66,15 @@ const VerifyStoreIndents = () => {
 
     // Filter by tab
     if (activeTab === 'pending') {
-      filtered = filtered.filter(indent => indent.status === 'Pending QMS');
+      filtered = filtered.filter(indent => 
+        indent.status.toLowerCase().includes('pending') || 
+        indent.statusClass === 'badge-pending'
+      );
     } else if (activeTab === 'verified') {
-      filtered = filtered.filter(indent => indent.status === 'Store Verified');
+      filtered = filtered.filter(indent => 
+        indent.status.toLowerCase().includes('verified') || 
+        indent.statusClass === 'badge-verified'
+      );
     }
     // 'all' shows everything
 
@@ -87,8 +94,14 @@ const VerifyStoreIndents = () => {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const pending = allIndents.filter(i => i.status === 'Pending QMS').length;
-    const verified = allIndents.filter(i => i.status === 'Verified').length;
+    const pending = allIndents.filter(i => 
+      i.status.toLowerCase().includes('pending') || 
+      i.statusClass === 'badge-pending'
+    ).length;
+    const verified = allIndents.filter(i => 
+      i.status.toLowerCase().includes('verified') || 
+      i.statusClass === 'badge-verified'
+    ).length;
     const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
 
     return { pending, verified, requiresPurchase };

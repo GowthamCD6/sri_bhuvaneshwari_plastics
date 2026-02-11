@@ -37,28 +37,52 @@ const VerifyPurchaseIndents = () => {
         
         if (response.success) {
           // Transform API data to match UI format
-          const transformedData = response.data.map(indent => ({
-            id: indent.indent_number,
-            indentId: indent.indent_id,
-            subId: indent.customer_order_indent_id ? `Customer Order #${indent.customer_order_indent_id}` : 'Stock Replenishment',
-            reqName: indent.requested_by_name || 'N/A',
-            reqRole: 'QMS Officer',
-            dept: 'QMS',
-            date: new Date(indent.created_at).toLocaleString('en-IN', { 
-              day: '2-digit', 
-              month: 'short', 
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-            }),
-            urgency: indent.priority || 'Normal',
-            urgencyClass: indent.priority === 'Urgent' ? 'badge-urgent' : indent.priority === 'High' ? 'badge-critical' : 'badge-normal',
-            items: `${indent.total_materials || 0} Materials`,
-            status: indent.status === 'Pending Store Review' ? 'Pending' : 'Verified',
-            statusClass: indent.status === 'Pending Store Review' ? 'status-orange' : 'status-green',
-          }));
+          const transformedData = response.data.map(indent => {
+            // Map status from database to UI
+            let displayStatus = 'Pending';
+            let statusClass = 'status-orange';
+            
+            if (indent.status === 'Rejected') {
+              displayStatus = 'Rejected';
+              statusClass = 'status-red';
+            } else if (indent.status === 'Store Verified' || indent.status === 'Pending QMS Verification') {
+              displayStatus = 'Verified';
+              statusClass = 'status-green';
+            } else if (indent.status === 'Pending Store Review') {
+              displayStatus = 'Pending';
+              statusClass = 'status-orange';
+            }
+            
+            // Format request_date properly (it's a DATE string, not timestamp)
+            let formattedDate = '';
+            if (indent.request_date) {
+              const dateStr = String(indent.request_date);
+              const dateParts = dateStr.split('T')[0].split('-'); // Get YYYY-MM-DD part
+              const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+              formattedDate = dateObj.toLocaleString('en-IN', { 
+                day: '2-digit', 
+                month: 'short', 
+                year: 'numeric'
+              });
+            }
+            
+            return {
+              id: indent.indent_number,
+              indentId: indent.indent_id,
+              subId: indent.customer_order_indent_id ? `Customer Order #${indent.customer_order_indent_id}` : 'Stock Replenishment',
+              reqName: indent.customer_name || indent.requested_by_name || 'N/A',
+              reqRole: 'QMS Officer',
+              dept: 'QMS',
+              date: formattedDate,
+              urgency: indent.priority || 'Standard',
+              urgencyClass: indent.priority === 'Urgent' ? 'badge-urgent' : indent.priority === 'High' ? 'badge-high' : 'badge-normal',
+              items: `${indent.total_materials || 0} Materials`,
+              status: displayStatus,
+              statusClass: statusClass,
+            };
+          });
           
+          console.log('Transformed indents:', transformedData);
           setAllIndents(transformedData);
         }
       } catch (err) {
@@ -184,9 +208,9 @@ const VerifyPurchaseIndents = () => {
   const tabCounts = useMemo(() => {
     return {
       all: allIndents.length,
-      pending: allIndents.filter(i => i.status === 'Pending').length,
-      verified: allIndents.filter(i => i.status === 'Verified').length,
-      rejected: allIndents.filter(i => i.status === 'Rejected').length,
+      pending: allIndents.filter(i => i.status.toLowerCase() === 'pending').length,
+      verified: allIndents.filter(i => i.status.toLowerCase() === 'verified').length,
+      rejected: allIndents.filter(i => i.status.toLowerCase() === 'rejected').length,
     };
   }, [allIndents]);
 
@@ -196,12 +220,16 @@ const VerifyPurchaseIndents = () => {
 
     // Filter by tab
     if (activeTab !== 'all') {
-      filtered = filtered.filter(indent => indent.status.toLowerCase() === activeTab);
+      filtered = filtered.filter(indent => 
+        indent.status.toLowerCase() === activeTab.toLowerCase()
+      );
     }
 
     // Filter by urgency
     if (urgencyFilter) {
-      filtered = filtered.filter(indent => indent.urgency === urgencyFilter);
+      filtered = filtered.filter(indent => 
+        indent.urgency.toLowerCase() === urgencyFilter.toLowerCase()
+      );
     }
 
     // Filter by search query
@@ -396,14 +424,14 @@ const VerifyPurchaseIndents = () => {
             </button>
             {showFilterDropdown && (
               <div className="vpi-filter-dropdown">
-                <button onClick={() => handleUrgencyFilter('Critical')} className="vpi-filter-option">
-                  Critical
-                </button>
                 <button onClick={() => handleUrgencyFilter('Urgent')} className="vpi-filter-option">
                   Urgent
                 </button>
-                <button onClick={() => handleUrgencyFilter('Normal')} className="vpi-filter-option">
-                  Normal
+                <button onClick={() => handleUrgencyFilter('High')} className="vpi-filter-option">
+                  High
+                </button>
+                <button onClick={() => handleUrgencyFilter('Standard')} className="vpi-filter-option">
+                  Standard
                 </button>
               </div>
             )}

@@ -373,6 +373,10 @@
   background-color: var(--vpi-badge-orange-bg); 
   color: var(--vpi-badge-orange-text);
 }
+.badge-high {
+  background-color: #fed7aa;
+  color: #ea580c;
+}
 .badge-normal { 
   background-color: var(--vpi-badge-green-bg); 
   color: var(--vpi-badge-green-text);
