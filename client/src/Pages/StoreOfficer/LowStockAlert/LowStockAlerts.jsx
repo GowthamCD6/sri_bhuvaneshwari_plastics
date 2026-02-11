@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Package, AlertTriangle, XCircle, Clock, ChevronDown, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import './LowStockAlerts.css';
+import { materialService } from '../../../services/apiService';
 
 const LowStockAlerts = () => {
   const navigate = useNavigate();
@@ -18,165 +19,50 @@ const LowStockAlerts = () => {
   
   const itemsPerPage = 10;
 
-  // Sample data - materials with low stock
-  const [alerts] = useState([
-    {
-      id: 1,
-      name: "HDPE Granules - Natural",
-      code: "MAT-PL-0008",
-      category: "Raw Material",
-      currentStock: 0,
-      minRequired: 250,
-      maxStock: 1000,
-      unit: "Kg",
-      status: "Out of Stock",
-      supplier: "Polymer Inc.",
-      warehouseLocation: "Main Store A1"
-    },
-    {
-      id: 2,
-      name: "PET Preform 28mm - Clear",
-      code: "MAT-CM-0123",
-      category: "Component",
-      currentStock: 40,
-      minRequired: 200,
-      maxStock: 800,
-      unit: "Pcs",
-      status: "Critical",
-      supplier: "PlastiForm Ltd.",
-      warehouseLocation: "Main Store B2"
-    },
-    {
-      id: 3,
-      name: "Shrink Wrap Roll 500mm",
-      code: "MAT-PK-0044",
-      category: "Packing",
-      currentStock: 12,
-      minRequired: 60,
-      maxStock: 200,
-      unit: "Rolls",
-      status: "Low Stock",
-      supplier: "PackWrap Co.",
-      warehouseLocation: "Packing Store C1"
-    },
-    {
-      id: 4,
-      name: "Masterbatch - Blue 2%",
-      code: "MAT-CL-0031",
-      category: "Colour",
-      currentStock: 18,
-      minRequired: 80,
-      maxStock: 300,
-      unit: "Kg",
-      status: "Low Stock",
-      supplier: "ColorChem",
-      warehouseLocation: "Additive Store D1"
-    },
-    {
-      id: 5,
-      name: "LDPE Film Scrap",
-      code: "MAT-RC-0005",
-      category: "Regrind",
-      currentStock: 5,
-      minRequired: 40,
-      maxStock: 150,
-      unit: "Kg",
-      status: "Critical",
-      supplier: "Internal",
-      warehouseLocation: "Scrap Yard E1"
-    },
-    {
-      id: 6,
-      name: "PP Injection Grade",
-      code: "MAT-PL-0012",
-      category: "Raw Material",
-      currentStock: 0,
-      minRequired: 500,
-      maxStock: 2000,
-      unit: "Kg",
-      status: "Out of Stock",
-      supplier: "Reliance Polymers",
-      warehouseLocation: "Main Store A2"
-    },
-    {
-      id: 7,
-      name: "Corrugated Box 12x10",
-      code: "MAT-PK-0067",
-      category: "Packing",
-      currentStock: 45,
-      minRequired: 150,
-      maxStock: 500,
-      unit: "Pcs",
-      status: "Low Stock",
-      supplier: "BoxMakers Ltd.",
-      warehouseLocation: "Packing Store C2"
-    },
-    {
-      id: 8,
-      name: "UV Stabilizer Additive",
-      code: "MAT-AD-0019",
-      category: "Additive",
-      currentStock: 8,
-      minRequired: 50,
-      maxStock: 200,
-      unit: "Kg",
-      status: "Critical",
-      supplier: "ChemAdd Solutions",
-      warehouseLocation: "Additive Store D2"
-    },
-    {
-      id: 9,
-      name: "Masterbatch - White TiO2",
-      code: "MAT-CL-0045",
-      category: "Colour",
-      currentStock: 0,
-      minRequired: 100,
-      maxStock: 400,
-      unit: "Kg",
-      status: "Out of Stock",
-      supplier: "ColorChem",
-      warehouseLocation: "Additive Store D1"
-    },
-    {
-      id: 10,
-      name: "LLDPE Stretch Film",
-      code: "MAT-PK-0089",
-      category: "Packing",
-      currentStock: 25,
-      minRequired: 80,
-      maxStock: 300,
-      unit: "Rolls",
-      status: "Low Stock",
-      supplier: "FlexPack Industries",
-      warehouseLocation: "Packing Store C3"
-    },
-    {
-      id: 11,
-      name: "Recycled HDPE Granules",
-      code: "MAT-RC-0011",
-      category: "Regrind",
-      currentStock: 30,
-      minRequired: 100,
-      maxStock: 500,
-      unit: "Kg",
-      status: "Low Stock",
-      supplier: "Internal",
-      warehouseLocation: "Scrap Yard E2"
-    },
-    {
-      id: 12,
-      name: "Antistatic Agent",
-      code: "MAT-AD-0023",
-      category: "Additive",
-      currentStock: 3,
-      minRequired: 25,
-      maxStock: 100,
-      unit: "Kg",
-      status: "Critical",
-      supplier: "ChemAdd Solutions",
-      warehouseLocation: "Additive Store D3"
-    }
-  ]);
+  const [alerts, setAlerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchLowStock = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await materialService.getLowStockMaterials();
+        const data = response.materials || response.data || [];
+        const mapped = data.map((item) => {
+          const currentStock = Number(item.available_stock ?? item.current_stock ?? 0);
+          const minRequired = Number(item.reorder_level ?? item.min_stock_level ?? 0);
+          const maxStock = Number(item.max_stock_level ?? 0);
+          let status = 'Low Stock';
+          if (currentStock <= 0) status = 'Out of Stock';
+          else if (currentStock <= minRequired * 0.5) status = 'Critical';
+
+          return {
+            id: item.material_id,
+            name: item.material_name,
+            code: item.material_code,
+            category: item.category || '-',
+            currentStock,
+            minRequired,
+            maxStock,
+            unit: item.unit_of_measurement || '-',
+            status,
+            supplier: item.supplier || 'Internal',
+            warehouseLocation: item.warehouse_location || '-'
+          };
+        });
+        setAlerts(mapped);
+      } catch (err) {
+        console.error('Failed to fetch low stock materials:', err);
+        setError('Failed to load low stock alerts');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLowStock();
+  }, []);
 
   // Get unique categories
   const categories = ['All', ...new Set(alerts.map(item => item.category))];
@@ -321,6 +207,18 @@ const LowStockAlerts = () => {
   return (
     <div className="lsa-container" onClick={handleContainerClick}>
       
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading alerts...
+        </div>
+      )}
+
       {/* Header */}
       <header className="lsa-header">
         <div className="lsa-header-content">

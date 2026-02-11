@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Package, ArrowDownCircle, ArrowUpCircle, Scan, Minus, Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import './StockAdjustment.css';
+import { inventoryService, stockAdjustmentService } from '../../../services/apiService';
 
 const StockAdjustment = () => {
   const location = useLocation();
@@ -31,28 +32,63 @@ const StockAdjustment = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [adjustmentResult, setAdjustmentResult] = useState(null);
 
-  // Materials list
-  const [materials] = useState([
-    { id: 'RM-1024', name: 'HDPE Granules – High Density', stock: 4500, unit: 'kg', minStock: 500, maxStock: 10000, supplier: 'Polymer Inc.', location: 'Main Store A1' },
-    { id: 'RM-2055', name: 'LDPE Resin – Clear', stock: 450, unit: 'kg', minStock: 500, maxStock: 5000, supplier: 'ChemWorld', location: 'Main Store B2' },
-    { id: 'RM-1033', name: 'Polypropylene (PP) Sheets', stock: 2100, unit: 'sheets', minStock: 200, maxStock: 5000, supplier: 'Plasticos Ltd.', location: 'Main Store A3' },
-    { id: 'AD-5002', name: 'Masterbatch – Red 404', stock: 125, unit: 'kg', minStock: 25, maxStock: 500, supplier: 'ColorChem', location: 'Additive Store C1' },
-    { id: 'RM-3001', name: 'PVC Compounds', stock: 800, unit: 'kg', minStock: 200, maxStock: 3000, supplier: 'VinylPro', location: 'Main Store A4' },
-    { id: 'RM-4001', name: 'ABS Pellets', stock: 600, unit: 'kg', minStock: 150, maxStock: 2000, supplier: 'PlastiTech', location: 'Main Store B1' },
-    { id: 'MAT-PL-0008', name: 'HDPE Granules - Natural', stock: 0, unit: 'kg', minStock: 250, maxStock: 1000, supplier: 'Polymer Inc.', location: 'Main Store A1' },
-    { id: 'MAT-CM-0123', name: 'PET Preform 28mm - Clear', stock: 40, unit: 'pcs', minStock: 200, maxStock: 800, supplier: 'PlastiForm Ltd.', location: 'Main Store B2' },
-  ]);
+  const [materials, setMaterials] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Adjustment history
-  const [history, setHistory] = useState([
-    { id: 1, date: '2026-01-28', materialId: 'RM-1024', materialName: 'HDPE Granules – High Density', type: 'in', qty: 500, prevStock: 4000, newStock: 4500, unit: 'kg', reason: 'Purchase Receipt', notes: 'Invoice #INV-2026-001', adjustedBy: 'Suresh Kumar' },
-    { id: 2, date: '2026-01-26', materialId: 'RM-2055', materialName: 'LDPE Resin – Clear', type: 'in', qty: 200, prevStock: 250, newStock: 450, unit: 'kg', reason: 'Supplier Return Credit', notes: '', adjustedBy: 'Rajesh Patel' },
-    { id: 3, date: '2026-01-24', materialId: 'RM-1033', materialName: 'Polypropylene (PP) Sheets', type: 'in', qty: 300, prevStock: 1800, newStock: 2100, unit: 'sheets', reason: 'Inventory Correction', notes: 'Physical count adjustment', adjustedBy: 'Anitha Singh' },
-    { id: 4, date: '2026-01-22', materialId: 'AD-5002', materialName: 'Masterbatch – Red 404', type: 'in', qty: 75, prevStock: 50, newStock: 125, unit: 'kg', reason: 'New Purchase', notes: '', adjustedBy: 'Vijay Kumar' },
-    { id: 5, date: '2026-01-20', materialId: 'RM-1024', materialName: 'HDPE Granules – High Density', type: 'out', qty: 200, prevStock: 4700, newStock: 4500, unit: 'kg', reason: 'Production Usage', notes: 'Batch #B2026-015', adjustedBy: 'Suresh Kumar' },
-    { id: 6, date: '2026-01-18', materialId: 'RM-3001', materialName: 'PVC Compounds', type: 'out', qty: 150, prevStock: 950, newStock: 800, unit: 'kg', reason: 'Production Usage', notes: '', adjustedBy: 'Anitha Singh' },
-    { id: 7, date: '2026-01-16', materialId: 'RM-4001', materialName: 'ABS Pellets', type: 'in', qty: 400, prevStock: 200, newStock: 600, unit: 'kg', reason: 'Purchase Receipt', notes: 'Invoice #INV-2026-002', adjustedBy: 'Rajesh Patel' },
-  ]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [inventoryRes, historyRes] = await Promise.all([
+        inventoryService.getAllInventory(),
+        stockAdjustmentService.getAllAdjustments()
+      ]);
+
+      const inventoryData = inventoryRes.data || [];
+      const mappedMaterials = inventoryData.map((item) => ({
+        id: item.material_id,
+        code: item.material_code,
+        name: item.material_name,
+        stock: Number(item.current_stock || 0),
+        unit: item.unit_of_measurement || 'kg',
+        minStock: Number(item.min_stock_level || 0),
+        maxStock: Number(item.max_stock_level || 0),
+        supplier: item.supplier || '-',
+        location: item.warehouse_location || '-'
+      }));
+
+      const historyData = historyRes.data || [];
+      const mappedHistory = historyData.map((h) => ({
+        id: h.adjustment_id,
+        date: h.adjusted_at,
+        materialId: h.material_id,
+        materialName: h.material_name || '-',
+        type: h.adjustment_type?.toLowerCase() === 'in' ? 'in' : 'out',
+        qty: Number(h.quantity || 0),
+        prevStock: Number(h.previous_stock || 0),
+        newStock: Number(h.new_stock || 0),
+        unit: h.unit_of_measurement || 'kg',
+        reason: h.reason || '-',
+        notes: h.notes || '',
+        adjustedBy: h.adjusted_by_name || 'User'
+      }));
+
+      setMaterials(mappedMaterials);
+      setHistory(mappedHistory);
+    } catch (err) {
+      console.error('Failed to load stock adjustment data:', err);
+      setError('Failed to load stock adjustment data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Reasons based on mode
   const stockInReasons = ['Purchase Receipt', 'Supplier Return Credit', 'Inventory Correction', 'Production Return', 'Quality Acceptance', 'Transfer In', 'Other'];
@@ -72,9 +108,13 @@ const StockAdjustment = () => {
 
   // Get current material data
   const currentMaterial = useMemo(() => {
+    const fromList = materials.find(m => m.id === selectedMaterial || m.code === selectedMaterial);
+    if (fromList) return fromList;
+
     if (passedMaterial && selectedMaterial === passedMaterial.id) {
       return {
-        id: passedMaterial.id,
+        id: passedMaterial.materialId || passedMaterial.id,
+        code: passedMaterial.id,
         name: passedMaterial.name,
         stock: parseInt(passedMaterial.stock) || 0,
         unit: passedMaterial.unit || 'kg',
@@ -84,7 +124,7 @@ const StockAdjustment = () => {
         location: passedMaterial.warehouseLocation || ''
       };
     }
-    return materials.find(m => m.id === selectedMaterial) || null;
+    return null;
   }, [selectedMaterial, materials, passedMaterial]);
 
   // Calculate new stock
@@ -171,37 +211,35 @@ const StockAdjustment = () => {
       return;
     }
 
-    // Create history entry
-    const newEntry = {
-      id: history.length + 1,
-      date: new Date().toISOString().split('T')[0],
+    stockAdjustmentService.createAdjustment({
       materialId: currentMaterial.id,
-      materialName: currentMaterial.name,
-      type: mode,
-      qty: quantity,
-      prevStock: currentMaterial.stock,
-      newStock: newStock,
-      unit: currentMaterial.unit,
-      reason: reason,
-      notes: notes,
-      adjustedBy: 'Current User'
-    };
-
-    setHistory(prev => [newEntry, ...prev]);
-    setAdjustmentResult({
-      material: currentMaterial.name,
-      type: mode,
+      adjustmentType: mode === 'in' ? 'IN' : 'OUT',
       quantity: quantity,
-      unit: currentMaterial.unit,
-      prevStock: currentMaterial.stock,
-      newStock: newStock
-    });
-    setShowSuccessModal(true);
+      unitOfMeasurement: currentMaterial.unit,
+      reason: reason,
+      notes: notes
+    })
+      .then(() => fetchData())
+      .then(() => {
+        setAdjustmentResult({
+          material: currentMaterial.name,
+          type: mode,
+          quantity: quantity,
+          unit: currentMaterial.unit,
+          prevStock: currentMaterial.stock,
+          newStock: newStock
+        });
+        setShowSuccessModal(true);
 
-    // Reset form
-    setQuantity(0);
-    setReason('');
-    setNotes('');
+        // Reset form
+        setQuantity(0);
+        setReason('');
+        setNotes('');
+      })
+      .catch((err) => {
+        console.error('Failed to create adjustment:', err);
+        alert('Failed to create adjustment');
+      });
   };
 
   // Format date
@@ -225,6 +263,18 @@ const StockAdjustment = () => {
   return (
     <div className="sa-container" onClick={() => setShowMaterialDropdown(false)}>
       
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading stock adjustments...
+        </div>
+      )}
+
       {/* Header */}
       <div className="sa-header">
         <div>
@@ -305,7 +355,7 @@ const StockAdjustment = () => {
                         >
                           <div className="sa-dropdown-item-main">
                             <span className="sa-dropdown-item-name">{material.name}</span>
-                            <span className="sa-dropdown-item-code">{material.id}</span>
+                            <span className="sa-dropdown-item-code">{material.code || material.id}</span>
                           </div>
                           <div className="sa-dropdown-item-stock">
                             {material.stock.toLocaleString()} {material.unit}

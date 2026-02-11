@@ -1,11 +1,4 @@
-/* Container - aligned with CustomerOrders */
-.sup-container {
-  /* Inherits from .container in CustomerOrders.css */
-}
-
-.sup-content {
-  /* Inherits from .card in CustomerOrders.css */
-}
+/* Container and Card - inherit directly from CustomerOrders.css */
 
 /* Overview Dashboard - matches CustomerOrders design language */
 .sup-overview {
@@ -183,10 +176,7 @@
   background: var(--white);
 }
 
-/* Search inherits from .search-wrapper and .search-input */
-.sup-search {
-  /* Additional supplier-specific search styling if needed */
-}
+/* Search inherits from .search-wrapper and .search-input in CustomerOrders.css */
 
 .sup-filters {
   display: flex;
@@ -542,32 +532,9 @@
 }
 
 /* Table - inherits from .orders-table in CustomerOrders.css */
-.sup-table-container {
-  /* Inherits from .table-responsive */
-}
 
-.sup-table {
-  /* Base styles inherited from .orders-table */
-}
-
-.sup-table thead {
-  /* Inherited */
-}
-
-.sup-table th {
-  /* Supplier-specific overrides if needed */
-}
-
-.sup-table td {
-  /* Supplier-specific overrides if needed */
-}
-
-.sup-table tbody tr {
+.orders-table tbody tr {
   transition: background 0.2s ease;
-}
-
-.sup-table tbody tr:hover {
-  /* Inherited from .orders-table tr:hover td */
 }
 
 /* Table Cells - aligned with CustomerOrders patterns */

@@ -154,14 +154,6 @@ const createMaterial = (req, res) => {
         });
       }
 
-      // Log audit
-      const auditQuery = `
-        INSERT INTO audit_log (user_id, action, table_name, record_id, ip_address, user_agent)
-        VALUES (?, 'create', 'materials', ?, ?, ?)
-      `;
-      
-      db.query(auditQuery, [req.user.userId, result.insertId, req.ip, req.get('user-agent')]);
-
       res.status(201).json({
         success: true,
         message: 'Material created successfully',
@@ -224,14 +216,6 @@ const updateMaterial = (req, res) => {
       });
     }
 
-    // Log audit
-    const auditQuery = `
-      INSERT INTO audit_log (user_id, action, table_name, record_id, ip_address, user_agent)
-      VALUES (?, 'update', 'materials', ?, ?, ?)
-    `;
-    
-    db.query(auditQuery, [req.user.userId, materialId, req.ip, req.get('user-agent')]);
-
     res.status(200).json({
       success: true,
       message: 'Material updated successfully'
@@ -262,14 +246,6 @@ const deleteMaterial = (req, res) => {
         message: 'Material not found'
       });
     }
-
-    // Log audit
-    const auditQuery = `
-      INSERT INTO audit_log (user_id, action, table_name, record_id, ip_address, user_agent)
-      VALUES (?, 'delete', 'materials', ?, ?, ?)
-    `;
-    
-    db.query(auditQuery, [req.user.userId, materialId, req.ip, req.get('user-agent')]);
 
     res.status(200).json({
       success: true,

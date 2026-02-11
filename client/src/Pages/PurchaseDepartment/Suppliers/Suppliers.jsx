@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, ChevronDown, Edit2, Plus, X, Phone, Mail, MapPin, Building, Package, User, Trash2 } from 'lucide-react';
 import '../../QMS/CustomerOrder/CustomerOrders.css';
 import './Suppliers.css';
+import { supplierService } from '../../../services/apiService';
 
 const Suppliers = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -233,6 +234,10 @@ const Suppliers = () => {
       lastOrder: 'Oct 24, 2024'
     }
   ]);
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
   const categories = ['All Categories', 'Raw Materials', 'Packaging', 'Additives', 'Maintenance', 'Consumables', 'Lab Supplies'];
 

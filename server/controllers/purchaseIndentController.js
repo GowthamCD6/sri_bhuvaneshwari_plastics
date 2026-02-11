@@ -12,7 +12,7 @@ const getAllIndents = async (req, res) => {
         pi.*,
         ANY_VALUE(u.username) as requested_by_name,
         ANY_VALUE(co.indent_id) as customer_order_indent_id,
-        ANY_VALUE(co.customer_name),
+        ANY_VALUE(co.customer_name) as customer_name,
         COUNT(pim.indent_material_id) as total_materials
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id

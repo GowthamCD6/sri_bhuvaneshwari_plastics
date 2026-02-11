@@ -1,10 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Plus, FileText, Eye, Edit, Trash2, Calendar, X, Check, Package } from 'lucide-react';
 import './MaterialRequest.css';
+import { storeRequestService } from '../../../services/apiService';
+import useAuthStore from '../../../store/authStore';
 
 const MaterialRequest = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   // State management
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,121 +33,63 @@ const MaterialRequest = () => {
     priority: 'Normal'
   });
 
-  // Mock Data for material requests
-  const allRequests = [
-    {
-      id: "MR-2024-045",
-      rmCode: "RM-10024",
-      rmName: "Polypropylene Granules",
-      itemType: "Stock",
-      color: "Natural White",
-      quantity: "500 Kg",
-      neededDate: "15 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "28 Jan 2024",
-      priority: "Critical",
-      priorityClass: "badge-critical",
-      status: "Pending",
-      statusClass: "status-orange",
-      reason: "Customer order requirement"
-    },
-    {
-      id: "MR-2024-044",
-      rmCode: "RM-10018",
-      rmName: "HDPE Sheets 3mm",
-      itemType: "Stock",
-      color: "Blue",
-      quantity: "200 Sheets",
-      neededDate: "18 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "27 Jan 2024",
-      priority: "Urgent",
-      priorityClass: "badge-urgent",
-      status: "Approved",
-      statusClass: "status-green",
-      reason: "Regular stock replenishment"
-    },
-    {
-      id: "MR-2024-043",
-      rmCode: "CP-5012",
-      rmName: "Motor Bearing Assembly",
-      itemType: "Component",
-      color: "-",
-      quantity: "25 Pcs",
-      neededDate: "20 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "26 Jan 2024",
-      priority: "Normal",
-      priorityClass: "badge-normal",
-      status: "Pending",
-      statusClass: "status-orange",
-      reason: "Machine maintenance"
-    },
-    {
-      id: "MR-2024-042",
-      rmCode: "RM-10015",
-      rmName: "ABS Plastic Granules",
-      itemType: "Stock",
-      color: "Black",
-      quantity: "300 Kg",
-      neededDate: "12 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "25 Jan 2024",
-      priority: "Urgent",
-      priorityClass: "badge-urgent",
-      status: "Rejected",
-      statusClass: "status-red",
-      reason: "Production line requirement"
-    },
-    {
-      id: "MR-2024-041",
-      rmCode: "RM-10012",
-      rmName: "Nylon 6 Granules",
-      itemType: "Stock",
-      color: "Transparent",
-      quantity: "150 Kg",
-      neededDate: "22 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "24 Jan 2024",
-      priority: "Normal",
-      priorityClass: "badge-normal",
-      status: "Approved",
-      statusClass: "status-green",
-      reason: "Inventory restocking"
-    },
-    {
-      id: "MR-2024-040",
-      rmCode: "CP-5008",
-      rmName: "Hydraulic Pump Seal Kit",
-      itemType: "Component",
-      color: "-",
-      quantity: "10 Sets",
-      neededDate: "25 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "23 Jan 2024",
-      priority: "Critical",
-      priorityClass: "badge-critical",
-      status: "Pending",
-      statusClass: "status-orange",
-      reason: "Urgent machine repair"
-    },
-    {
-      id: "MR-2024-039",
-      rmCode: "RM-10008",
-      rmName: "PVC Compound",
-      itemType: "Stock",
-      color: "Grey",
-      quantity: "400 Kg",
-      neededDate: "28 Feb 2024",
-      requestedBy: "Store Officer",
-      requestDate: "22 Jan 2024",
-      priority: "Normal",
-      priorityClass: "badge-normal",
-      status: "Approved",
-      statusClass: "status-green",
-      reason: "Monthly requirement"
+  const [allRequests, setAllRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const mapPriorityClass = (priority) => {
+    if (priority === 'Critical') return 'badge-critical';
+    if (priority === 'Urgent') return 'badge-urgent';
+    return 'badge-normal';
+  };
+
+  const mapStatusClass = (status) => {
+    if (status === 'Approved') return 'status-green';
+    if (status === 'Rejected') return 'status-red';
+    return 'status-orange';
+  };
+
+  const formatDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await storeRequestService.getAllRequests({ requestedBy: user?.userId });
+      const data = response.data || [];
+      const mapped = data.map((req) => ({
+        id: req.request_number,
+        rmCode: req.material_code || '-',
+        rmName: req.material_name,
+        itemType: req.item_type || 'Stock',
+        color: req.color || '-',
+        quantity: `${req.quantity} ${req.unit_of_measurement}`,
+        neededDate: formatDate(req.needed_by_date),
+        requestedBy: req.requested_by_name || 'Store Officer',
+        requestDate: formatDate(req.request_date),
+        priority: req.priority || 'Normal',
+        priorityClass: mapPriorityClass(req.priority || 'Normal'),
+        status: req.status || 'Pending',
+        statusClass: mapStatusClass(req.status || 'Pending'),
+        reason: req.reason || '-'
+      }));
+      setAllRequests(mapped);
+    } catch (err) {
+      console.error('Failed to fetch requests:', err);
+      setError('Failed to load requests');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   // Tab counts
   const tabCounts = useMemo(() => {
@@ -300,9 +245,28 @@ const MaterialRequest = () => {
       alert('Please fill in all required fields');
       return;
     }
-    alert(`Material Request submitted successfully!\n\nCode: ${newRequest.rmCode}\nName: ${newRequest.rmName}\nQuantity: ${newRequest.neededQuantity} ${newRequest.unit}\nNeeded By: ${newRequest.neededDate}`);
-    setShowNewRequestModal(false);
-    resetNewRequestForm();
+    storeRequestService.createRequest({
+      itemType: newRequest.itemType,
+      materialCode: newRequest.rmCode,
+      materialName: newRequest.rmName,
+      color: newRequest.color,
+      storageLocation: newRequest.storageLocation,
+      quantity: newRequest.neededQuantity,
+      unitOfMeasurement: newRequest.unit,
+      neededByDate: newRequest.neededDate,
+      reason: newRequest.reason,
+      priority: newRequest.priority,
+      requestDate: new Date().toISOString().split('T')[0]
+    })
+      .then(() => fetchRequests())
+      .catch((err) => {
+        console.error('Failed to create request:', err);
+        alert('Failed to create request');
+      })
+      .finally(() => {
+        setShowNewRequestModal(false);
+        resetNewRequestForm();
+      });
   };
 
   const resetNewRequestForm = () => {
@@ -335,6 +299,18 @@ const MaterialRequest = () => {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading requests...
+        </div>
+      )}
 
       {/* Tabs and Search Section */}
       <div className="mr-controls-section">

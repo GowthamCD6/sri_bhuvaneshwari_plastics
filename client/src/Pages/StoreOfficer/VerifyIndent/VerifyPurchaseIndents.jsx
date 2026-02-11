@@ -28,8 +28,12 @@ const VerifyPurchaseIndents = () => {
         setLoading(true);
         setError(null);
         
+        console.log('Fetching indents for Store Officer with workflowStage: Store Officer');
         // Fetch indents where workflow_stage = 'Store Officer'
         const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
+        
+        console.log('API Response:', response);
+        console.log('Data received:', response.data);
         
         if (response.success) {
           // Transform API data to match UI format

@@ -1,57 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './QMSApproval.css';
+import { purchaseIndentService } from '../../../services/apiService';
 
 const QMSIndentApprovals = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const indents = [
-    {
-      id: 'IND-2024-089',
-      date: 'Oct 24, 2024',
-      material: 'HDPE Granules - Blue',
-      details: 'Qty: 500kg • Stock Replenishment',
-      requestedBy: 'QMS Officer',
-      urgency: 'Critical',
-      status: 'Pending'
-    },
-    {
-      id: 'IND-2024-094',
-      date: 'Oct 23, 2024',
-      material: 'Industrial Solvent X2',
-      details: 'Qty: 100L • Maintenance',
-      requestedBy: 'QMS Officer',
-      urgency: 'High',
-      status: 'Pending'
-    },
-    {
-      id: 'IND-2024-092',
-      date: 'Oct 22, 2024',
-      material: 'Packing Tape (Clear)',
-      details: 'Qty: 200 Rolls • Packaging',
-      requestedBy: 'QMS Officer',
-      urgency: 'Normal',
-      status: 'Pending'
-    },
-    {
-      id: 'IND-2024-098',
-      date: 'Oct 21, 2024',
-      material: 'Safety Gloves (L)',
-      details: 'Qty: 50 Pairs • Safety Gear',
-      requestedBy: 'QMS Officer',
-      urgency: 'Normal',
-      status: 'Pending'
-    },
-    {
-      id: 'IND-2024-099',
-      date: 'Oct 21, 2024',
-      material: 'Machine Oil Type-A',
-      details: 'Qty: 50L • Maintenance',
-      requestedBy: 'QMS Officer',
-      urgency: 'Normal',
-      status: 'Pending'
+  const [indents, setIndents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchIndents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Admin' });
+      const data = response.data || [];
+      const mapped = data.map((indent) => {
+        const materials = Array.isArray(indent.materials) ? indent.materials : [];
+        const first = materials[0];
+        const materialName = first?.material_description || 'Materials';
+        const quantity = first?.quantity ? `${first.quantity}${first.unit_of_measurement || ''}` : '-';
+        const details = materials.length > 1 ? `${quantity} • +${materials.length - 1} more` : `${quantity} • ${materialName}`;
+
+        return {
+          id: indent.indent_number,
+          indentId: indent.indent_id,
+          date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          material: materialName,
+          details,
+          requestedBy: indent.requested_by_name || 'QMS Officer',
+          urgency: indent.priority === 'High' ? 'High' : indent.priority === 'Urgent' ? 'Critical' : 'Normal',
+          status: indent.status
+        };
+      });
+      setIndents(mapped);
+    } catch (err) {
+      console.error('Failed to fetch admin approvals:', err);
+      setError('Failed to load approvals');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchIndents();
+  }, []);
 
   const filteredIndents = indents.filter(indent => {
     const searchLower = searchQuery.toLowerCase();
@@ -64,7 +58,26 @@ const QMSIndentApprovals = () => {
 
   const handleViewIndent = (indentId) => {
     console.log('Viewing indent:', indentId);
-    // Add your view logic here
+  };
+
+  const handleApprove = async (indentId) => {
+    try {
+      await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by Admin' });
+      fetchIndents();
+    } catch (err) {
+      console.error('Approve failed:', err);
+      alert('Failed to approve indent');
+    }
+  };
+
+  const handleReject = async (indentId) => {
+    try {
+      await purchaseIndentService.updateIndentStatus(indentId, { status: 'Rejected', comments: 'Rejected by Admin' });
+      fetchIndents();
+    } catch (err) {
+      console.error('Reject failed:', err);
+      alert('Failed to reject indent');
+    }
   };
 
   return (
@@ -85,6 +98,18 @@ const QMSIndentApprovals = () => {
           </div>
         </div>
       </header>
+
+      {error && (
+        <div style={{ padding: '12px 16px', margin: '16px 0', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading approvals...
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="qms-main">
@@ -169,6 +194,12 @@ const QMSIndentApprovals = () => {
                   >
                     View
                   </button>
+                  {indent.status === 'Pending Admin Approval' && (
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button className="qms-view-btn" onClick={() => handleApprove(indent.indentId)}>Approve</button>
+                      <button className="qms-view-btn" onClick={() => handleReject(indent.indentId)}>Reject</button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

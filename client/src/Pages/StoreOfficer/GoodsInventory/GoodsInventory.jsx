@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit, ArrowUpRight, X, Trash2, ChevronDown, Package } from 'lucide-react';
 import './GoodsInventory.css';
+import { inventoryService, materialService } from '../../../services/apiService';
 
 const MaterialManager = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const MaterialManager = () => {
   // New/Edit Material Form
   const [materialForm, setMaterialForm] = useState({
     id: '',
+    materialId: '',
     name: '',
     supplier: '',
     stock: '',
@@ -32,15 +34,72 @@ const MaterialManager = () => {
   // Unit options
   const unitOptions = ['kg', 'g', 'pcs', 'sheets', 'ltr', 'ml', 'boxes', 'rolls', 'bags'];
   
-  // Sidebar Data
-  const categories = [
-    { name: "Raw Materials", count: 38 },
-    { name: "Finished Goods", count: 52 },
-    { name: "Semi-Finished Goods", count: 21 },
-    { name: "Packaging Materials", count: 18 },
-    { name: "Additives & Colors", count: 13 },
-    { name: "Scrap & Regrind", count: 7 },
-  ];
+  const [categories, setCategories] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const mapStatus = (stock, reorder) => {
+    if (stock <= 0) return { status: 'Out of Stock', statusClass: 'mm-badge-red', stockClass: 'mm-text-red' };
+    if (stock <= reorder) return { status: 'Low Stock', statusClass: 'mm-badge-orange', stockClass: 'mm-text-orange' };
+    return { status: 'In Stock', statusClass: 'mm-badge-green', stockClass: 'mm-text-dark' };
+  };
+
+  const fetchInventory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await inventoryService.getAllInventory();
+      const data = response.data || [];
+
+      const mappedMaterials = data.map((item) => {
+        const stock = Number(item.current_stock || 0);
+        const reorder = Number(item.reorder_level || item.reorder_point || 0);
+        const statusMeta = mapStatus(stock, reorder);
+
+        return {
+          id: item.material_code,
+          materialId: item.material_id,
+          name: item.material_name,
+          supplier: item.supplier || '-',
+          stock: stock.toLocaleString(),
+          unit: item.unit_of_measurement || 'kg',
+          status: statusMeta.status,
+          statusClass: statusMeta.statusClass,
+          stockClass: statusMeta.stockClass,
+          type: item.material_type || item.category || 'Material',
+          minStock: item.min_stock_level || 0,
+          maxStock: item.max_stock_level || 0,
+          reorderLevel: reorder || 0,
+          warehouseLocation: item.warehouse_location || '-',
+          remarks: item.description || ''
+        };
+      });
+
+      const categoryMap = new Map();
+      data.forEach((item) => {
+        const name = item.category || 'Uncategorized';
+        categoryMap.set(name, (categoryMap.get(name) || 0) + 1);
+      });
+
+      const mappedCategories = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
+
+      setMaterials(mappedMaterials);
+      setCategories(mappedCategories);
+      if (mappedCategories.length > 0 && !mappedCategories.find(c => c.name === activeCategory)) {
+        setActiveCategory(mappedCategories[0].name);
+      }
+    } catch (err) {
+      console.error('Failed to fetch inventory:', err);
+      setError('Failed to load materials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
 
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
@@ -50,89 +109,6 @@ const MaterialManager = () => {
     );
   }, [categorySearch]);
 
-  // Middle Panel Data
-  const materials = [
-    {
-      id: "RM-1024",
-      name: "HDPE Granules – High Density",
-      supplier: "Polymer Inc.",
-      stock: "4,500",
-      unit: "kg",
-      status: "In Stock",
-      statusClass: "mm-badge-green",
-      stockClass: "mm-text-dark",
-      type: "Bulk Material",
-      minStock: "500",
-      maxStock: "10,000",
-      reorderLevel: "1,000",
-      warehouseLocation: "Main Store A1",
-      remarks: "Used for extrusion products; no expiry tracking required."
-    },
-    {
-      id: "RM-2055",
-      name: "LDPE Resin – Clear",
-      supplier: "ChemWorld",
-      stock: "450",
-      unit: "kg",
-      status: "Low Stock",
-      statusClass: "mm-badge-orange",
-      stockClass: "mm-text-orange",
-      type: "Bulk Material",
-      minStock: "500",
-      maxStock: "5,000",
-      reorderLevel: "500",
-      warehouseLocation: "Main Store B2",
-      remarks: "Monitor stock levels closely."
-    },
-    {
-      id: "RM-1033",
-      name: "Polypropylene (PP) Sheets",
-      supplier: "Plasticos Ltd.",
-      stock: "2,100",
-      unit: "sheets",
-      status: "In Stock",
-      statusClass: "mm-badge-green",
-      stockClass: "mm-text-dark",
-      type: "Sheet",
-      minStock: "200",
-      maxStock: "5,000",
-      reorderLevel: "800",
-      warehouseLocation: "Main Store A3",
-      remarks: "High-quality sheets for industrial use."
-    },
-    {
-      id: "AD-5002",
-      name: "Masterbatch – Red 404",
-      supplier: "ColorChem",
-      stock: "125",
-      unit: "kg",
-      status: "In Stock",
-      statusClass: "mm-badge-green",
-      stockClass: "mm-text-dark",
-      type: "Color Additive",
-      minStock: "25",
-      maxStock: "500",
-      reorderLevel: "50",
-      warehouseLocation: "Additive Store C1",
-      remarks: "Store in cool, dry place."
-    },
-    {
-      id: "SC-010",
-      name: "Reprocessed HDPE Granules",
-      supplier: "Scrap & Regrind",
-      stock: "0",
-      unit: "kg",
-      status: "Out of Stock",
-      statusClass: "mm-badge-red",
-      stockClass: "mm-text-red",
-      type: "Scrap",
-      minStock: "100",
-      maxStock: "2,000",
-      reorderLevel: "200",
-      warehouseLocation: "Scrap Yard D1",
-      remarks: "Urgent reorder required."
-    }
-  ];
 
   // Filter materials based on search
   const filteredMaterials = useMemo(() => {
@@ -168,6 +144,7 @@ const MaterialManager = () => {
   const handleAddMaterial = () => {
     setMaterialForm({
       id: '',
+      materialId: '',
       name: '',
       supplier: '',
       stock: '',
@@ -187,8 +164,23 @@ const MaterialManager = () => {
       alert('Please fill in all required fields');
       return;
     }
-    alert(`Material "${materialForm.name}" added successfully!`);
-    setShowAddMaterialModal(false);
+    materialService.createMaterial({
+      materialCode: materialForm.id,
+      materialName: materialForm.name,
+      materialType: materialForm.type || activeCategory,
+      category: activeCategory,
+      unitOfMeasurement: materialForm.unit,
+      minStockLevel: materialForm.minStock,
+      maxStockLevel: materialForm.maxStock,
+      reorderLevel: materialForm.minStock,
+      description: materialForm.remarks
+    })
+      .then(() => fetchInventory())
+      .catch((err) => {
+        console.error('Failed to create material:', err);
+        alert('Failed to create material');
+      })
+      .finally(() => setShowAddMaterialModal(false));
   };
 
   // Handle Delete Material
@@ -213,6 +205,7 @@ const MaterialManager = () => {
     if (selectedMaterial) {
       setMaterialForm({
         id: selectedMaterial.id,
+        materialId: selectedMaterial.materialId,
         name: selectedMaterial.name,
         supplier: selectedMaterial.supplier,
         stock: selectedMaterial.stock,
@@ -233,8 +226,26 @@ const MaterialManager = () => {
       alert('Please fill in all required fields');
       return;
     }
-    alert(`Material "${materialForm.name}" updated successfully!`);
-    setShowEditMaterialModal(false);
+    if (!materialForm.materialId) {
+      alert('Material ID is missing');
+      return;
+    }
+    materialService.updateMaterial(materialForm.materialId, {
+      materialName: materialForm.name,
+      materialType: materialForm.type || activeCategory,
+      category: activeCategory,
+      unitOfMeasurement: materialForm.unit,
+      minStockLevel: materialForm.minStock,
+      maxStockLevel: materialForm.maxStock,
+      reorderLevel: materialForm.minStock,
+      description: materialForm.remarks
+    })
+      .then(() => fetchInventory())
+      .catch((err) => {
+        console.error('Failed to update material:', err);
+        alert('Failed to update material');
+      })
+      .finally(() => setShowEditMaterialModal(false));
   };
 
   // Handle Material Form Change
@@ -244,6 +255,17 @@ const MaterialManager = () => {
 
   return (
     <div className="mm-container">
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading materials...
+        </div>
+      )}
       
       {/* --- Left Column: Categories --- */}
       <div className="mm-sidebar">

@@ -49,6 +49,23 @@ const NewPurchaseIndent = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Auto-generate indent number on component mount if not editing existing
+  useEffect(() => {
+    if (!passedIndentId && !formData.indentNumber) {
+      const autoIndentNumber = `PI-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      setFormData(prev => ({ ...prev, indentNumber: autoIndentNumber }));
+    }
+  }, [passedIndentId]);
+
+  // Debug: Log user info on mount
+  useEffect(() => {
+    console.log('=== PURCHASE INDENT COMPONENT MOUNTED ===');
+    console.log('Current user:', user);
+    console.log('User roleName:', user?.roleName);
+    console.log('Is view mode:', isViewMode);
+    console.log('Passed indent ID:', passedIndentId);
+  }, []);
+
   // Pre-fill form if coming from customer order
   useEffect(() => {
     if (fromCustomerOrder && orderData) {
@@ -163,10 +180,10 @@ const NewPurchaseIndent = () => {
             requestedBy: indent.requested_by_name || '',
             priority: indent.priority || 'Medium',
             indentNumber: indent.indent_number || '',
-            indentDate: indent.indent_date?.split('T')[0] || '',
+            indentDate: indent.request_date?.split('T')[0] || new Date().toISOString().split('T')[0],
             requiredByDate: indent.required_by_date?.split('T')[0] || '',
             justification: indent.justification || '',
-            customerPart: indent.customer_order_indent_id || '',
+            customerPart: indent.customer_order_id || '',
             orderQuantity: indent.order_quantity || '',
             poNumber: indent.po_number || '',
             poReference: indent.po_reference || '',
@@ -181,15 +198,15 @@ const NewPurchaseIndent = () => {
 
           if (indent.materials && indent.materials.length > 0) {
             setMaterials(indent.materials.map(m => ({
-              id: m.material_id,
+              id: m.indent_material_id,
               description: m.material_description,
               preferredSupplier: m.preferred_supplier || '',
-              requiredQuantity: m.required_quantity,
-              requiredDate: m.required_date?.split('T')[0] || '',
-              onHand: m.on_hand || '0',
-              order: m.order_quantity || '',
+              requiredQuantity: m.quantity,
+              requiredDate: indent.required_by_date?.split('T')[0] || '',
+              onHand: m.current_stock || '0',
+              order: m.required_stock || '',
               status: 'pending',
-              uom: m.uom || 'kg',
+              uom: m.unit_of_measurement || 'kg',
               isEditing: false
             })));
           }
@@ -270,6 +287,13 @@ const NewPurchaseIndent = () => {
     }, 0);
   };
 
+  const normalizePriority = (value) => {
+    const normalized = String(value || '').toLowerCase();
+    if (normalized === 'high') return 'High';
+    if (normalized === 'urgent') return 'Urgent';
+    return 'Standard';
+  };
+
   // Handle form submission
   const handleSubmit = async (action) => {
     try {
@@ -303,19 +327,23 @@ const NewPurchaseIndent = () => {
         return;
       }
 
-      // Generate indent number if not exists
-      const indentNumber = formData.indentNumber || `PI-${Date.now()}`;
+      // Generate indent number if not exists - use timestamp for uniqueness
+      const indentNumber = formData.indentNumber || `PI-${new Date().getFullYear()}-${Date.now()}`;
 
       // Determine workflow based on role and action
       let workflowStage = 'QMS Init';
       let status = 'Draft';
 
+      console.log('User role:', user?.roleName);
+      console.log('Action:', action);
+      console.log('passedIndentId:', passedIndentId);
+
       if (action === 'submit') {
-        if (user?.role === 'StoreOfficer' && passedIndentId) {
+        if (user?.roleName === 'StoreOfficer' && passedIndentId) {
           // Store Officer sending back to QMS
           workflowStage = 'QMS Verified';
           status = 'Pending QMS Verification';
-        } else if (user?.role === 'QMS') {
+        } else if (user?.roleName === 'QMS') {
           // QMS sending to Store Officer
           workflowStage = 'Store Officer';
           status = 'Pending Store Review';
@@ -327,7 +355,7 @@ const NewPurchaseIndent = () => {
         customerOrderId: formData.customerPart || null,
         requestDate: formData.indentDate,
         requiredByDate: formData.requiredByDate || formData.indentDate,
-        priority: formData.priority || 'Standard',
+        priority: normalizePriority(formData.priority),
         workflowStage: workflowStage,
         status: status,
         poNumber: formData.poNumber || null,
@@ -347,6 +375,7 @@ const NewPurchaseIndent = () => {
       console.log('Submitting indent data:', indentData);
       console.log('Materials count:', materials.length);
       console.log('Action:', action, 'Workflow Stage:', workflowStage, 'Status:', status);
+      console.log('Full indent data being sent:', JSON.stringify(indentData, null, 2));
 
       let response;
       if (passedIndentId) {
@@ -364,18 +393,21 @@ const NewPurchaseIndent = () => {
         response = await purchaseIndentService.createIndent(indentData);
       }
 
-      console.log('API Response:', response);
+      console.log('=== API RESPONSE ===');
+      console.log('Success:', response.success);
+      console.log('Response data:', response.data);
+      console.log('Full response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
         setValidationErrors({ 
           success: action === 'submit' 
-            ? (user?.role === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted for approval!')
+            ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted for approval!')
             : 'Draft saved successfully!' 
         });
         
         setTimeout(() => {
           if (action === 'submit') {
-            if (user?.role === 'StoreOfficer') {
+            if (user?.roleName === 'StoreOfficer') {
               navigate('/store-verify-indents');
             } else {
               navigate('/qms-customer-orders');
@@ -686,13 +718,15 @@ const NewPurchaseIndent = () => {
               <div className="pi-form-field">
                 <div className="pi-label-with-tag">
                   <label className="pi-label">Indent number</label>
+                  <span className="pi-tag pi-tag-auto">Auto-generated</span>
                 </div>
                 <input
                   type="text"
                   value={formData.indentNumber}
-                  onChange={(e) => setFormData({...formData, indentNumber: e.target.value})}
+                  readOnly
                   className="pi-input"
                   placeholder="PI-XXXX-XXX"
+                  style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
                 />
               </div>
 

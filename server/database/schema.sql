@@ -58,6 +58,10 @@ CREATE TABLE IF NOT EXISTS suppliers (
   state VARCHAR(50),
   pincode VARCHAR(10),
   gstin VARCHAR(15),
+  category VARCHAR(100),
+  rating DECIMAL(3,2) DEFAULT 0,
+  total_orders INT DEFAULT 0,
+  last_order_date DATE,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -93,16 +97,25 @@ CREATE TABLE IF NOT EXISTS materials (
   material_id INT PRIMARY KEY AUTO_INCREMENT,
   material_code VARCHAR(50) UNIQUE NOT NULL,
   material_name VARCHAR(100) NOT NULL,
+  material_type VARCHAR(50),
   category VARCHAR(50),
+  description TEXT,
   unit_of_measurement VARCHAR(20) NOT NULL,
   current_stock DECIMAL(10,2) DEFAULT 0,
   min_stock_level DECIMAL(10,2) DEFAULT 0,
   max_stock_level DECIMAL(10,2),
   reorder_point DECIMAL(10,2),
   unit_price DECIMAL(10,2),
+  standard_cost DECIMAL(10,2) DEFAULT 0,
+  reorder_level DECIMAL(10,2) DEFAULT 0,
+  reorder_quantity DECIMAL(10,2) DEFAULT 0,
+  lead_time_days INT DEFAULT 0,
+  specifications JSON,
+  created_by INT NULL,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
   INDEX idx_material_code (material_code),
   INDEX idx_material_name (material_name),
   INDEX idx_category (category),
@@ -237,4 +250,79 @@ CREATE TABLE IF NOT EXISTS indent_status_history (
   FOREIGN KEY (changed_by) REFERENCES users(user_id) ON DELETE RESTRICT,
   INDEX idx_indent (indent_id),
   INDEX idx_changed_at (changed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- 13. INVENTORY TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS inventory (
+  inventory_id INT PRIMARY KEY AUTO_INCREMENT,
+  material_id INT NOT NULL UNIQUE,
+  current_stock DECIMAL(10,2) DEFAULT 0,
+  available_stock DECIMAL(10,2) DEFAULT 0,
+  reserved_stock DECIMAL(10,2) DEFAULT 0,
+  warehouse_location VARCHAR(100),
+  last_stocked_at TIMESTAMP NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (material_id) REFERENCES materials(material_id) ON DELETE CASCADE,
+  INDEX idx_material_id (material_id),
+  INDEX idx_available_stock (available_stock)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- 14. STOCK ADJUSTMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS stock_adjustments (
+  adjustment_id INT PRIMARY KEY AUTO_INCREMENT,
+  material_id INT NOT NULL,
+  adjustment_type ENUM('IN', 'OUT') NOT NULL,
+  quantity DECIMAL(10,2) NOT NULL,
+  unit_of_measurement VARCHAR(20) NOT NULL,
+  previous_stock DECIMAL(10,2) NOT NULL,
+  new_stock DECIMAL(10,2) NOT NULL,
+  reason VARCHAR(100) NOT NULL,
+  notes TEXT,
+  adjusted_by INT NOT NULL,
+  adjusted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (material_id) REFERENCES materials(material_id) ON DELETE RESTRICT,
+  FOREIGN KEY (adjusted_by) REFERENCES users(user_id) ON DELETE RESTRICT,
+  INDEX idx_material (material_id),
+  INDEX idx_adjusted_at (adjusted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- 15. STORE REQUESTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS store_requests (
+  request_id INT PRIMARY KEY AUTO_INCREMENT,
+  request_number VARCHAR(50) UNIQUE NOT NULL,
+  requested_by INT NOT NULL,
+  dept_id INT,
+  item_type VARCHAR(50),
+  material_id INT NULL,
+  material_code VARCHAR(50),
+  material_name VARCHAR(200) NOT NULL,
+  color VARCHAR(50),
+  specs VARCHAR(200),
+  quantity DECIMAL(10,2) NOT NULL,
+  unit_of_measurement VARCHAR(20) NOT NULL,
+  needed_by_date DATE,
+  reason TEXT,
+  priority ENUM('Normal', 'Urgent', 'Critical') DEFAULT 'Normal',
+  status ENUM('Pending', 'Approved', 'Rejected', 'Processed') DEFAULT 'Pending',
+  storage_location VARCHAR(100),
+  request_date DATE NOT NULL,
+  processed_at TIMESTAMP NULL,
+  indent_id INT NULL,
+  remarks TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (requested_by) REFERENCES users(user_id) ON DELETE RESTRICT,
+  FOREIGN KEY (dept_id) REFERENCES departments(dept_id) ON DELETE SET NULL,
+  FOREIGN KEY (material_id) REFERENCES materials(material_id) ON DELETE SET NULL,
+  FOREIGN KEY (indent_id) REFERENCES purchase_indents(indent_id) ON DELETE SET NULL,
+  INDEX idx_request_number (request_number),
+  INDEX idx_status (status),
+  INDEX idx_priority (priority),
+  INDEX idx_request_date (request_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -64,21 +64,6 @@ const login = async (req, res) => {
     // Set cookie (for future use)
     setTokenCookie(res, accessToken);
 
-    // Get user permissions (optional - table may not exist)
-    let permissions = [];
-    try {
-      const permissionsQuery = 'SELECT * FROM role_permissions WHERE role_id = ?';
-      const [perms] = await db.query(permissionsQuery, [user.role_id]);
-      permissions = perms;
-    } catch (err) {
-      // Silently skip if table doesn't exist
-    }
-
-    // Log audit (non-blocking, optional)
-    db.query(`INSERT INTO audit_log (user_id, action, ip_address, user_agent) VALUES (?, 'login', ?, ?)`, 
-      [user.user_id, req.ip, req.get('user-agent')])
-      .catch(() => {}); // Silently skip if table doesn't exist
-
     // Send response
     res.status(200).json({
       success: true,
@@ -94,7 +79,7 @@ const login = async (req, res) => {
         roleId: user.role_id,
         deptId: user.dept_id
       },
-      permissions: permissions || []
+      permissions: []
     });
 
   } catch (error) {
@@ -162,21 +147,6 @@ const completeGoogleLogin = async (user, req, res) => {
     // Set cookie
     setTokenCookie(res, accessToken);
 
-    // Get permissions (optional - table may not exist)
-    let permissions = [];
-    try {
-      const permissionsQuery = 'SELECT * FROM role_permissions WHERE role_id = ?';
-      const [perms] = await db.query(permissionsQuery, [user.role_id]);
-      permissions = perms;
-    } catch (err) {
-      // Silently skip if table doesn't exist
-    }
-
-    // Log audit (non-blocking, optional)
-    db.query(`INSERT INTO audit_log (user_id, action, ip_address, user_agent) VALUES (?, 'google_login', ?, ?)`,
-      [user.user_id, req.ip, req.get('user-agent')])
-      .catch(() => {}); // Silently skip if table doesn't exist
-
     // Send response
     res.status(200).json({
       success: true,
@@ -192,7 +162,7 @@ const completeGoogleLogin = async (user, req, res) => {
         roleId: user.role_id,
         deptId: user.dept_id
       },
-      permissions: permissions || []
+      permissions: []
     });
   } catch (error) {
     console.error('Complete Google login error:', error);
@@ -205,15 +175,6 @@ const completeGoogleLogin = async (user, req, res) => {
  */
 const logout = async (req, res) => {
   try {
-    const { userId } = req.user || {};
-
-    if (userId) {
-      // Log audit (non-blocking, optional)
-      db.query(`INSERT INTO audit_log (user_id, action, ip_address, user_agent) VALUES (?, 'logout', ?, ?)`,
-        [userId, req.ip, req.get('user-agent')])
-        .catch(() => {}); // Silently skip if table doesn't exist
-    }
-
     // Clear cookie
     res.clearCookie('jwt_token');
 
@@ -257,16 +218,6 @@ const getProfile = async (req, res) => {
 
     const user = results[0];
 
-    // Get user permissions (optional - table may not exist)
-    let permissions = [];
-    try {
-      const permissionsQuery = 'SELECT * FROM role_permissions WHERE role_id = ?';
-      const [perms] = await db.query(permissionsQuery, [user.role_id]);
-      permissions = perms;
-    } catch (err) {
-      // Silently skip if table doesn't exist
-    }
-
     res.status(200).json({
       success: true,
       user: {
@@ -280,7 +231,7 @@ const getProfile = async (req, res) => {
         createdAt: user.created_at,
         updatedAt: user.updated_at
       },
-      permissions: permissions || []
+      permissions: []
     });
 
   } catch (error) {
@@ -314,7 +265,7 @@ const refreshToken = async (req, res) => {
       SELECT rt.*, u.* 
       FROM refresh_tokens rt
       JOIN users u ON rt.user_id = u.user_id
-      WHERE rt.token = ? AND rt.expires_at > NOW() AND u.status = 'active'
+      WHERE rt.token = ? AND rt.expires_at > NOW() AND u.is_active = 1
     `;
 
     db.query(query, [refreshToken], (err, results) => {
@@ -370,22 +321,13 @@ const refreshToken = async (req, res) => {
  */
 const register = async (req, res) => {
   try {
-    const { phoneNumber, email, password, fullName, role } = req.body;
+    const { phoneNumber, email, password, username, roleId, roleName, deptId } = req.body;
 
     // Validation
-    if (!phoneNumber || !password || !fullName || !role) {
+    if (!phoneNumber || !password || !username || (!roleId && !roleName)) {
       return res.status(400).json({
         success: false,
         message: 'All fields are required'
-      });
-    }
-
-    // Validate role
-    const validRoles = ['admin', 'qms', 'store_officer', 'purchase_dept'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role'
       });
     }
 
@@ -405,23 +347,25 @@ const register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Insert new user
+    let resolvedRoleId = roleId;
+    if (!resolvedRoleId && roleName) {
+      const [roles] = await db.query('SELECT role_id FROM roles WHERE role_name = ? LIMIT 1', [roleName]);
+      resolvedRoleId = roles[0]?.role_id;
+    }
+
+    if (!resolvedRoleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role'
+      });
+    }
+
     const insertQuery = `
-      INSERT INTO users (phone_number, email, password_hash, username, role_id)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO users (phone_number, email, password_hash, username, role_id, dept_id)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
 
-    const createdBy = req.user ? req.user.userId : null;
-    const username = email.split('@')[0]; // Generate username from email
-    const roleIdMap = { 'admin': 1, 'qms': 2, 'store_officer': 3, 'purchase_dept': 4 };
-    const roleId = roleIdMap[role] || 3;
-
-    const [result] = await db.query(insertQuery, [phoneNumber, email, passwordHash, username, roleId]);
-
-    // Log audit (non-blocking, optional)
-    const newValues = JSON.stringify({ phoneNumber, email, fullName, role });
-    db.query(`INSERT INTO audit_log (user_id, action, table_name, record_id, new_values, ip_address, user_agent) VALUES (?, 'create', 'users', ?, ?, ?, ?)`,
-      [createdBy, result.insertId, newValues, req.ip, req.get('user-agent')])
-      .catch(() => {}); // Silently skip if table doesn't exist
+    const [result] = await db.query(insertQuery, [phoneNumber, email, passwordHash, username, resolvedRoleId, deptId || null]);
 
     res.status(201).json({
       success: true,
