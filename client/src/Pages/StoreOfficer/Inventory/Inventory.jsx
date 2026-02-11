@@ -1,75 +1,70 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, MoreVertical } from 'lucide-react';
 import './Inventory.css';
+import { inventoryService } from '../../../services/apiService';
 
 const InventoryDashboard = () => {
-  // Data transcribed exactly from the image
-  const materials = [
-    {
-      code: "RM-1024",
-      name: "HDPE Granules - High Density",
-      supplier: "Supplier: Polymer Inc.",
-      category: "Raw Material",
-      stock: "4,500",
-      stockColor: "text-dark",
-      unit: "kg",
-      reorder: "1,000",
-      status: "In Stock",
-      statusClass: "badge-green"
-    },
-    {
-      code: "RM-2055",
-      name: "LDPE Resin - Clear",
-      supplier: "Supplier: ChemWorld Ltd.",
-      category: "Raw Material",
-      stock: "450",
-      stockColor: "text-orange", // Visual cue for low stock
-      unit: "kg",
-      reorder: "500",
-      status: "Low Stock",
-      statusClass: "badge-orange"
-    },
-    {
-      code: "PK-0012",
-      name: "Cardboard Box - Type A",
-      supplier: "Supplier: PackItAll",
-      category: "Packaging",
-      stock: "0",
-      stockColor: "text-red", // Visual cue for no stock
-      unit: "pcs",
-      reorder: "200",
-      status: "Out of Stock",
-      statusClass: "badge-red"
-    },
-    {
-      code: "AD-5002",
-      name: "Masterbatch - Red 404",
-      supplier: "Supplier: ColorChem",
-      category: "Additives",
-      stock: "125",
-      stockColor: "text-dark",
-      unit: "kg",
-      reorder: "50",
-      status: "In Stock",
-      statusClass: "badge-green"
-    },
-    {
-      code: "RM-1033",
-      name: "Polypropylene (PP) Sheets",
-      supplier: "Supplier: Plasticos Ltd.",
-      category: "Raw Material",
-      stock: "2,100",
-      stockColor: "text-dark",
-      unit: "kg",
-      reorder: "800",
-      status: "In Stock",
-      statusClass: "badge-green"
-    }
-  ];
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const mapStatus = (stock, reorder) => {
+    if (stock <= 0) return { status: 'Out of Stock', statusClass: 'badge-red', stockColor: 'text-red' };
+    if (stock <= reorder) return { status: 'Low Stock', statusClass: 'badge-orange', stockColor: 'text-orange' };
+    return { status: 'In Stock', statusClass: 'badge-green', stockColor: 'text-dark' };
+  };
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await inventoryService.getAllInventory();
+        const data = response.data || [];
+        const mapped = data.map((item) => {
+          const stock = Number(item.current_stock || 0);
+          const reorder = Number(item.reorder_level || item.reorder_point || 0);
+          const statusMeta = mapStatus(stock, reorder);
+          return {
+            code: item.material_code,
+            name: item.material_name,
+            supplier: item.supplier ? `Supplier: ${item.supplier}` : 'Supplier: -',
+            category: item.category || '-',
+            stock: stock.toLocaleString(),
+            stockColor: statusMeta.stockColor,
+            unit: item.unit_of_measurement || '-',
+            reorder: reorder.toLocaleString(),
+            status: statusMeta.status,
+            statusClass: statusMeta.statusClass
+          };
+        });
+        setMaterials(mapped);
+      } catch (err) {
+        console.error('Failed to fetch inventory:', err);
+        setError('Failed to load inventory');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInventory();
+  }, []);
 
   return (
     <div className="inv-container">
       
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading inventory...
+        </div>
+      )}
+
       {/* --- Stats Row --- */}
       <div className="inv-stats-grid">
         <div className="inv-stat-card">
@@ -77,28 +72,32 @@ const InventoryDashboard = () => {
             <span className="inv-stat-label">Total Materials</span>
             <Package size={20} className="icon-blue" />
           </div>
-          <div className="inv-stat-value">142</div>
+          <div className="inv-stat-value">{materials.length}</div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Low Stock Items</span>
             <AlertTriangle size={20} className="icon-orange" />
           </div>
-          <div className="inv-stat-value">8</div>
+          <div className="inv-stat-value">
+            {materials.filter(m => m.status === 'Low Stock').length}
+          </div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Out of Stock</span>
             <XCircle size={20} className="icon-red" />
           </div>
-          <div className="inv-stat-value">2</div>
+          <div className="inv-stat-value">
+            {materials.filter(m => m.status === 'Out of Stock').length}
+          </div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Total Value</span>
             <DollarSign size={20} className="icon-green" />
           </div>
-          <div className="inv-stat-value">$24,500</div>
+          <div className="inv-stat-value">$--</div>
         </div>
       </div>
 

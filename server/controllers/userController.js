@@ -37,7 +37,7 @@ const getUserById = (req, res) => {
   const { userId } = req.params;
 
   // Check if user is requesting their own data or is admin
-  if (req.user.userId !== parseInt(userId) && req.user.role !== 'admin') {
+  if (req.user.userId !== parseInt(userId) && String(req.user.roleName || '').toLowerCase() !== 'admin') {
     return res.status(403).json({
       success: false,
       message: 'Access denied'
@@ -45,10 +45,11 @@ const getUserById = (req, res) => {
   }
 
   const query = `
-    SELECT user_id, phone_number, email, full_name, role, status, 
-           profile_image, created_at, last_login
-    FROM users
-    WHERE user_id = ?
+    SELECT u.user_id, u.username, u.phone_number, u.email, u.is_active,
+           u.created_at, u.updated_at, r.role_name, u.role_id, u.dept_id
+    FROM users u
+    LEFT JOIN roles r ON u.role_id = r.role_id
+    WHERE u.user_id = ?
   `;
 
   db.query(query, [userId], (err, results) => {
@@ -79,22 +80,13 @@ const getUserById = (req, res) => {
  */
 const createUser = async (req, res) => {
   try {
-    const { phoneNumber, email, password, fullName, role } = req.body;
+    const { username, phoneNumber, email, password, roleId, roleName, deptId } = req.body;
 
     // Validation
-    if (!phoneNumber || !password || !fullName || !role) {
+    if (!phoneNumber || !password || !username || (!roleId && !roleName)) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number, password, full name, and role are required'
-      });
-    }
-
-    // Validate role
-    const validRoles = ['admin', 'qms', 'store_officer', 'purchase_dept'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role. Must be: admin, qms, store_officer, or purchase_dept'
+        message: 'Phone number, password, username, and role are required'
       });
     }
 
@@ -122,12 +114,25 @@ const createUser = async (req, res) => {
       const passwordHash = await bcrypt.hash(password, saltRounds);
 
       // Insert new user
+      let resolvedRoleId = roleId;
+      if (!resolvedRoleId && roleName) {
+        const [roles] = await db.query('SELECT role_id FROM roles WHERE role_name = ? LIMIT 1', [roleName]);
+        resolvedRoleId = roles[0]?.role_id;
+      }
+
+      if (!resolvedRoleId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid role'
+        });
+      }
+
       const insertQuery = `
-        INSERT INTO users (phone_number, email, password_hash, full_name, role, created_by)
+        INSERT INTO users (phone_number, email, password_hash, username, role_id, dept_id)
         VALUES (?, ?, ?, ?, ?, ?)
       `;
 
-      db.query(insertQuery, [phoneNumber, email, passwordHash, fullName, role, req.user.userId], (insertErr, result) => {
+      db.query(insertQuery, [phoneNumber, email, passwordHash, username, resolvedRoleId, deptId || null], (insertErr, result) => {
         if (insertErr) {
           console.error('Error inserting user:', insertErr);
           return res.status(500).json({
@@ -135,22 +140,6 @@ const createUser = async (req, res) => {
             message: 'Failed to create user'
           });
         }
-
-        // Log audit
-        const auditQuery = `
-          INSERT INTO audit_log (user_id, action, table_name, record_id, new_values, ip_address, user_agent)
-          VALUES (?, 'create', 'users', ?, ?, ?, ?)
-        `;
-        
-        const newValues = JSON.stringify({ phoneNumber, email, fullName, role });
-        
-        db.query(auditQuery, [
-          req.user.userId,
-          result.insertId,
-          newValues,
-          req.ip,
-          req.get('user-agent')
-        ]);
 
         res.status(201).json({
           success: true,
@@ -175,10 +164,10 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { phoneNumber, email, fullName, role, password } = req.body;
+    const { username, phoneNumber, email, roleId, roleName, deptId, password } = req.body;
 
     // Check if user can update (own profile or admin)
-    if (req.user.userId !== parseInt(userId) && req.user.role !== 'admin') {
+    if (req.user.userId !== parseInt(userId) && String(req.user.roleName || '').toLowerCase() !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -186,7 +175,7 @@ const updateUser = async (req, res) => {
     }
 
     // Non-admins cannot change role
-    if (role && req.user.role !== 'admin') {
+    if ((roleId || roleName) && String(req.user.roleName || '').toLowerCase() !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Only admins can change user roles'
@@ -196,6 +185,10 @@ const updateUser = async (req, res) => {
     const updates = [];
     const values = [];
 
+    if (username) {
+      updates.push('username = ?');
+      values.push(username);
+    }
     if (phoneNumber) {
       updates.push('phone_number = ?');
       values.push(phoneNumber);
@@ -204,13 +197,26 @@ const updateUser = async (req, res) => {
       updates.push('email = ?');
       values.push(email);
     }
-    if (fullName) {
-      updates.push('full_name = ?');
-      values.push(fullName);
+    if (String(req.user.roleName || '').toLowerCase() === 'admin') {
+      if (roleId) {
+        updates.push('role_id = ?');
+        values.push(roleId);
+      } else if (roleName) {
+        const [roles] = await db.query('SELECT role_id FROM roles WHERE role_name = ? LIMIT 1', [roleName]);
+        const resolvedRoleId = roles[0]?.role_id;
+        if (!resolvedRoleId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid role'
+          });
+        }
+        updates.push('role_id = ?');
+        values.push(resolvedRoleId);
+      }
     }
-    if (role && req.user.role === 'admin') {
-      updates.push('role = ?');
-      values.push(role);
+    if (deptId !== undefined) {
+      updates.push('dept_id = ?');
+      values.push(deptId || null);
     }
     if (password) {
       const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
@@ -245,14 +251,6 @@ const updateUser = async (req, res) => {
           message: 'User not found'
         });
       }
-
-      // Log audit
-      const auditQuery = `
-        INSERT INTO audit_log (user_id, action, table_name, record_id, ip_address, user_agent)
-        VALUES (?, 'update', 'users', ?, ?, ?)
-      `;
-      
-      db.query(auditQuery, [req.user.userId, userId, req.ip, req.get('user-agent')]);
 
       res.status(200).json({
         success: true,
@@ -301,14 +299,6 @@ const deleteUser = (req, res) => {
       });
     }
 
-    // Log audit
-    const auditQuery = `
-      INSERT INTO audit_log (user_id, action, table_name, record_id, ip_address, user_agent)
-      VALUES (?, 'delete', 'users', ?, ?, ?)
-    `;
-    
-    db.query(auditQuery, [req.user.userId, userId, req.ip, req.get('user-agent')]);
-
     res.status(200).json({
       success: true,
       message: 'User deleted successfully'
@@ -323,16 +313,16 @@ const updateUserStatus = (req, res) => {
   const { userId } = req.params;
   const { status } = req.body;
 
-  if (!status || !['active', 'inactive', 'suspended'].includes(status)) {
+  if (!status || !['active', 'inactive'].includes(status)) {
     return res.status(400).json({
       success: false,
-      message: 'Invalid status. Must be: active, inactive, or suspended'
+      message: 'Invalid status. Must be: active or inactive'
     });
   }
+  const isActive = status === 'active' ? 1 : 0;
+  const updateQuery = 'UPDATE users SET is_active = ? WHERE user_id = ?';
 
-  const updateQuery = 'UPDATE users SET status = ? WHERE user_id = ?';
-
-  db.query(updateQuery, [status, userId], (err, result) => {
+  db.query(updateQuery, [isActive, userId], (err, result) => {
     if (err) {
       console.error('Database error:', err);
       return res.status(500).json({
@@ -347,20 +337,6 @@ const updateUserStatus = (req, res) => {
         message: 'User not found'
       });
     }
-
-    // Log audit
-    const auditQuery = `
-      INSERT INTO audit_log (user_id, action, table_name, record_id, new_values, ip_address, user_agent)
-      VALUES (?, 'update_status', 'users', ?, ?, ?, ?)
-    `;
-    
-    db.query(auditQuery, [
-      req.user.userId, 
-      userId, 
-      JSON.stringify({ status }), 
-      req.ip, 
-      req.get('user-agent')
-    ]);
 
     res.status(200).json({
       success: true,

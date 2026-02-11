@@ -13,6 +13,11 @@ const userRoutes = require('./routes/userRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const customerOrderRoutes = require('./routes/customerOrderRoutes');
 const purchaseIndentRoutes = require('./routes/purchaseIndentRoutes');
+const inventoryRoutes = require('./routes/inventoryRoutes');
+const stockAdjustmentRoutes = require('./routes/stockAdjustmentRoutes');
+const storeRequestRoutes = require('./routes/storeRequestRoutes');
+const supplierRoutes = require('./routes/supplierRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Middleware
 app.use(cors({
@@ -29,6 +34,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/customer-orders', customerOrderRoutes);
 app.use('/api/purchase-indents', purchaseIndentRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/stock-adjustments', stockAdjustmentRoutes);
+app.use('/api/store-requests', storeRequestRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

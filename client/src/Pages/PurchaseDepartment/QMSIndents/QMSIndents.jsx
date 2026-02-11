@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown, Eye, Calendar, FileText, X, Package, User, MapPin, Clock } from 'lucide-react';
 import './QMSIndents.css';
+import { purchaseIndentService } from '../../../services/apiService';
 
 const QMSIndents = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -11,158 +12,43 @@ const QMSIndents = () => {
   const [selectedIndent, setSelectedIndent] = useState(null);
   const itemsPerPage = 5;
 
-  const [indents, setIndents] = useState([
-    {
-      id: 'IND-2024-089',
-      date: 'Oct 24, 2024',
-      material: 'HDPE Granules',
-      category: 'Raw Material',
-      priority: 'HIGH',
-      status: 'Pending',
-      origin: 'QMS Dept',
-      quantity: '500 kg',
-      requestedBy: 'Rajesh Kumar',
-      remarks: 'Urgent requirement for production batch'
-    },
-    {
-      id: 'IND-2024-088',
-      date: 'Oct 23, 2024',
-      material: 'Packing Film Roll',
-      category: 'Packaging',
-      priority: 'NORMAL',
-      status: 'Verified',
-      origin: 'QMS Dept',
-      quantity: '200 Rolls',
-      requestedBy: 'Priya Sharma',
-      remarks: 'Regular stock replenishment'
-    },
-    {
-      id: 'IND-2024-085',
-      date: 'Oct 21, 2024',
-      material: 'Safety Gloves',
-      category: 'Consumables',
-      priority: 'NORMAL',
-      status: 'Pending',
-      origin: 'Store Request',
-      quantity: '100 Pairs',
-      requestedBy: 'Store Officer',
-      remarks: 'Monthly safety equipment requirement'
-    },
-    {
-      id: 'IND-2024-082',
-      date: 'Oct 18, 2024',
-      material: 'Masterbatch Blue',
-      category: 'Additives',
-      priority: 'HIGH',
-      status: 'Rejected',
-      origin: 'QMS Dept',
-      quantity: '50 kg',
-      requestedBy: 'Suresh Menon',
-      remarks: 'Color requirement for custom order',
-      rejectionReason: 'Duplicate request - already in process'
-    },
-    {
-      id: 'IND-2024-080',
-      date: 'Oct 15, 2024',
-      material: 'Testing Solution A',
-      category: 'Lab Supplies',
-      priority: 'NORMAL',
-      status: 'Processed',
-      origin: 'Lab',
-      quantity: '10 Liters',
-      requestedBy: 'Dr. Anand Kumar',
-      remarks: 'Quality testing chemicals',
-      poNumber: 'PO-2024-156'
-    },
-    {
-      id: 'IND-2024-078',
-      date: 'Oct 14, 2024',
-      material: 'PP Compound Natural',
-      category: 'Raw Material',
-      priority: 'HIGH',
-      status: 'Processed',
-      origin: 'QMS Dept',
-      quantity: '800 kg',
-      requestedBy: 'Rajesh Kumar',
-      remarks: 'Production requirement',
-      poNumber: 'PO-2024-154'
-    },
-    {
-      id: 'IND-2024-075',
-      date: 'Oct 12, 2024',
-      material: 'Lubricant Oil',
-      category: 'Maintenance',
-      priority: 'NORMAL',
-      status: 'Verified',
-      origin: 'Store Request',
-      quantity: '50 Liters',
-      requestedBy: 'Store Officer',
-      remarks: 'Machine maintenance schedule'
-    },
-    {
-      id: 'IND-2024-072',
-      date: 'Oct 10, 2024',
-      material: 'Stretch Film',
-      category: 'Packaging',
-      priority: 'NORMAL',
-      status: 'Processed',
-      origin: 'QMS Dept',
-      quantity: '100 Rolls',
-      requestedBy: 'Priya Sharma',
-      remarks: 'Packaging material stock',
-      poNumber: 'PO-2024-150'
-    },
-    {
-      id: 'IND-2024-070',
-      date: 'Oct 08, 2024',
-      material: 'ABS Granules White',
-      category: 'Raw Material',
-      priority: 'HIGH',
-      status: 'Pending',
-      origin: 'QMS Dept',
-      quantity: '600 kg',
-      requestedBy: 'Rajesh Kumar',
-      remarks: 'Special order production'
-    },
-    {
-      id: 'IND-2024-068',
-      date: 'Oct 05, 2024',
-      material: 'Cleaning Solvent',
-      category: 'Maintenance',
-      priority: 'NORMAL',
-      status: 'Rejected',
-      origin: 'Store Request',
-      quantity: '20 Liters',
-      requestedBy: 'Store Officer',
-      remarks: 'Mould cleaning',
-      rejectionReason: 'Budget exceeded for this month'
-    },
-    {
-      id: 'IND-2024-065',
-      date: 'Oct 03, 2024',
-      material: 'Color Pigment Red',
-      category: 'Additives',
-      priority: 'NORMAL',
-      status: 'Processed',
-      origin: 'QMS Dept',
-      quantity: '25 kg',
-      requestedBy: 'Suresh Menon',
-      remarks: 'Regular color stock',
-      poNumber: 'PO-2024-145'
-    },
-    {
-      id: 'IND-2024-062',
-      date: 'Oct 01, 2024',
-      material: 'Calibration Kit',
-      category: 'Lab Supplies',
-      priority: 'HIGH',
-      status: 'Verified',
-      origin: 'Lab',
-      quantity: '2 Sets',
-      requestedBy: 'Dr. Anand Kumar',
-      remarks: 'Annual calibration requirement'
+  const [indents, setIndents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchIndents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await purchaseIndentService.getAllIndents();
+      const data = response.data || [];
+      const mapped = data.map((indent) => {
+        const materials = Array.isArray(indent.materials) ? indent.materials : [];
+        const first = materials[0];
+        return {
+          id: indent.indent_number,
+          date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          material: first?.material_description || 'Materials',
+          category: indent.customer_order_id ? 'Customer Order' : 'Store Request',
+          priority: String(indent.priority || 'NORMAL').toUpperCase(),
+          status: indent.status || 'Pending',
+          origin: indent.customer_order_id ? 'QMS Dept' : 'Store Request',
+          quantity: first?.quantity ? `${first.quantity} ${first.unit_of_measurement || ''}` : '-',
+          requestedBy: indent.requested_by_name || '-'
+        };
+      });
+      setIndents(mapped);
+    } catch (err) {
+      console.error('Failed to fetch indents:', err);
+      setError('Failed to load indents');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchIndents();
+  }, []);
 
   // Filter and search logic
   const filteredIndents = useMemo(() => {
@@ -216,6 +102,17 @@ const QMSIndents = () => {
   return (
     <div className="qi-container">
       <div className="qi-content">
+        {error && (
+          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+            Loading indents...
+          </div>
+        )}
         {/* Header with Search and Filters */}
         <div className="qi-toolbar">
           <div className="qi-search">

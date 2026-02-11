@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Eye, ChevronLeft, ChevronRight, FileText, X, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import './StoreRequests.css';
+import { storeRequestService } from '../../../services/apiService';
 
 const StoreRequests = () => {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -12,183 +13,51 @@ const StoreRequests = () => {
   const [showIndentModal, setShowIndentModal] = useState(false);
   const itemsPerPage = 4;
 
-  // Sample data matching the screenshot
-  const [requests, setRequests] = useState([
-    {
-      id: 'REQ-2024-089',
-      material: 'Polypropylene Granules',
-      code: 'RM-004-RED',
-      specs: 'Color: Red',
-      qtyNeeded: '500 kg',
-      reason: 'Low stock alert in warehouse',
-      location: 'Loc: WH-A12',
-      requestDate: 'Oct 24, 2024',
-      priority: 'Critical',
-      status: 'pending',
-      requestedBy: 'Store Officer',
-      department: 'Production'
-    },
-    {
-      id: 'REQ-2024-092',
-      material: 'Packaging Box Type B',
-      code: 'PKG-BOX-B',
-      specs: '20×20×10',
-      qtyNeeded: '2000 Units',
-      reason: 'Upcoming production demand',
-      location: 'Order: PO-9921',
-      requestDate: 'Oct 24, 2024',
-      priority: 'High',
-      status: 'pending',
-      requestedBy: 'Store Officer',
-      department: 'Packaging'
-    },
-    {
-      id: 'REQ-2024-095',
-      material: 'Machine Oil (Hydraulic)',
-      code: 'MNT-OIL-22',
-      specs: '50L Drum',
-      qtyNeeded: '50 Liters',
-      reason: 'Quarterly maintenance',
-      location: 'Dept: Production',
-      requestDate: 'Oct 23, 2024',
-      priority: 'Normal',
-      status: 'pending',
-      requestedBy: 'Maintenance Head',
-      department: 'Maintenance'
-    },
-    {
-      id: 'REQ-2024-085',
-      material: 'Black Masterbatch',
-      code: 'MB-BLK-01',
-      specs: '',
-      qtyNeeded: '100 kg',
-      reason: 'Regular stock replenishment',
-      location: '',
-      requestDate: 'Oct 20, 2024',
-      priority: 'Normal',
-      status: 'processed',
-      requestedBy: 'Store Officer',
-      department: 'Production',
-      indentId: 'IND-2024-045'
-    },
-    {
-      id: 'REQ-2024-078',
-      material: 'HDPE Pellets',
-      code: 'RM-HDPE-01',
-      specs: 'Grade A',
-      qtyNeeded: '800 kg',
-      reason: 'Production batch requirement',
-      location: 'Order: PO-9918',
-      requestDate: 'Oct 18, 2024',
-      priority: 'High',
-      status: 'processed',
-      requestedBy: 'Production Manager',
-      department: 'Production',
-      indentId: 'IND-2024-042'
-    },
-    {
-      id: 'REQ-2024-072',
-      material: 'Lubricant Oil',
-      code: 'MNT-LUB-05',
-      specs: '20L Can',
-      qtyNeeded: '30 Liters',
-      reason: 'Machine maintenance schedule',
-      location: 'Dept: Maintenance',
-      requestDate: 'Oct 15, 2024',
-      priority: 'Normal',
-      status: 'processed',
-      requestedBy: 'Maintenance Head',
-      department: 'Maintenance',
-      indentId: 'IND-2024-038'
-    },
-    {
-      id: 'REQ-2024-068',
-      material: 'Color Pigment Blue',
-      code: 'PIG-BLU-02',
-      specs: '',
-      qtyNeeded: '25 kg',
-      reason: 'Custom order requirement',
-      location: 'Order: PO-9915',
-      requestDate: 'Oct 12, 2024',
-      priority: 'Critical',
-      status: 'pending',
-      requestedBy: 'Store Officer',
-      department: 'Production'
-    },
-    {
-      id: 'REQ-2024-065',
-      material: 'Stretch Film',
-      code: 'PKG-STR-01',
-      specs: '500mm width',
-      qtyNeeded: '50 Rolls',
-      reason: 'Packaging supplies low',
-      location: 'Loc: WH-B03',
-      requestDate: 'Oct 10, 2024',
-      priority: 'Normal',
-      status: 'pending',
-      requestedBy: 'Store Officer',
-      department: 'Packaging'
-    },
-    {
-      id: 'REQ-2024-060',
-      material: 'PP Compound Natural',
-      code: 'RM-PP-NAT',
-      specs: '',
-      qtyNeeded: '1200 kg',
-      reason: 'Monthly stock requirement',
-      location: '',
-      requestDate: 'Oct 08, 2024',
-      priority: 'High',
-      status: 'processed',
-      requestedBy: 'Production Manager',
-      department: 'Production',
-      indentId: 'IND-2024-035'
-    },
-    {
-      id: 'REQ-2024-055',
-      material: 'Adhesive Tape',
-      code: 'PKG-TAP-02',
-      specs: '48mm × 100m',
-      qtyNeeded: '200 Rolls',
-      reason: 'Packaging material stock',
-      location: 'Loc: WH-B05',
-      requestDate: 'Oct 05, 2024',
-      priority: 'Normal',
-      status: 'processed',
-      requestedBy: 'Store Officer',
-      department: 'Packaging',
-      indentId: 'IND-2024-032'
-    },
-    {
-      id: 'REQ-2024-050',
-      material: 'ABS Granules White',
-      code: 'RM-ABS-WHT',
-      specs: 'High Impact',
-      qtyNeeded: '600 kg',
-      reason: 'Special order production',
-      location: 'Order: PO-9910',
-      requestDate: 'Oct 03, 2024',
-      priority: 'Critical',
-      status: 'pending',
-      requestedBy: 'Production Manager',
-      department: 'Production'
-    },
-    {
-      id: 'REQ-2024-045',
-      material: 'Cleaning Solvent',
-      code: 'MNT-CLN-01',
-      specs: '',
-      qtyNeeded: '100 Liters',
-      reason: 'Mould cleaning requirement',
-      location: 'Dept: Production',
-      requestDate: 'Oct 01, 2024',
-      priority: 'Normal',
-      status: 'processed',
-      requestedBy: 'Maintenance Head',
-      department: 'Maintenance',
-      indentId: 'IND-2024-028'
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const formatDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await storeRequestService.getAllRequests();
+      const data = response.data || [];
+      const mapped = data.map((req) => ({
+        id: req.request_number,
+        requestId: req.request_id,
+        material: req.material_name,
+        code: req.material_code || '-',
+        specs: req.specs || '',
+        qtyNeeded: `${req.quantity} ${req.unit_of_measurement}`,
+        reason: req.reason || '-',
+        location: req.storage_location ? `Loc: ${req.storage_location}` : '',
+        requestDate: formatDate(req.request_date),
+        priority: req.priority || 'Normal',
+        status: (req.status || 'Pending').toLowerCase(),
+        requestedBy: req.requested_by_name || 'Store Officer',
+        department: req.dept_name || '- ',
+        indentId: req.indent_id
+      }));
+      setRequests(mapped);
+    } catch (err) {
+      console.error('Failed to fetch store requests:', err);
+      setError('Failed to load store requests');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
 
   const filters = [
     { id: 'all', label: 'All Requests' },
@@ -255,13 +124,19 @@ const StoreRequests = () => {
   const confirmCreateIndent = () => {
     if (selectedRequest) {
       const newIndentId = `IND-2024-${String(Math.floor(Math.random() * 900) + 100)}`;
-      setRequests(prev => prev.map(r => 
-        r.id === selectedRequest.id 
-          ? { ...r, status: 'processed', indentId: newIndentId } 
-          : r
-      ));
-      setShowIndentModal(false);
-      setSelectedRequest(null);
+      storeRequestService.updateRequest(selectedRequest.requestId || selectedRequest.id, {
+        status: 'Processed',
+        indentId: newIndentId
+      })
+        .then(() => fetchRequests())
+        .catch((err) => {
+          console.error('Failed to update store request:', err);
+          alert('Failed to create indent');
+        })
+        .finally(() => {
+          setShowIndentModal(false);
+          setSelectedRequest(null);
+        });
     }
   };
 
@@ -282,6 +157,17 @@ const StoreRequests = () => {
   return (
     <div className="sr-container">
       <div className="sr-content">
+        {error && (
+          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+            Loading requests...
+          </div>
+        )}
         {/* Filter Tabs and Search */}
         <div className="sr-toolbar">
           <div className="sr-filters">

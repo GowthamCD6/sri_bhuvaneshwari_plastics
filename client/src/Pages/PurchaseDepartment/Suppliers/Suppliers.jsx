@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown, Eye, Edit2, Plus, X, Phone, Mail, MapPin, Building, Package, User, Trash2 } from 'lucide-react';
 import './Suppliers.css';
+import { supplierService } from '../../../services/apiService';
 
 const Suppliers = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -12,148 +13,50 @@ const Suppliers = () => {
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const itemsPerPage = 5;
 
-  const [suppliers, setSuppliers] = useState([
-    {
-      id: 'SUP-001',
-      name: 'Reliance Polymers Ltd',
-      contactPerson: 'Rajesh Kumar',
-      phone: '+91 98765 43210',
-      email: 'rajesh@reliancepolymers.com',
-      address: '45, Industrial Area, Chennai - 600032',
-      category: 'Raw Materials',
-      gst: '33AABCT1234A1Z5',
-      status: 'active',
-      rating: 4.5,
-      totalOrders: 156,
-      lastOrder: 'Oct 20, 2024'
-    },
-    {
-      id: 'SUP-002',
-      name: 'Chennai Packaging Solutions',
-      contactPerson: 'Priya Sharma',
-      phone: '+91 87654 32109',
-      email: 'priya@chennaipack.com',
-      address: '78, Ambattur Industrial Estate, Chennai - 600058',
-      category: 'Packaging',
-      gst: '33AABCP5678B2Z6',
-      status: 'active',
-      rating: 4.2,
-      totalOrders: 89,
-      lastOrder: 'Oct 22, 2024'
-    },
-    {
-      id: 'SUP-003',
-      name: 'Metro Chemicals Pvt Ltd',
-      contactPerson: 'Suresh Menon',
-      phone: '+91 76543 21098',
-      email: 'suresh@metrochemicals.in',
-      address: '23, SIPCOT Industrial Park, Hosur - 635126',
-      category: 'Additives',
-      gst: '33AABCM9012C3Z7',
-      status: 'active',
-      rating: 4.0,
-      totalOrders: 67,
-      lastOrder: 'Oct 18, 2024'
-    },
-    {
-      id: 'SUP-004',
-      name: 'Southern Lubricants Co',
-      contactPerson: 'Anand Krishnan',
-      phone: '+91 65432 10987',
-      email: 'anand@southernlube.com',
-      address: '12, Industrial Complex, Coimbatore - 641014',
-      category: 'Maintenance',
-      gst: '33AABCS3456D4Z8',
-      status: 'inactive',
-      rating: 3.8,
-      totalOrders: 34,
-      lastOrder: 'Sep 15, 2024'
-    },
-    {
-      id: 'SUP-005',
-      name: 'Prime Plastics Industries',
-      contactPerson: 'Deepak Nair',
-      phone: '+91 54321 09876',
-      email: 'deepak@primeplastics.in',
-      address: '56, Guindy Industrial Estate, Chennai - 600032',
-      category: 'Raw Materials',
-      gst: '33AABCP7890E5Z9',
-      status: 'active',
-      rating: 4.7,
-      totalOrders: 203,
-      lastOrder: 'Oct 24, 2024'
-    },
-    {
-      id: 'SUP-006',
-      name: 'SafetyFirst Equipments',
-      contactPerson: 'Kavitha Rajan',
-      phone: '+91 43210 98765',
-      email: 'kavitha@safetyfirst.co.in',
-      address: '34, Anna Salai, Chennai - 600002',
-      category: 'Consumables',
-      gst: '33AABCS1234F6Z0',
-      status: 'active',
-      rating: 4.3,
-      totalOrders: 78,
-      lastOrder: 'Oct 21, 2024'
-    },
-    {
-      id: 'SUP-007',
-      name: 'Lab Solutions India',
-      contactPerson: 'Dr. Ramesh Iyer',
-      phone: '+91 32109 87654',
-      email: 'ramesh@labsolutions.in',
-      address: '89, Tech Park, Bangalore - 560100',
-      category: 'Lab Supplies',
-      gst: '29AABCL5678G7Z1',
-      status: 'active',
-      rating: 4.6,
-      totalOrders: 45,
-      lastOrder: 'Oct 19, 2024'
-    },
-    {
-      id: 'SUP-008',
-      name: 'Bharat Colorants',
-      contactPerson: 'Manoj Pillai',
-      phone: '+91 21098 76543',
-      email: 'manoj@bharatcolor.com',
-      address: '67, Industrial Zone, Hyderabad - 500032',
-      category: 'Additives',
-      gst: '36AABCB9012H8Z2',
-      status: 'inactive',
-      rating: 3.5,
-      totalOrders: 23,
-      lastOrder: 'Aug 10, 2024'
-    },
-    {
-      id: 'SUP-009',
-      name: 'TechPack Industries',
-      contactPerson: 'Sanjay Gupta',
-      phone: '+91 10987 65432',
-      email: 'sanjay@techpack.in',
-      address: '45, Noida Industrial Area, Noida - 201301',
-      category: 'Packaging',
-      gst: '09AABCT3456I9Z3',
-      status: 'active',
-      rating: 4.1,
-      totalOrders: 112,
-      lastOrder: 'Oct 23, 2024'
-    },
-    {
-      id: 'SUP-010',
-      name: 'Universal Polymers',
-      contactPerson: 'Vikram Singh',
-      phone: '+91 09876 54321',
-      email: 'vikram@universalpoly.com',
-      address: '90, Sector 18, Gurugram - 122015',
-      category: 'Raw Materials',
-      gst: '06AABCU7890J0Z4',
-      status: 'active',
-      rating: 4.4,
-      totalOrders: 178,
-      lastOrder: 'Oct 24, 2024'
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const formatDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await supplierService.getAllSuppliers();
+      const data = response.data || [];
+      const mapped = data.map((s) => ({
+        id: `SUP-${String(s.supplier_id).padStart(3, '0')}`,
+        supplierId: s.supplier_id,
+        name: s.supplier_name,
+        contactPerson: s.contact_person || '-',
+        phone: s.phone || '-',
+        email: s.email || '-',
+        address: s.address || '-',
+        category: s.category || 'Raw Materials',
+        gst: s.gstin || '-',
+        status: s.is_active ? 'active' : 'inactive',
+        rating: s.rating || 0,
+        totalOrders: s.total_orders || 0,
+        lastOrder: formatDate(s.last_order_date)
+      }));
+      setSuppliers(mapped);
+    } catch (err) {
+      console.error('Failed to fetch suppliers:', err);
+      setError('Failed to load suppliers');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
   const categories = ['All Categories', 'Raw Materials', 'Packaging', 'Additives', 'Maintenance', 'Consumables', 'Lab Supplies'];
 
@@ -209,25 +112,32 @@ const Suppliers = () => {
 
   const handleAddSupplier = () => {
     if (newSupplier.name && newSupplier.contactPerson && newSupplier.phone) {
-      const newId = `SUP-${String(suppliers.length + 1).padStart(3, '0')}`;
-      setSuppliers(prev => [...prev, {
-        ...newSupplier,
-        id: newId,
-        status: 'active',
-        rating: 0,
-        totalOrders: 0,
-        lastOrder: '-'
-      }]);
-      setNewSupplier({
-        name: '',
-        contactPerson: '',
-        phone: '',
-        email: '',
-        address: '',
-        category: 'Raw Materials',
-        gst: ''
-      });
-      setShowAddModal(false);
+      supplierService.createSupplier({
+        supplierName: newSupplier.name,
+        contactPerson: newSupplier.contactPerson,
+        phone: newSupplier.phone,
+        email: newSupplier.email,
+        address: newSupplier.address,
+        category: newSupplier.category,
+        gstin: newSupplier.gst
+      })
+        .then(() => fetchSuppliers())
+        .catch((err) => {
+          console.error('Failed to create supplier:', err);
+          alert('Failed to create supplier');
+        })
+        .finally(() => {
+          setNewSupplier({
+            name: '',
+            contactPerson: '',
+            phone: '',
+            email: '',
+            address: '',
+            category: 'Raw Materials',
+            gst: ''
+          });
+          setShowAddModal(false);
+        });
     }
   };
 
@@ -246,6 +156,17 @@ const Suppliers = () => {
   return (
     <div className="sup-container">
       <div className="sup-content">
+        {error && (
+          <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
+        {loading && (
+          <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+            Loading suppliers...
+          </div>
+        )}
         {/* Header with Search and Filters */}
         <div className="sup-toolbar">
           <div className="sup-search">

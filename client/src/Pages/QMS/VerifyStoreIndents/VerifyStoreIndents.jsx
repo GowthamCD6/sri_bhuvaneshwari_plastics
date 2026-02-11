@@ -21,14 +21,14 @@ const VerifyStoreIndents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch indents assigned to QMS for verification (workflow_stage = 'QMS Verified')
+  // Fetch indents assigned to Store Officer for verification (workflow_stage = 'Store Officer')
   useEffect(() => {
     const fetchIndents = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' });
+        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
         
         if (response.success) {
           const transformedData = response.data.map(indent => ({

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './UserManagement.css';
+import { userService } from '../../../services/apiService';
 
 // SVG Icons
 const Icons = {
@@ -37,76 +38,77 @@ const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // User data
-  const users = [
-    {
-      name: 'Robert Fox',
-      email: 'admin@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=12',
-      role: 'Administrator',
-      roleClass: 'admin',
-      status: 'Active',
-      statusClass: 'active',
-      lastActive: 'Just now'
-    },
-    {
-      name: 'Sarah Chen',
-      email: 'sarah.c@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=5',
-      role: 'QMS Officer',
-      roleClass: 'qms',
-      status: 'Active',
-      statusClass: 'active',
-      lastActive: '2 hours ago'
-    },
-    {
-      name: 'Michael Brown',
-      email: 'm.brown@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=13',
-      role: 'Store Officer',
-      roleClass: 'store',
-      status: 'Active',
-      statusClass: 'active',
-      lastActive: '5 hours ago'
-    },
-    {
-      name: 'Emily Davis',
-      email: 'e.davis@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=9',
-      role: 'Purchase Dept',
-      roleClass: 'purchase',
-      status: 'Active',
-      statusClass: 'active',
-      lastActive: 'Yesterday'
-    },
-    {
-      name: 'Rahul Patel',
-      email: 'r.patel@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=8',
-      role: 'Store Officer',
-      roleClass: 'store',
-      status: 'Inactive',
-      statusClass: 'inactive',
-      lastActive: '3 days ago'
-    },
-    {
-      name: 'Maria Garcia',
-      email: 'm.garcia@company.com',
-      avatar: 'https://i.pravatar.cc/150?img=10',
-      role: 'Purchase Dept',
-      roleClass: 'purchase',
-      status: 'Active',
-      statusClass: 'active',
-      lastActive: '1 week ago'
-    }
-  ];
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const totalUsers = 12;
   const usersPerPage = 6;
-  const displayedUsers = users.slice(0, usersPerPage);
+
+  const roleToClass = (role) => {
+    const normalized = String(role || '').toLowerCase();
+    if (normalized.includes('admin')) return 'admin';
+    if (normalized.includes('qms')) return 'qms';
+    if (normalized.includes('store')) return 'store';
+    if (normalized.includes('purchase')) return 'purchase';
+    return 'admin';
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await userService.getAllUsers();
+      const data = response.data || response.users || [];
+      const mapped = data.map((u) => ({
+        name: u.username || u.full_name || 'User',
+        email: u.email || '-',
+        avatar: u.profile_image || 'https://i.pravatar.cc/150?img=12',
+        role: u.role_name || u.role || 'User',
+        roleClass: roleToClass(u.role_name || u.role),
+        status: u.is_active ? 'Active' : 'Inactive',
+        statusClass: u.is_active ? 'active' : 'inactive',
+        lastActive: u.last_login ? new Date(u.last_login).toLocaleString() : '—'
+      }));
+      setUsers(mapped);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setError('Failed to load users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    const term = searchQuery.trim().toLowerCase();
+    if (!term) return users;
+    return users.filter((u) =>
+      u.name.toLowerCase().includes(term) ||
+      u.role.toLowerCase().includes(term)
+    );
+  }, [users, searchQuery]);
+
+  const totalUsers = filteredUsers.length;
+  const totalPages = Math.max(1, Math.ceil(totalUsers / usersPerPage));
+  const displayedUsers = filteredUsers.slice((currentPage - 1) * usersPerPage, currentPage * usersPerPage);
 
   return (
     <div className="um-container">
+      {error && (
+        <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {loading && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+          Loading users...
+        </div>
+      )}
+
       {/* Header */}
       <div className="um-header">
         <h1 className="um-title">User Management</h1>
@@ -209,22 +211,19 @@ const UserManagement = () => {
             >
               Previous
             </button>
-            <button 
-              className="um-page-btn active"
-              onClick={() => setCurrentPage(1)}
-            >
-              1
-            </button>
-            <button 
-              className="um-page-btn"
-              onClick={() => setCurrentPage(2)}
-            >
-              2
-            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              <button 
+                key={page}
+                className={`um-page-btn ${currentPage === page ? 'active' : ''}`}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            ))}
             <button 
               className="um-page-btn"
-              disabled={currentPage === 2}
-              onClick={() => setCurrentPage(prev => Math.min(2, prev + 1))}
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
             >
               Next
             </button>
