@@ -21,7 +21,7 @@ const NewPurchaseIndent = () => {
   const [materials, setMaterials] = useState([]);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const [formData, setFormData] = useState({
-    department: '',
+    department: 'stores',
     requestedBy: '',
     priority: 'Medium',
     indentNumber: '',
@@ -69,13 +69,58 @@ const NewPurchaseIndent = () => {
   // Pre-fill form if coming from customer order
   useEffect(() => {
     if (fromCustomerOrder && orderData) {
+      console.log('=== PURCHASE INDENT: Receiving customer order data ===');
+      console.log('Order Data:', orderData);
+      console.log('Order Items:', orderData.orderItems);
+      console.log('Indent Date:', orderData.indentDate);
+      console.log('Indent ID:', orderData.indentId);
+      
+      // Get earliest required_by_date from order items
+      let earliestRequiredDate = '';
+      if (orderData.orderItems && orderData.orderItems.length > 0) {
+        const dates = orderData.orderItems
+          .map(item => item.required_by_date || item.required_date)
+          .filter(date => date);
+        console.log('Extracted dates from items:', dates);
+        if (dates.length > 0) {
+          earliestRequiredDate = dates.sort()[0];
+        }
+      }
+
+      console.log('Setting form data with:');
+      console.log('- indentNumber:', orderData.indentId);
+      console.log('- indentDate:', orderData.indentDate);
+      console.log('- requiredByDate:', earliestRequiredDate);
+      console.log('- requestedBy:', orderData.customerName);
+
+      // Format dates to YYYY-MM-DD if they exist (without timezone conversion)
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '';
+        // If already in YYYY-MM-DD format, return as is
+        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          return dateStr;
+        }
+        // Otherwise convert carefully to avoid timezone issues
+        try {
+          const date = new Date(dateStr);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        } catch (e) {
+          return dateStr;
+        }
+      };
+
       setFormData(prev => ({
         ...prev,
-        customerPart: orderData.orderId || '',
+        department: 'stores',
+        indentNumber: orderData.indentId || prev.indentNumber,
+        customerPart: orderData.indentId || orderData.orderId || '',
         requestedBy: orderData.customerName || '',
-        indentDate: orderData.indentDate ? new Date(orderData.indentDate).toISOString().split('T')[0] : prev.indentDate,
-        requiredByDate: orderData.requiredByDate ? new Date(orderData.requiredByDate).toISOString().split('T')[0] : orderData.indentDate ? new Date(orderData.indentDate).toISOString().split('T')[0] : prev.requiredByDate,
-        justification: `Purchase indent for customer order #${orderData.orderId}`,
+        indentDate: formatDate(orderData.indentDate) || prev.indentDate,
+        requiredByDate: formatDate(earliestRequiredDate) || prev.requiredByDate,
+        justification: `Purchase indent for customer order ${orderData.indentId || orderData.orderId}`,
       }));
 
       // Pre-fill materials from order items
@@ -85,11 +130,11 @@ const NewPurchaseIndent = () => {
           description: item.component_name || item.component || '',
           preferredSupplier: item.preferred_supplier || '',
           requiredQuantity: item.quantity || '',
-          requiredDate: item.required_date ? new Date(item.required_date).toISOString().split('T')[0] : '',
+          requiredDate: item.required_by_date || item.required_date || '',
           onHand: '0',
           order: item.quantity || '',
           status: 'pending',
-          uom: item.uom || 'kg',
+          uom: item.unit || item.uom || 'kg',
           isEditing: false
         }));
         setMaterials(orderMaterials);
@@ -191,12 +236,12 @@ const NewPurchaseIndent = () => {
           };
           
           setFormData({
-            department: user?.roleName === 'StoreOfficer' ? 'QMS' : (indent.department || ''),
+            department: indent.department || 'stores',
             requestedBy: indent.requested_by_name || '',
             priority: indent.priority || 'Medium',
             indentNumber: indent.indent_number || '',
-            indentDate: formatDate(indent.request_date),
-            requiredByDate: formatDate(indent.required_by_date),
+            indentDate: indent.indent_date?.split('T')[0] || indent.request_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+            requiredByDate: indent.required_by_date?.split('T')[0] || '',
             justification: indent.justification || '',
             customerPart: indent.customer_order_id || '',
             orderQuantity: indent.order_quantity || '',
@@ -310,7 +355,9 @@ const NewPurchaseIndent = () => {
     const normalized = String(value || '').toLowerCase();
     if (normalized === 'high') return 'High';
     if (normalized === 'urgent') return 'Urgent';
-    return 'Standard';
+    if (normalized === 'medium') return 'Medium';
+    if (normalized === 'low') return 'Low';
+    return 'Medium';
   };
 
   // Handle form submission
@@ -590,13 +637,22 @@ const NewPurchaseIndent = () => {
             <div className="pi-material-label">Stock & order</div>
             <div className="pi-material-value-normal">
               {showStock ? (
-                <>
-                  On hand: {material.onHand} {material.uom}
-                  <span className="pi-material-bullet">•</span>
-                  Order: {material.order} {material.uom}
-                </>
+                <div className="pi-stock-info">
+                  <div className="pi-stock-item">
+                    <span className="pi-stock-label">On hand:</span>
+                    <span className="pi-stock-value">{material.onHand} {material.uom}</span>
+                  </div>
+                  <div className="pi-stock-separator">·</div>
+                  <div className="pi-stock-item">
+                    <span className="pi-stock-label">Order:</span>
+                    <span className="pi-stock-value">{material.order} {material.uom}</span>
+                  </div>
+                </div>
               ) : (
-                `Order: ${material.order} ${material.uom}`
+                <div className="pi-stock-item">
+                  <span className="pi-stock-label">Order:</span>
+                  <span className="pi-stock-value">{material.order} {material.uom}</span>
+                </div>
               )}
             </div>
           </div>
@@ -753,10 +809,7 @@ const NewPurchaseIndent = () => {
             <div className="pi-form-grid">
               {/* Indent Number */}
               <div className="pi-form-field">
-                <div className="pi-label-with-tag">
-                  <label className="pi-label">Indent number</label>
-                  <span className="pi-tag pi-tag-auto">Auto-generated</span>
-                </div>
+                <label className="pi-label">Indent number</label>
                 <input
                   type="text"
                   value={formData.indentNumber}
@@ -938,12 +991,6 @@ const NewPurchaseIndent = () => {
               <span className="pi-materials-footer-text">
                 Materials added: {materials.length} | Total items: {calculateTotalOrder()}
               </span>
-              <button 
-                onClick={() => alert('Viewing received status...')}
-                className="pi-link-btn"
-              >
-                View Received Status
-              </button>
             </div>
           </div>
 
