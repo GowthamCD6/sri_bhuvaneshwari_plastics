@@ -29,6 +29,9 @@ const Icons = {
   ),
   Trash: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+  ),
+  Package: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
   )
 };
 
@@ -64,7 +67,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
   // Items state - array of items for the order
   const [items, setItems] = useState([
-    { id: 1, component: '', quantity: '', requiredByDate: '' }
+    { id: 1, component: '', quantity: '', unit: 'kg', requiredByDate: '' }
   ]);
 
   // Error state
@@ -109,7 +112,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
   // Add new item
   const addItem = () => {
     const newId = Math.max(...items.map(item => item.id)) + 1;
-    setItems(prev => [...prev, { id: newId, component: '', quantity: '', requiredByDate: '' }]);
+    setItems(prev => [...prev, { id: newId, component: '', quantity: '', unit: 'kg', requiredByDate: '' }]);
   };
 
   // Remove item
@@ -197,6 +200,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
       items: items.map(item => ({
         component: item.component,
         quantity: parseInt(item.quantity),
+        unit: item.unit,
         required_by_date: item.requiredByDate
       }))
     };
@@ -380,9 +384,9 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                         {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
                       </div>
 
-                      {/* Quantity & Date Row */}
+                      {/* Quantity, Unit & Date Row */}
                       <div className="form-row">
-                        <div className="form-group half-width">
+                        <div className="form-group" style={{flex: '0 0 30%'}}>
                           <label className="input-label">Quantity <span className="required">*</span></label>
                           <input 
                             type="number" 
@@ -394,7 +398,25 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                           />
                           {itemErrors[`${item.id}_quantity`] && <span className="error-message">{itemErrors[`${item.id}_quantity`]}</span>}
                         </div>
-                        <div className="form-group half-width">
+                        <div className="form-group" style={{flex: '0 0 30%'}}>
+                          <label className="input-label">Unit <span className="required">*</span></label>
+                          <div className="input-wrapper">
+                            <div className="input-icon"><Icons.Package /></div>
+                            <select
+                              className="form-input has-icon"
+                              value={item.unit}
+                              onChange={(e) => handleItemChange(item.id, 'unit', e.target.value)}
+                            >
+                              <option value="kg">Kilograms (kg)</option>
+                              <option value="g">Grams (g)</option>
+                              <option value="pcs">Pieces (pcs)</option>
+                              <option value="box">Box</option>
+                              <option value="ltr">Liters (ltr)</option>
+                              <option value="m">Meters (m)</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="form-group" style={{flex: '1'}}>
                           <label className="input-label">Required By Date <span className="required">*</span></label>
                           <div className="input-wrapper">
                             <div className="input-icon"><Icons.Calendar /></div>

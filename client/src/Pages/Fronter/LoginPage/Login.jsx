@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Package, TrendingUp, Shield, Zap } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '../../../services/apiService';
 import './Login.css';
 
@@ -136,79 +136,15 @@ const Login = ({ onLogin }) => {
 
   return (
     <div className="login-container">
-      {/* Left Side - Hero Section */}
+      {/* Left Side - Hero Section with Industrial Image */}
       <div className="hero-section">
+        <div className="hero-overlay"></div>
         <div className="hero-content">
           <div className="logo-section">
             <div className="logo">SB</div>
             <div className="company-name">Sri Bhuvaneswari Plastics</div>
           </div>
-
-          <div className="badge">Inventory Management Platform</div>
-          
-          <h1 className="hero-title">
-            Complete visibility.<br/>
-            From <span className="hero-gradient-text">raw material</span> to <span className="hero-gradient-text">dispatch</span>.
-          </h1>
-
-          <p className="hero-description">
-            Centralized inventory management system designed specifically for plastic component manufacturing. 
-            Track materials, monitor production, manage quality checks, and streamline operations in real-time.
-          </p>
-
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">
-                <Package size={20} />
-              </div>
-              <div className="feature-content">
-                <div className="feature-title">End-to-End Tracking</div>
-                <div className="feature-description">
-                  Monitor every component from raw material intake through moulding, finishing, and final dispatch
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <TrendingUp size={20} />
-              </div>
-              <div className="feature-content">
-                <div className="feature-title">Real-Time Insights</div>
-                <div className="feature-description">
-                  Live stock levels, production status, and inventory analytics at your fingertips
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <Shield size={20} />
-              </div>
-              <div className="feature-content">
-                <div className="feature-title">Quality Assurance</div>
-                <div className="feature-description">
-                  Integrated QMS workflows ensure every component meets specification standards
-                </div>
-              </div>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <Zap size={20} />
-              </div>
-              <div className="feature-content">
-                <div className="feature-title">Streamlined Operations</div>
-                <div className="feature-description">
-                  Automated workflows reduce manual errors and accelerate order fulfillment cycles
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-footer">
-          Powering efficient inventory management for <strong>plastic component manufacturing</strong>
+          <div className="hero-tagline">WorkFlow Management Platform</div>
         </div>
       </div>
 

@@ -577,17 +577,15 @@ const NewPurchaseIndent = () => {
             <p>{passedIndentId ? `Viewing indent ${formData.indentNumber}` : 'Capture material requirements and send to purchasing for approval.'}</p>
           </div>
           <div className="pi-header-right">
-            {passedIndentId && (
-              <button
-                type="button"
-                className="pi-workflow-btn"
-                onClick={() => setShowWorkflow(true)}
-                title="View workflow status"
-                aria-label="View workflow status"
-              >
-                <GitBranch size={18} />
-              </button>
-            )}
+            <button
+              type="button"
+              className="pi-workflow-btn"
+              onClick={() => setShowWorkflow(true)}
+              title="View workflow status"
+              aria-label="View workflow status"
+            >
+              <GitBranch size={18} />
+            </button>
             {formData.workflowStage && (
               <div className="pi-workflow-badge" style={{
                 padding: '6px 12px',
