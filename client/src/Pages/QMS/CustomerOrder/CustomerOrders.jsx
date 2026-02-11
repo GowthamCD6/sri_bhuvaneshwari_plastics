@@ -56,6 +56,13 @@ const statusToBadgeClass = (status) => {
   return 'badge-draft';
 };
 
+const getPriorityClass = (priority) => {
+  const p = String(priority || '').toLowerCase();
+  if (p === 'urgent') return 'badge-urgent';
+  if (p === 'high') return 'badge-high';
+  return 'badge-standard';
+};
+
 const buildItemsSummary = (order) => {
   const items = Array.isArray(order?.orderItems) ? order.orderItems : [];
   if (items.length === 0) {
@@ -423,7 +430,7 @@ const CustomerOrders = () => {
                             <span className={`badge ${order.indentStatusClass || statusToBadgeClass(status)}`}>
                               {status}
                             </span>
-                            <span className={`badge ${order.priorityClass || (priority.toLowerCase() === 'urgent' ? 'badge-urgent' : 'badge-standard')}`}>
+                            <span className={`badge ${order.priorityClass || getPriorityClass(priority)}`}>
                               {priority}
                             </span>
                           </div>
@@ -542,7 +549,7 @@ const CustomerOrders = () => {
                 <div className="detail-card">
                   <div className="detail-label">Priority</div>
                   <div className="detail-value">
-                    <span className={`badge ${selectedOrder.priorityClass || (selectedOrder.priority?.toLowerCase() === 'urgent' ? 'badge-urgent' : 'badge-standard')}`}>{selectedOrder.priority}</span>
+                    <span className={`badge ${selectedOrder.priorityClass || getPriorityClass(selectedOrder.priority)}`}>{selectedOrder.priority}</span>
                   </div>
                 </div>
               </div>

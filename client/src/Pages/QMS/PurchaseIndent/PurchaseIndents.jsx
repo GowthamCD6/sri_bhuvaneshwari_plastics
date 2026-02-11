@@ -23,12 +23,13 @@ const NewPurchaseIndent = () => {
   const [formData, setFormData] = useState({
     department: 'stores',
     requestedBy: '',
-    priority: 'Medium',
+    priority: 'Standard',
     indentNumber: '',
     indentDate: new Date().toISOString().split('T')[0],
     requiredByDate: '',
     justification: '',
     customerPart: '',
+    customerOrderId: null, // Numeric order_id for database
     orderQuantity: '',
     poNumber: '',
     poReference: '',
@@ -117,6 +118,7 @@ const NewPurchaseIndent = () => {
         department: 'stores',
         indentNumber: orderData.indentId || prev.indentNumber,
         customerPart: orderData.indentId || orderData.orderId || '',
+        customerOrderId: orderData.orderId, // Store numeric order_id
         requestedBy: orderData.customerName || '',
         indentDate: formatDate(orderData.indentDate) || prev.indentDate,
         requiredByDate: formatDate(earliestRequiredDate) || prev.requiredByDate,
@@ -220,15 +222,31 @@ const NewPurchaseIndent = () => {
         if (response.success && response.data) {
           const indent = response.data;
           
+          console.log('=== FETCHED INDENT DATA ===');
+          console.log('Full indent:', indent);
+          console.log('PO Number from DB:', indent.po_number);
+          console.log('PO Reference from DB:', indent.po_reference);
+          
+          // Format dates properly (handle both date strings and ISO timestamps)
+          const formatDate = (dateStr) => {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          };
+          
           setFormData({
             department: indent.department || 'stores',
-            requestedBy: indent.requested_by_name || '',
-            priority: indent.priority || 'Medium',
+            requestedBy: indent.requested_by_name || indent.customer_name || '',
+            priority: indent.priority || 'Standard',
             indentNumber: indent.indent_number || '',
             indentDate: indent.indent_date?.split('T')[0] || indent.request_date?.split('T')[0] || new Date().toISOString().split('T')[0],
             requiredByDate: indent.required_by_date?.split('T')[0] || '',
             justification: indent.justification || '',
-            customerPart: indent.customer_order_id || '',
+            customerPart: indent.customer_order_indent_id || indent.customer_order_id || '',
+            customerOrderId: indent.customer_order_id || null,
             orderQuantity: indent.order_quantity || '',
             poNumber: indent.po_number || '',
             poReference: indent.po_reference || '',
@@ -238,8 +256,15 @@ const NewPurchaseIndent = () => {
             rmPercentage: indent.rm_percentage || '',
             status: indent.status || 'Draft',
             workflowStage: indent.workflow_stage || 'QMS Init',
-            accountantNotes: indent.accountant_notes || ''
+            accountantNotes: indent.accountant_notes || '',
+            storeOfficerNotes: indent.store_officer_notes || '',
+            qmsNotes: indent.qms_notes || '',
+            adminNotes: indent.admin_notes || ''
           });
+          
+          console.log('=== FORM DATA AFTER SET ===');
+          console.log('poNumber:', indent.po_number || '');
+          console.log('poReference:', indent.po_reference || '');
 
           if (indent.materials && indent.materials.length > 0) {
             setMaterials(indent.materials.map(m => ({
@@ -336,9 +361,10 @@ const NewPurchaseIndent = () => {
     const normalized = String(value || '').toLowerCase();
     if (normalized === 'high') return 'High';
     if (normalized === 'urgent') return 'Urgent';
-    if (normalized === 'medium') return 'Medium';
-    if (normalized === 'low') return 'Low';
-    return 'Medium';
+    if (normalized === 'standard') return 'Standard';
+    // Map legacy values to Standard
+    if (normalized === 'medium' || normalized === 'low' || normalized === 'normal') return 'Standard';
+    return 'Standard';
   };
 
   // Handle form submission
@@ -399,7 +425,7 @@ const NewPurchaseIndent = () => {
 
       const indentData = {
         indentNumber: indentNumber,
-        customerOrderId: formData.customerPart || null,
+        customerOrderId: formData.customerOrderId || null,
         requestDate: formData.indentDate,
         requiredByDate: formData.requiredByDate || formData.indentDate,
         priority: normalizePriority(formData.priority),
@@ -407,6 +433,11 @@ const NewPurchaseIndent = () => {
         status: status,
         poNumber: formData.poNumber || null,
         poReference: formData.poReference || null,
+        orderQuantity: formData.orderQuantity || null,
+        rmCost: formData.rmCost || null,
+        rmRate: formData.rmRate || null,
+        piecesPerKg: formData.piecesPerKg || null,
+        rmPercentage: formData.rmPercentage || null,
         materials: materials.map(m => ({
           description: m.description,
           quantity: m.requiredQuantity,
@@ -428,12 +459,37 @@ const NewPurchaseIndent = () => {
       if (passedIndentId) {
         // Update existing indent
         console.log('Updating existing indent:', passedIndentId);
-        response = await purchaseIndentService.updateIndentStatus(passedIndentId, {
-          status: status,
-          workflowStage: workflowStage,
-          poNumber: formData.poNumber || null,
-          poReference: formData.poReference || null
-        });
+        
+        // If submitting to next stage (not just saving draft), use sendToNextStage
+        if (action === 'submit') {
+          console.log('Submitting to next workflow stage - using sendToNextStage');
+          response = await purchaseIndentService.sendToNextStage(passedIndentId, {
+            poNumber: formData.poNumber || null,
+            poReference: formData.poReference || null,
+            orderQuantity: formData.orderQuantity || null,
+            rmCost: formData.rmCost || null,
+            rmRate: formData.rmRate || null,
+            piecesPerKg: formData.piecesPerKg || null,
+            rmPercentage: formData.rmPercentage || null,
+            comments: user?.roleName === 'StoreOfficer' 
+              ? 'PO details filled by Store Officer' 
+              : 'Sent for Store Officer review'
+          });
+        } else {
+          // Just saving as draft - use regular update
+          console.log('Saving as draft - using updateIndentStatus');
+          response = await purchaseIndentService.updateIndentStatus(passedIndentId, {
+            status: status,
+            workflowStage: workflowStage,
+            poNumber: formData.poNumber || null,
+            poReference: formData.poReference || null,
+            orderQuantity: formData.orderQuantity || null,
+            rmCost: formData.rmCost || null,
+            rmRate: formData.rmRate || null,
+            piecesPerKg: formData.piecesPerKg || null,
+            rmPercentage: formData.rmPercentage || null
+          });
+        }
       } else {
         // Create new indent
         console.log('Creating new indent');
@@ -456,8 +512,11 @@ const NewPurchaseIndent = () => {
           if (action === 'submit') {
             if (user?.roleName === 'StoreOfficer') {
               navigate('/store-verify-indents');
-            } else {
+            } else if (user?.roleName === 'QMS') {
               navigate('/qms-customer-orders');
+            } else {
+              // For other roles, go back
+              navigate(-1);
             }
           }
         }, 2000);
@@ -825,7 +884,7 @@ const NewPurchaseIndent = () => {
                   }}
                   className={`pi-select ${validationErrors.department ? 'pi-input-error' : ''}`}
                   required
-                  disabled={isViewMode}
+                  disabled={isViewMode || user?.roleName === 'StoreOfficer'}
                 >
                   <option value="">Choose department</option>
                   <option value="QMS">QMS</option>
@@ -1007,7 +1066,7 @@ const NewPurchaseIndent = () => {
               <div className="pi-form-field">
                 <label className="pi-label">
                   Purchase number
-                  {user?.role !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
+                  {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
                 </label>
                 <input
                   type="text"
@@ -1015,7 +1074,7 @@ const NewPurchaseIndent = () => {
                   value={formData.poNumber}
                   onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
                   className="pi-input"
-                  readOnly={user?.role !== 'StoreOfficer'}
+                  readOnly={user?.roleName !== 'StoreOfficer'}
                 />
               </div>
 
@@ -1023,7 +1082,7 @@ const NewPurchaseIndent = () => {
               <div className="pi-form-field">
                 <label className="pi-label">
                   PO Reference
-                  {user?.role !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
+                  {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
                 </label>
                 <input
                   type="text"
@@ -1031,7 +1090,7 @@ const NewPurchaseIndent = () => {
                   value={formData.poReference}
                   onChange={(e) => setFormData({...formData, poReference: e.target.value})}
                   className="pi-input"
-                  readOnly={user?.role !== 'StoreOfficer'}
+                  readOnly={user?.roleName !== 'StoreOfficer'}
                 />
               </div>
             </div>
@@ -1108,7 +1167,7 @@ const NewPurchaseIndent = () => {
                 disabled={loading}
               >
                 <Send size={16} />
-                {user?.role === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
+                {user?.roleName === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
               </button>
             </div>
           </div>

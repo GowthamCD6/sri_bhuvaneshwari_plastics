@@ -10,7 +10,7 @@ const getAllOrders = async (req, res) => {
     let query = `
       SELECT 
         co.*,
-        ANY_VALUE(u.username) as created_by_name,
+        MAX(u.username) as created_by_name,
         COUNT(coi.item_id) as total_items
       FROM customer_orders co
       LEFT JOIN users u ON co.created_by = u.user_id

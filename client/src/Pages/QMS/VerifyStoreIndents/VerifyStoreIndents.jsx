@@ -21,31 +21,70 @@ const VerifyStoreIndents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch indents assigned to Store Officer for verification (workflow_stage = 'Store Officer')
+  // Fetch indents assigned to QMS for verification after Store Officer
   useEffect(() => {
     const fetchIndents = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
+        console.log('Fetching all indents for QMS verification');
+        // Fetch indents from multiple workflow stages:
+        // 1. QMS Verified: Pending for QMS to verify after Store Officer filled
+        // 2. Admin, Accountant, Completed: Already verified by QMS, showing history
+        const responses = await Promise.all([
+          purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
+        ]);
         
-        if (response.success) {
-          const transformedData = response.data.map(indent => ({
-            id: indent.indent_number,
-            indentId: indent.indent_id,
-            date: new Date(indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-            project: indent.customer_name || 'Stock Replenishment',
-            orderId: indent.customer_order_indent_id ? `Order #${indent.customer_order_indent_id}` : 'N/A',
-            raisedBy: indent.requested_by_name || 'N/A',
-            itemCount: `${indent.total_materials || 0} Items`,
-            priority: indent.priority === 'Urgent' ? 'High Priority' : 'Normal Priority',
-            status: indent.status === 'Pending QMS Verification' ? 'Pending QMS' : 'Verified',
-            statusClass: indent.status === 'Pending QMS Verification' ? 'badge-pending' : 'badge-verified',
-            poNumber: indent.po_number,
-            poReference: indent.po_reference
-          }));
+        console.log('Fetched responses:', responses);
+        
+        // Combine all responses
+        const allIndentsData = responses.reduce((acc, response) => {
+          if (response.success && response.data) {
+            return [...acc, ...response.data];
+          }
+          return acc;
+        }, []);
+        
+        console.log('Combined indents:', allIndentsData);
+        
+        if (allIndentsData.length > 0) {
+          const transformedData = allIndentsData.map(indent => {
+            // Determine status based on workflow_stage
+            let displayStatus = 'Pending QMS';
+            let statusClass = 'badge-pending';
+            
+            if (indent.workflow_stage === 'QMS Verified') {
+              // Still pending QMS verification
+              displayStatus = 'Pending QMS';
+              statusClass = 'badge-pending';
+            } else if (indent.workflow_stage === 'Admin' || indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
+              // Already verified by QMS and moved forward
+              displayStatus = 'Verified';
+              statusClass = 'badge-verified';
+            }
+            
+            return {
+              id: indent.indent_number,
+              indentId: indent.indent_id,
+              date: new Date(indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+              project: indent.customer_name || 'Stock Replenishment',
+              orderId: indent.customer_order_indent_id ? `Order #${indent.customer_order_indent_id}` : 'N/A',
+              raisedBy: indent.requested_by_name || 'N/A',
+              itemCount: `${indent.total_materials || 0} Items`,
+              priority: indent.priority === 'Urgent' ? 'High Priority' : 'Normal Priority',
+              status: displayStatus,
+              statusClass: statusClass,
+              poNumber: indent.po_number,
+              poReference: indent.po_reference,
+              workflowStage: indent.workflow_stage // For debugging
+            };
+          });
           
+          console.log('Transformed indents:', transformedData);
           setAllIndents(transformedData);
         }
       } catch (err) {
@@ -65,9 +104,15 @@ const VerifyStoreIndents = () => {
 
     // Filter by tab
     if (activeTab === 'pending') {
-      filtered = filtered.filter(indent => indent.status === 'Pending QMS');
+      filtered = filtered.filter(indent => 
+        indent.status.toLowerCase().includes('pending') || 
+        indent.statusClass === 'badge-pending'
+      );
     } else if (activeTab === 'verified') {
-      filtered = filtered.filter(indent => indent.status === 'Store Verified');
+      filtered = filtered.filter(indent => 
+        indent.status.toLowerCase().includes('verified') || 
+        indent.statusClass === 'badge-verified'
+      );
     }
     // 'all' shows everything
 
@@ -87,8 +132,14 @@ const VerifyStoreIndents = () => {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const pending = allIndents.filter(i => i.status === 'Pending QMS').length;
-    const verified = allIndents.filter(i => i.status === 'Verified').length;
+    const pending = allIndents.filter(i => 
+      i.status.toLowerCase().includes('pending') || 
+      i.statusClass === 'badge-pending'
+    ).length;
+    const verified = allIndents.filter(i => 
+      i.status.toLowerCase().includes('verified') || 
+      i.statusClass === 'badge-verified'
+    ).length;
     const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
 
     return { pending, verified, requiresPurchase };
