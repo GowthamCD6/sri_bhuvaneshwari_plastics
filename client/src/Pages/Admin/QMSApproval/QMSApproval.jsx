@@ -14,14 +14,43 @@ const QMSIndentApprovals = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Admin' });
-      const data = response.data || [];
-      const mapped = data.map((indent) => {
+      
+      console.log('Fetching all indents for Admin approval');
+      // Fetch indents from multiple workflow stages:
+      // 1. Admin: Pending for Admin approval
+      // 2. Accountant, Completed: Already approved by Admin, showing history
+      const responses = await Promise.all([
+        purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
+        purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
+        purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
+      ]);
+      
+      console.log('Admin fetched responses:', responses);
+      
+      // Combine all responses
+      const allIndentsData = responses.reduce((acc, response) => {
+        if (response.success && response.data) {
+          return [...acc, ...response.data];
+        }
+        return acc;
+      }, []);
+      
+      console.log('Admin combined indents:', allIndentsData);
+      
+      const mapped = allIndentsData.map((indent) => {
         const materials = Array.isArray(indent.materials) ? indent.materials : [];
         const first = materials[0];
         const materialName = first?.material_description || 'Materials';
         const quantity = first?.quantity ? `${first.quantity}${first.unit_of_measurement || ''}` : '-';
         const details = materials.length > 1 ? `${quantity} • +${materials.length - 1} more` : `${quantity} • ${materialName}`;
+
+        // Determine status based on workflow_stage
+        let displayStatus = indent.status;
+        if (indent.workflow_stage === 'Admin') {
+          displayStatus = 'Pending Admin Approval';
+        } else if (indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
+          displayStatus = 'Admin Approved';
+        }
 
         return {
           id: indent.indent_number,
@@ -31,7 +60,8 @@ const QMSIndentApprovals = () => {
           details,
           requestedBy: indent.requested_by_name || 'QMS Officer',
           urgency: indent.priority === 'High' ? 'High' : indent.priority === 'Urgent' ? 'Critical' : 'Normal',
-          status: indent.status
+          status: displayStatus,
+          workflowStage: indent.workflow_stage
         };
       });
       setIndents(mapped);

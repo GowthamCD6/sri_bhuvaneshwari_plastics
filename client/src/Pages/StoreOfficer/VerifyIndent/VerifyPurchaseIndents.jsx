@@ -28,43 +28,65 @@ const VerifyPurchaseIndents = () => {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching indents for Store Officer with workflowStage: Store Officer');
-        // Fetch indents where workflow_stage = 'Store Officer'
-        const response = await purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' });
+        console.log('Fetching all indents for Store Officer');
+        // Fetch all indents that Store Officer needs to see:
+        // 1. Pending: workflow_stage = 'Store Officer'
+        // 2. Recently Verified: workflow_stage = 'QMS Verified' 
+        // 3. All later stages: workflow_stage = 'Admin', 'Accountant', 'Completed'
+        // This allows Store Officer to see their complete work history
+        const responses = await Promise.all([
+          purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
+        ]);
         
-        console.log('API Response:', response);
-        console.log('Data received:', response.data);
+        console.log('Fetched responses:', responses);
         
-        if (response.success) {
+        // Combine all responses
+        const allIndentsData = responses.reduce((acc, response) => {
+          if (response.success && response.data) {
+            return [...acc, ...response.data];
+          }
+          return acc;
+        }, []);
+        
+        console.log('Combined indents:', allIndentsData);
+        
+        if (allIndentsData.length > 0) {
           // Transform API data to match UI format
-          const transformedData = response.data.map(indent => {
-            // Map status from database to UI
+          const transformedData = allIndentsData.map(indent => {
+            // Map status from database and workflow_stage to UI
             let displayStatus = 'Pending';
             let statusClass = 'status-orange';
             
-            if (indent.status === 'Rejected') {
-              displayStatus = 'Rejected';
-              statusClass = 'status-red';
-            } else if (indent.status === 'Store Verified' || indent.status === 'Pending QMS Verification') {
-              displayStatus = 'Verified';
-              statusClass = 'status-green';
-            } else if (indent.status === 'Pending Store Review') {
+            // Determine status based on workflow_stage
+            if (indent.workflow_stage === 'Store Officer') {
+              // Pending for Store Officer to fill
               displayStatus = 'Pending';
               statusClass = 'status-orange';
+            } else if (indent.workflow_stage === 'QMS Verified' || indent.workflow_stage === 'Admin' || indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
+              // Store Officer has verified and indent has moved forward
+              displayStatus = 'Verified';
+              statusClass = 'status-green';
+            } else if (indent.status === 'Rejected') {
+              displayStatus = 'Rejected';
+              statusClass = 'status-red';
             }
             
-            // Format request_date properly (it's a DATE string, not timestamp)
-            let formattedDate = '';
-            if (indent.request_date) {
-              const dateStr = String(indent.request_date);
-              const dateParts = dateStr.split('T')[0].split('-'); // Get YYYY-MM-DD part
-              const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-              formattedDate = dateObj.toLocaleString('en-IN', { 
-                day: '2-digit', 
-                month: 'short', 
-                year: 'numeric'
-              });
-            }
+            // Format indent_date (use indent_date first, fallback to request_date)
+            const formatDate = (dateStr) => {
+              if (!dateStr) return '';
+              const date = new Date(dateStr);
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              return `${day} ${new Date(year, date.getMonth(), day).toLocaleString('en-IN', { month: 'short' })} ${year}`;
+            };
+            
+            const indentDate = formatDate(indent.indent_date || indent.request_date);
+            const requiredDate = formatDate(indent.required_by_date);
             
             return {
               id: indent.indent_number,
@@ -72,13 +94,16 @@ const VerifyPurchaseIndents = () => {
               subId: indent.customer_order_indent_id ? `Customer Order #${indent.customer_order_indent_id}` : 'Stock Replenishment',
               reqName: indent.customer_name || indent.requested_by_name || 'N/A',
               reqRole: 'QMS Officer',
-              dept: 'QMS',
-              date: formattedDate,
+              dept: indent.department || 'QMS',
+              date: indentDate,
+              indentDate: indentDate,
+              requiredByDate: requiredDate,
               urgency: indent.priority || 'Standard',
               urgencyClass: indent.priority === 'Urgent' ? 'badge-urgent' : indent.priority === 'High' ? 'badge-high' : 'badge-normal',
               items: `${indent.total_materials || 0} Materials`,
               status: displayStatus,
               statusClass: statusClass,
+              workflowStage: indent.workflow_stage // Store for debugging
             };
           });
           
@@ -472,14 +497,15 @@ const VerifyPurchaseIndents = () => {
                     className="vpi-checkbox"
                   />
                 </th>
-                <th style={{width: '16%'}}>Indent ID</th>
-                <th style={{width: '14%'}}>Requested By</th>
-                <th style={{width: '10%'}}>Department</th>
-                <th style={{width: '16%'}}>Created Date</th>
-                <th style={{width: '10%'}}>Urgency</th>
+                <th style={{width: '14%'}}>Indent ID</th>
+                <th style={{width: '12%'}}>Requested By</th>
+                <th style={{width: '8%'}}>Department</th>
+                <th style={{width: '12%'}}>Indent Date</th>
+                <th style={{width: '12%'}}>Required By</th>
+                <th style={{width: '9%'}}>Urgency</th>
                 <th style={{width: '8%'}}>Items</th>
-                <th style={{width: '12%'}}>Status</th>
-                <th style={{width: '10%', textAlign: 'center'}}>Action</th>
+                <th style={{width: '10%'}}>Status</th>
+                <th style={{width: '9%', textAlign: 'center'}}>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -511,8 +537,11 @@ const VerifyPurchaseIndents = () => {
                     {/* Department */}
                     <td className="vpi-std-text">{item.dept}</td>
 
-                    {/* Date */}
-                    <td className="vpi-std-text">{item.date}</td>
+                    {/* Indent Date */}
+                    <td className="vpi-std-text">{item.indentDate}</td>
+
+                    {/* Required By Date */}
+                    <td className="vpi-std-text">{item.requiredByDate || 'N/A'}</td>
 
                     {/* Urgency Badge */}
                     <td>
@@ -547,7 +576,7 @@ const VerifyPurchaseIndents = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="vpi-no-data">
+                  <td colSpan="10" className="vpi-no-data">
                     No indents found matching your criteria.
                   </td>
                 </tr>

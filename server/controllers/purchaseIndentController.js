@@ -188,8 +188,8 @@ const createIndent = async (req, res) => {
     // Insert purchase indent
     const [indentResult] = await db.query(
       `INSERT INTO purchase_indents 
-        (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_reference)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_reference, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         indentNumber, 
         customerOrderId || null, 
@@ -200,7 +200,12 @@ const createIndent = async (req, res) => {
         status || 'Draft',
         workflowStage || 'QMS Init',
         poNumber || null,
-        poReference || null
+        poReference || null,
+        req.body.orderQuantity || null,
+        req.body.rmCost || null,
+        req.body.rmRate || null,
+        req.body.piecesPerKg || null,
+        req.body.rmPercentage || null
       ]
     );
 
@@ -430,6 +435,7 @@ const sendToNextStage = async (req, res) => {
           console.log('=== STORE OFFICER SUBMITTING ===');
           console.log('PO Number received:', poNumber);
           console.log('PO Reference received:', poReference);
+          console.log('Additional data:', { orderQuantity: req.body.orderQuantity, rmCost: req.body.rmCost, rmRate: req.body.rmRate });
           
           if (poNumber !== undefined) {
             updateFields.push('po_number = ?');
@@ -438,6 +444,26 @@ const sendToNextStage = async (req, res) => {
           if (poReference !== undefined) {
             updateFields.push('po_reference = ?');
             updateParams.push(poReference || null);
+          }
+          if (req.body.orderQuantity !== undefined) {
+            updateFields.push('order_quantity = ?');
+            updateParams.push(req.body.orderQuantity || null);
+          }
+          if (req.body.rmCost !== undefined) {
+            updateFields.push('rm_cost = ?');
+            updateParams.push(req.body.rmCost || null);
+          }
+          if (req.body.rmRate !== undefined) {
+            updateFields.push('rm_rate = ?');
+            updateParams.push(req.body.rmRate || null);
+          }
+          if (req.body.piecesPerKg !== undefined) {
+            updateFields.push('pieces_per_kg = ?');
+            updateParams.push(req.body.piecesPerKg || null);
+          }
+          if (req.body.rmPercentage !== undefined) {
+            updateFields.push('rm_percentage = ?');
+            updateParams.push(req.body.rmPercentage || null);
           }
         }
         break;

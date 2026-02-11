@@ -23,12 +23,13 @@ const NewPurchaseIndent = () => {
   const [formData, setFormData] = useState({
     department: 'stores',
     requestedBy: '',
-    priority: 'Medium',
+    priority: 'Standard',
     indentNumber: '',
     indentDate: new Date().toISOString().split('T')[0],
     requiredByDate: '',
     justification: '',
     customerPart: '',
+    customerOrderId: null, // Numeric order_id for database
     orderQuantity: '',
     poNumber: '',
     poReference: '',
@@ -117,6 +118,7 @@ const NewPurchaseIndent = () => {
         department: 'stores',
         indentNumber: orderData.indentId || prev.indentNumber,
         customerPart: orderData.indentId || orderData.orderId || '',
+        customerOrderId: orderData.orderId, // Store numeric order_id
         requestedBy: orderData.customerName || '',
         indentDate: formatDate(orderData.indentDate) || prev.indentDate,
         requiredByDate: formatDate(earliestRequiredDate) || prev.requiredByDate,
@@ -237,13 +239,14 @@ const NewPurchaseIndent = () => {
           
           setFormData({
             department: indent.department || 'stores',
-            requestedBy: indent.requested_by_name || '',
-            priority: indent.priority || 'Medium',
+            requestedBy: indent.requested_by_name || indent.customer_name || '',
+            priority: indent.priority || 'Standard',
             indentNumber: indent.indent_number || '',
             indentDate: indent.indent_date?.split('T')[0] || indent.request_date?.split('T')[0] || new Date().toISOString().split('T')[0],
             requiredByDate: indent.required_by_date?.split('T')[0] || '',
             justification: indent.justification || '',
-            customerPart: indent.customer_order_id || '',
+            customerPart: indent.customer_order_indent_id || indent.customer_order_id || '',
+            customerOrderId: indent.customer_order_id || null,
             orderQuantity: indent.order_quantity || '',
             poNumber: indent.po_number || '',
             poReference: indent.po_reference || '',
@@ -253,7 +256,10 @@ const NewPurchaseIndent = () => {
             rmPercentage: indent.rm_percentage || '',
             status: indent.status || 'Draft',
             workflowStage: indent.workflow_stage || 'QMS Init',
-            accountantNotes: indent.accountant_notes || ''
+            accountantNotes: indent.accountant_notes || '',
+            storeOfficerNotes: indent.store_officer_notes || '',
+            qmsNotes: indent.qms_notes || '',
+            adminNotes: indent.admin_notes || ''
           });
           
           console.log('=== FORM DATA AFTER SET ===');
@@ -355,9 +361,10 @@ const NewPurchaseIndent = () => {
     const normalized = String(value || '').toLowerCase();
     if (normalized === 'high') return 'High';
     if (normalized === 'urgent') return 'Urgent';
-    if (normalized === 'medium') return 'Medium';
-    if (normalized === 'low') return 'Low';
-    return 'Medium';
+    if (normalized === 'standard') return 'Standard';
+    // Map legacy values to Standard
+    if (normalized === 'medium' || normalized === 'low' || normalized === 'normal') return 'Standard';
+    return 'Standard';
   };
 
   // Handle form submission
@@ -418,7 +425,7 @@ const NewPurchaseIndent = () => {
 
       const indentData = {
         indentNumber: indentNumber,
-        customerOrderId: formData.customerPart || null,
+        customerOrderId: formData.customerOrderId || null,
         requestDate: formData.indentDate,
         requiredByDate: formData.requiredByDate || formData.indentDate,
         priority: normalizePriority(formData.priority),
@@ -426,6 +433,11 @@ const NewPurchaseIndent = () => {
         status: status,
         poNumber: formData.poNumber || null,
         poReference: formData.poReference || null,
+        orderQuantity: formData.orderQuantity || null,
+        rmCost: formData.rmCost || null,
+        rmRate: formData.rmRate || null,
+        piecesPerKg: formData.piecesPerKg || null,
+        rmPercentage: formData.rmPercentage || null,
         materials: materials.map(m => ({
           description: m.description,
           quantity: m.requiredQuantity,
@@ -454,6 +466,11 @@ const NewPurchaseIndent = () => {
           response = await purchaseIndentService.sendToNextStage(passedIndentId, {
             poNumber: formData.poNumber || null,
             poReference: formData.poReference || null,
+            orderQuantity: formData.orderQuantity || null,
+            rmCost: formData.rmCost || null,
+            rmRate: formData.rmRate || null,
+            piecesPerKg: formData.piecesPerKg || null,
+            rmPercentage: formData.rmPercentage || null,
             comments: user?.roleName === 'StoreOfficer' 
               ? 'PO details filled by Store Officer' 
               : 'Sent for Store Officer review'
@@ -465,7 +482,12 @@ const NewPurchaseIndent = () => {
             status: status,
             workflowStage: workflowStage,
             poNumber: formData.poNumber || null,
-            poReference: formData.poReference || null
+            poReference: formData.poReference || null,
+            orderQuantity: formData.orderQuantity || null,
+            rmCost: formData.rmCost || null,
+            rmRate: formData.rmRate || null,
+            piecesPerKg: formData.piecesPerKg || null,
+            rmPercentage: formData.rmPercentage || null
           });
         }
       } else {
