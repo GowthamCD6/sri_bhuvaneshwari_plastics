@@ -61,7 +61,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
     customerName: '',
     phoneNumber: '',
     email: '',
-    indentId: generateIndentId(),
+    indentId: '',
     indentDate: getTodayDate()
   });
 
