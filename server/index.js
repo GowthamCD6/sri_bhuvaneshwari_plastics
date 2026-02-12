@@ -2,6 +2,7 @@ const express = require('express');
 const bodyparser=require('body-parser');
 const cors= require('cors');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const app=express();
 require('dotenv').config();
 const db=require('./config/db');
@@ -27,6 +28,9 @@ app.use(cors({
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({extended:true}));
 app.use(cookieParser());
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);

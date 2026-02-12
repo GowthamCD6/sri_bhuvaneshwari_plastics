@@ -417,6 +417,31 @@ export const purchaseIndentService = {
   },
 
   /**
+   * Upload PO file for indent
+   */
+  uploadPOFile: async (indentId, file) => {
+    const formData = new FormData();
+    formData.append('poFile', file);
+    
+    const token = useAuthStore.getState().token;
+    const response = await fetch(`${API_BASE_URL}/purchase-indents/${indentId}/upload-po`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData,
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload file');
+    }
+
+    return await response.json();
+  },
+
+  /**
    * Complete indent (Accountant final stage)
    */
   completeIndent: async (indentId, data = {}) => {

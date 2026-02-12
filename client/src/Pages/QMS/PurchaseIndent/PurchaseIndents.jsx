@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User } from 'lucide-react';
+import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User, Upload, FileText, Eye } from 'lucide-react';
 import './PurchaseIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
@@ -19,6 +19,7 @@ const NewPurchaseIndent = () => {
 
   // State declarations - NO DUMMY DATA
   const [materials, setMaterials] = useState([]);
+  const [createdIndentId, setCreatedIndentId] = useState(passedIndentId || null);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const [formData, setFormData] = useState({
     department: 'stores',
@@ -39,7 +40,8 @@ const NewPurchaseIndent = () => {
     rmPercentage: '',
     status: 'Draft',
     workflowStage: 'QMS Init',
-    accountantNotes: ''
+    accountantNotes: '',
+    poFilePath: null
   });
 
   const [isEditingMaterial, setIsEditingMaterial] = useState(null);
@@ -49,6 +51,10 @@ const NewPurchaseIndent = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [selectedPOFile, setSelectedPOFile] = useState(null);
+  const [modalState, setModalState] = useState({ show: false, title: '', message: '', type: 'info' });
+  const fileInputRef = useRef(null);
 
   // Auto-generate indent number on component mount if not editing existing
   useEffect(() => {
@@ -57,6 +63,15 @@ const NewPurchaseIndent = () => {
       setFormData(prev => ({ ...prev, indentNumber: autoIndentNumber }));
     }
   }, [passedIndentId]);
+
+  // Modal helper function
+  const showModal = (title, message, type = 'info') => {
+    setModalState({ show: true, title, message, type });
+  };
+
+  const closeModal = () => {
+    setModalState({ show: false, title: '', message: '', type: 'info' });
+  };
 
   // Debug: Log user info on mount
   useEffect(() => {
@@ -166,9 +181,9 @@ const NewPurchaseIndent = () => {
       title: 'Store Officer Review',
       subtitle: 'Stock and requirement verification',
       actor: 'Store Officer',
-      user: ['Store Officer', 'QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'R. Kumar (Store)' : null,
-      date: ['Store Officer', 'QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 11:45 AM' : null,
-      note: ['QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? '"Specs match production requirement. Approved."' : null,
+      user: ['Store Officer', 'QMS Verified', 'Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'Store Officer' : null,
+      date: null,
+      note: formData.storeOfficerNotes || null,
       status: formData.workflowStage === 'Store Officer' ? 'current' : 
               formData.workflowStage === 'QMS Init' ? 'pending' : 'completed'
     },
@@ -178,7 +193,8 @@ const NewPurchaseIndent = () => {
       subtitle: 'Final quality verification',
       actor: 'QMS',
       user: ['Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'QMS Team' : null,
-      date: ['Admin', 'Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 02:15 PM' : null,
+      date: null,
+      note: formData.qmsNotes || null,
       status: formData.workflowStage === 'QMS Verified' ? 'current' : 
               ['QMS Init', 'Store Officer'].includes(formData.workflowStage) ? 'pending' : 'completed'
     },
@@ -188,7 +204,8 @@ const NewPurchaseIndent = () => {
       subtitle: 'Pending final authorization',
       actor: 'Admin',
       user: ['Accountant', 'Completed'].includes(formData.workflowStage) ? 'Admin' : null,
-      date: ['Accountant', 'Completed'].includes(formData.workflowStage) ? 'Oct 24, 04:30 PM' : null,
+      date: null,
+      note: formData.adminNotes || null,
       status: formData.workflowStage === 'Admin' ? 'current' : 
               ['QMS Init', 'Store Officer', 'QMS Verified'].includes(formData.workflowStage) ? 'pending' : 'completed'
     },
@@ -198,7 +215,8 @@ const NewPurchaseIndent = () => {
       subtitle: 'Purchase order and billing process',
       actor: 'Accountant',
       user: formData.workflowStage === 'Completed' ? 'Accountant' : null,
-      date: formData.workflowStage === 'Completed' ? 'Oct 25, 09:00 AM' : null,
+      date: null,
+      note: formData.accountantNotes || null,
       status: formData.workflowStage === 'Accountant' ? 'current' : 
               formData.workflowStage === 'Completed' ? 'completed' : 'pending'
     }
@@ -259,12 +277,18 @@ const NewPurchaseIndent = () => {
             accountantNotes: indent.accountant_notes || '',
             storeOfficerNotes: indent.store_officer_notes || '',
             qmsNotes: indent.qms_notes || '',
-            adminNotes: indent.admin_notes || ''
+            adminNotes: indent.admin_notes || '',
+            poFilePath: indent.po_file_path || null
           });
           
           console.log('=== FORM DATA AFTER SET ===');
-          console.log('poNumber:', indent.po_number || '');
-          console.log('poReference:', indent.po_reference || '');
+          console.log('Workflow Stage:', indent.workflow_stage || 'QMS Init');
+          console.log('poNumber:', indent.po_number || '(empty)');
+          console.log('poReference:', indent.po_reference || '(empty)');
+          console.log('poFilePath:', indent.po_file_path || '(no file)');
+          console.log('Store Officer Notes:', indent.store_officer_notes || '(none)');
+          console.log('QMS Notes:', indent.qms_notes || '(none)');
+          console.log('Admin Notes:', indent.admin_notes || '(none)');
 
           if (indent.materials && indent.materials.length > 0) {
             setMaterials(indent.materials.map(m => ({
@@ -357,18 +381,38 @@ const NewPurchaseIndent = () => {
     }, 0);
   };
 
-  const normalizePriority = (value) => {
-    const normalized = String(value || '').toLowerCase();
-    if (normalized === 'high') return 'High';
-    if (normalized === 'urgent') return 'Urgent';
-    if (normalized === 'standard') return 'Standard';
-    // Map legacy values to Standard
-    if (normalized === 'medium' || normalized === 'low' || normalized === 'normal') return 'Standard';
-    return 'Standard';
+  // Handle PO file selection
+  const handlePOFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showModal('File Too Large', 'File size must be less than 10MB', 'error');
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowedTypes.includes(file.type)) {
+      showModal('Invalid File Type', 'Only PDF, images (JPG, PNG), and documents (DOC, DOCX, XLS, XLSX) are allowed', 'error');
+      return;
+    }
+
+    setSelectedPOFile(file);
+    showModal('File Selected', `File "${file.name}" selected. It will be uploaded when you submit the indent.`, 'success');
   };
 
-  // Handle form submission
-  const handleSubmit = async (action) => {
+  // Handle view PO file
+  const handleViewPOFile = () => {
+    if (formData.poFilePath) {
+      const fileUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/${formData.poFilePath}`;
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  // Handle submit form
+  const handleSubmit = async (action = 'submit') => {
     try {
       setLoading(true);
       setError(null);
@@ -428,7 +472,7 @@ const NewPurchaseIndent = () => {
         customerOrderId: formData.customerOrderId || null,
         requestDate: formData.indentDate,
         requiredByDate: formData.requiredByDate || formData.indentDate,
-        priority: normalizePriority(formData.priority),
+        priority: formData.priority || 'Standard',
         workflowStage: workflowStage,
         status: status,
         poNumber: formData.poNumber || null,
@@ -456,14 +500,36 @@ const NewPurchaseIndent = () => {
       console.log('Full indent data being sent:', JSON.stringify(indentData, null, 2));
 
       let response;
-      if (passedIndentId) {
-        // Update existing indent
-        console.log('Updating existing indent:', passedIndentId);
+      let finalIndentId = createdIndentId || passedIndentId;
+      
+      // ALWAYS check if indent with this number exists (resubmission should overwrite)
+      if (!finalIndentId && indentNumber) {
+        console.log('Checking for existing indent with number:', indentNumber);
+        try {
+          const checkResponse = await purchaseIndentService.getAllIndents({});
+          const existingIndent = checkResponse.data?.indents?.find(i => i.indent_number === indentNumber);
+          
+          if (existingIndent?.indent_id) {
+            console.log('Found existing indent - will overwrite ID:', existingIndent.indent_id);
+            finalIndentId = existingIndent.indent_id;
+            setCreatedIndentId(existingIndent.indent_id);
+            if (!formData.indentNumber) {
+              setFormData(prev => ({ ...prev, indentNumber: indentNumber }));
+            }
+          }
+        } catch (checkError) {
+          console.log('Could not check for existing indent:', checkError.message);
+        }
+      }
+      
+      if (finalIndentId) {
+        // Update existing indent (including resubmissions)
+        console.log('Updating existing indent:', finalIndentId);
         
         // If submitting to next stage (not just saving draft), use sendToNextStage
         if (action === 'submit') {
           console.log('Submitting to next workflow stage - using sendToNextStage');
-          response = await purchaseIndentService.sendToNextStage(passedIndentId, {
+          response = await purchaseIndentService.sendToNextStage(finalIndentId, {
             poNumber: formData.poNumber || null,
             poReference: formData.poReference || null,
             orderQuantity: formData.orderQuantity || null,
@@ -478,7 +544,7 @@ const NewPurchaseIndent = () => {
         } else {
           // Just saving as draft - use regular update
           console.log('Saving as draft - using updateIndentStatus');
-          response = await purchaseIndentService.updateIndentStatus(passedIndentId, {
+          response = await purchaseIndentService.updateIndentStatus(finalIndentId, {
             status: status,
             workflowStage: workflowStage,
             poNumber: formData.poNumber || null,
@@ -491,9 +557,59 @@ const NewPurchaseIndent = () => {
           });
         }
       } else {
-        // Create new indent
+        // No existing indent found - create new one
         console.log('Creating new indent');
-        response = await purchaseIndentService.createIndent(indentData);
+        try {
+          response = await purchaseIndentService.createIndent(indentData);
+          
+          // Store the created indent ID for subsequent operations
+          if (response.success && response.data?.indent_id) {
+            setCreatedIndentId(response.data.indent_id);
+            console.log('Stored created indent ID:', response.data.indent_id);
+          }
+        } catch (createError) {
+          // If creation fails due to duplicate, fetch and update instead
+          if (createError.message?.includes('already exists')) {
+            console.log('Creation failed - indent exists. Fetching and updating...');
+            const allIndents = await purchaseIndentService.getAllIndents({});
+            const existingIndent = allIndents.data?.indents?.find(i => i.indent_number === indentNumber);
+            
+            if (existingIndent?.indent_id) {
+              console.log('Found indent ID:', existingIndent.indent_id, '- Overwriting');
+              setCreatedIndentId(existingIndent.indent_id);
+              finalIndentId = existingIndent.indent_id;
+              
+              if (action === 'submit') {
+                response = await purchaseIndentService.sendToNextStage(finalIndentId, {
+                  poNumber: formData.poNumber || null,
+                  poReference: formData.poReference || null,
+                  orderQuantity: formData.orderQuantity || null,
+                  rmCost: formData.rmCost || null,
+                  rmRate: formData.rmRate || null,
+                  piecesPerKg: formData.piecesPerKg || null,
+                  rmPercentage: formData.rmPercentage || null,
+                  comments: 'Resubmitted application'
+                });
+              } else {
+                response = await purchaseIndentService.updateIndentStatus(finalIndentId, {
+                  status: status,
+                  workflowStage: workflowStage,
+                  poNumber: formData.poNumber || null,
+                  poReference: formData.poReference || null,
+                  orderQuantity: formData.orderQuantity || null,
+                  rmCost: formData.rmCost || null,
+                  rmRate: formData.rmRate || null,
+                  piecesPerKg: formData.piecesPerKg || null,
+                  rmPercentage: formData.rmPercentage || null
+                });
+              }
+            } else {
+              throw createError;
+            }
+          } else {
+            throw createError;
+          }
+        }
       }
 
       console.log('=== API RESPONSE ===');
@@ -502,11 +618,42 @@ const NewPurchaseIndent = () => {
       console.log('Full response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
-        setValidationErrors({ 
-          success: action === 'submit' 
-            ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted for approval!')
-            : 'Draft saved successfully!' 
-        });
+        // Update formData with the saved indent number and ID
+        const savedIndentId = response.data?.indent_id || finalIndentId;
+        const savedIndentNumber = response.data?.indent_number || indentNumber;
+        
+        if (!formData.indentNumber) {
+          setFormData(prev => ({ 
+            ...prev, 
+            indentNumber: savedIndentNumber 
+          }));
+        }
+        
+        if (savedIndentId && !createdIndentId) {
+          setCreatedIndentId(savedIndentId);
+        }
+        
+        // Upload PO file if selected
+        if (selectedPOFile && savedIndentId) {
+          try {
+            console.log('Uploading PO file for indent:', savedIndentId);
+            const uploadResponse = await purchaseIndentService.uploadPOFile(savedIndentId, selectedPOFile);
+            if (uploadResponse.success) {
+              console.log('PO file uploaded successfully');
+              setFormData(prev => ({ ...prev, poFilePath: uploadResponse.data.filePath }));
+              setSelectedPOFile(null); // Clear file selection after upload
+            }
+          } catch (uploadError) {
+            console.error('Failed to upload PO file:', uploadError);
+            // Don't fail the whole submission if file upload fails
+          }
+        }
+
+        showModal('success', 
+          action === 'submit' 
+            ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted successfully!')
+            : 'Draft saved successfully!'
+        );
         
         setTimeout(() => {
           if (action === 'submit') {
@@ -923,7 +1070,7 @@ const NewPurchaseIndent = () => {
               <div className="pi-form-field">
                 <label className="pi-label">Priority</label>
                 <div className="pi-priority-group">
-                  {['Low', 'Medium', 'High', 'Urgent'].map((priority) => (
+                  {['Standard', 'High', 'Urgent'].map((priority) => (
                     <label key={priority} className="pi-priority-label">
                       <input
                         type="radio"
@@ -931,6 +1078,7 @@ const NewPurchaseIndent = () => {
                         value={priority}
                         checked={formData.priority === priority}
                         onChange={(e) => setFormData({...formData, priority: e.target.value})}
+                        disabled={isViewMode}
                       />
                       <span>{priority}</span>
                     </label>
@@ -1023,14 +1171,47 @@ const NewPurchaseIndent = () => {
                 <h2 className="pi-section-title">Part & PO reference</h2>
                 <p className="pi-section-subtitle">Link this indent to customer parts and existing purchase orders.</p>
               </div>
-              <button 
-                onClick={() => alert('Linking PO...')}
-                className="pi-btn pi-btn-secondary"
-              >
-                <ExternalLink size={14} />
-                Link PO
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {formData.poFilePath && (
+                  <button 
+                    type="button"
+                    onClick={handleViewPOFile}
+                    className="pi-btn pi-btn-secondary"
+                  >
+                    <Eye size={14} />
+                    View PO File
+                  </button>
+                )}
+                <button 
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="pi-btn pi-btn-secondary"
+                  disabled={uploadingFile}
+                >
+                  <Upload size={14} />
+                  {selectedPOFile ? `Selected: ${selectedPOFile.name.substring(0, 20)}...` : 'Select PO File'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handlePOFileUpload}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                  style={{ display: 'none' }}
+                />
+              </div>
             </div>
+            {selectedPOFile && !formData.poFilePath && (
+              <p style={{ fontSize: '12px', color: '#3b82f6', marginTop: '8px', marginBottom: '16px' }}>
+                <FileText size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                File "{selectedPOFile.name}" ready to upload. Click Submit to upload and send for approval.
+              </p>
+            )}
+            {formData.poFilePath && (
+              <p style={{ fontSize: '12px', color: '#10b981', marginTop: '8px', marginBottom: '16px' }}>
+                <FileText size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                PO file uploaded successfully - Everyone can view this file
+              </p>
+            )}
 
             <div className="pi-form-grid-2">
               {/* Customer Part */}
@@ -1173,6 +1354,28 @@ const NewPurchaseIndent = () => {
           </div>
         </div>
       </div>
+
+      {/* Notification Modal */}
+      {modalState.show && (
+        <div className="pi-modal-overlay" onClick={closeModal}>
+          <div className="pi-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`pi-modal-header pi-modal-${modalState.type}`}>
+              <h3>{modalState.title}</h3>
+              <button onClick={closeModal} className="pi-modal-close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="pi-modal-body">
+              <p>{modalState.message}</p>
+            </div>
+            <div className="pi-modal-footer">
+              <button onClick={closeModal} className="pi-btn pi-btn-primary">
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

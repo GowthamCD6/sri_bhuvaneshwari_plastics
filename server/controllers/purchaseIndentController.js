@@ -599,11 +599,59 @@ const deleteIndent = async (req, res) => {
   }
 };
 
+/**
+ * Upload PO file for purchase indent
+ */
+const uploadPOFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Store relative path to file
+    const filePath = `po-files/${req.file.filename}`;
+
+    // Update indent with file path
+    const [result] = await db.query(
+      'UPDATE purchase_indents SET po_file_path = ? WHERE indent_id = ?',
+      [filePath, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indent not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'PO file uploaded successfully',
+      data: {
+        filePath: filePath,
+        fileName: req.file.originalname
+      }
+    });
+  } catch (error) {
+    console.error('Upload PO file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload PO file'
+    });
+  }
+};
+
 module.exports = {
   getAllIndents,
   getIndentById,
   createIndent,
   updateIndentStatus,
   sendToNextStage,
-  deleteIndent
+  deleteIndent,
+  uploadPOFile
 };

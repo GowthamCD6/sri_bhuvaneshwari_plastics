@@ -2,6 +2,7 @@
 /dist
 /.env
 /.vscode
+/uploads/po-files/*
 
 
 

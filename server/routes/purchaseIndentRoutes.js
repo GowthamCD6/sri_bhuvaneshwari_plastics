@@ -6,9 +6,11 @@ const {
   createIndent,
   updateIndentStatus,
   sendToNextStage,
-  deleteIndent
+  deleteIndent,
+  uploadPOFile
 } = require('../controllers/purchaseIndentController');
 const { verifyToken } = require('../middleware/authMiddleware');
+const upload = require('../middleware/fileUpload');
 
 // All routes require authentication
 router.use(verifyToken);
@@ -27,6 +29,9 @@ router.patch('/:id/status', updateIndentStatus);
 
 // Send indent to next workflow stage
 router.post('/:id/send-next', sendToNextStage);
+
+// Upload PO file
+router.post('/:id/upload-po', upload.single('poFile'), uploadPOFile);
 
 // Delete indent
 router.delete('/:id', deleteIndent);
