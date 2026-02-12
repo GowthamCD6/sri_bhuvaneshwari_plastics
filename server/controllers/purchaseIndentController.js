@@ -54,6 +54,7 @@ const getAllIndents = async (req, res) => {
         'SELECT * FROM purchase_indent_materials WHERE indent_id = ?',
         [indent.indent_id]
       );
+      console.log(`Indent ${indent.indent_number}: Found ${materials.length} materials`);
       indent.materials = materials;
     }
 
@@ -106,6 +107,10 @@ const getIndentById = async (req, res) => {
       'SELECT * FROM purchase_indent_materials WHERE indent_id = ? ORDER BY indent_material_id',
       [id]
     );
+
+    console.log(`=== GET INDENT BY ID ===`);
+    console.log(`Indent ID: ${id}, Indent Number: ${indent.indent_number}`);
+    console.log(`Found ${materials.length} materials:`, materials.map(m => m.material_description));
 
     indent.materials = materials;
 
@@ -289,7 +294,7 @@ const createIndent = async (req, res) => {
 const updateIndentStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poReference } = req.body;
+    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poReference, materials } = req.body;
     const userId = req.user.userId;
 
     // Get current indent
@@ -368,6 +373,37 @@ const updateIndentStatus = async (req, res) => {
       updateParams
     );
 
+    // Update materials if provided
+    if (materials && Array.isArray(materials) && materials.length > 0) {
+      console.log('Updating materials for indent:', id);
+      console.log('Materials received:', materials);
+      
+      // Delete existing materials
+      await db.query(
+        'DELETE FROM purchase_indent_materials WHERE indent_id = ?',
+        [id]
+      );
+      
+      // Insert new materials
+      for (const material of materials) {
+        await db.query(
+          `INSERT INTO purchase_indent_materials 
+            (indent_id, material_description, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            material.description,
+            material.quantity || material.requiredQuantity,
+            material.unit || material.uom || 'kg',
+            material.currentStock || material.onHand || '0',
+            material.requiredStock || material.order || material.quantity,
+            material.preferredSupplier || ''
+          ]
+        );
+      }
+      console.log(`Inserted ${materials.length} materials for indent ${id}`);
+    }
+
     // Log status change
     await db.query(
       `INSERT INTO indent_status_history 
@@ -395,7 +431,7 @@ const updateIndentStatus = async (req, res) => {
 const sendToNextStage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { comments, poNumber, poReference, accountantNotes } = req.body;
+    const { comments, poNumber, poReference, accountantNotes, materials } = req.body;
     const userId = req.user.userId;
     const userRole = req.user.roleName;
 
@@ -509,6 +545,37 @@ const sendToNextStage = async (req, res) => {
       `UPDATE purchase_indents SET ${updateFields.join(', ')} WHERE indent_id = ?`,
       updateParams
     );
+
+    // Update materials if provided
+    if (materials && Array.isArray(materials) && materials.length > 0) {
+      console.log('Updating materials for indent:', id);
+      console.log('Materials received:', materials);
+      
+      // Delete existing materials
+      await db.query(
+        'DELETE FROM purchase_indent_materials WHERE indent_id = ?',
+        [id]
+      );
+      
+      // Insert new materials
+      for (const material of materials) {
+        await db.query(
+          `INSERT INTO purchase_indent_materials 
+            (indent_id, material_description, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
+          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            material.description,
+            material.quantity || material.requiredQuantity,
+            material.unit || material.uom || 'kg',
+            material.currentStock || material.onHand || '0',
+            material.requiredStock || material.order || material.quantity,
+            material.preferredSupplier || ''
+          ]
+        );
+      }
+      console.log(`Inserted ${materials.length} materials for indent ${id}`);
+    }
 
     // Update customer order status if linked
     const [indentInfo] = await db.query(

@@ -280,6 +280,11 @@
   color: var(--vsi-badge-orange-text);
 }
 
+.badge-draft {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
 .badge-verified {
   background-color: var(--vsi-badge-blue-bg);
   color: var(--vsi-badge-blue-text);

@@ -28,13 +28,24 @@ const NewPurchaseIndent = () => {
       // If already in YYYY-MM-DD format, return as-is.
       if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
 
-      // If backend sends an ISO timestamp, keep the calendar date portion
-      // without timezone conversion.
-      if (value.includes('T') && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-        return value.slice(0, 10);
+      // If it has a timestamp (contains 'T'), parse it and use LOCAL date
+      if (value.includes('T')) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        // Use local date methods to preserve the date as it appears in the user's timezone
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      
+      // If it's just a date string without time (YYYY-MM-DD)
+      if (value.includes('-') && !value.includes('T')) {
+        return value; // Already in correct format
       }
     }
 
+    // For any other format, parse and use local date
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
 
@@ -59,8 +70,17 @@ const NewPurchaseIndent = () => {
   // Check if we're viewing/editing an existing indent OR coming from customer order
   const isViewMode = location.state?.isViewMode || false;
   const passedIndentId = location.state?.indentId || indentId;
-  const fromCustomerOrder = location.state?.fromCustomerOrder || false;
-  const orderData = location.state?.orderData || null;
+  const fromCustomerOrder = location.state?.fromCustomerOrder === true;
+  const orderData = fromCustomerOrder ? location.state?.orderData : null;
+  
+  // Track if we've loaded indent data
+  const [indentDataLoaded, setIndentDataLoaded] = useState(false);
+  
+  console.log('=== NAVIGATION STATE CHECK ===');
+  console.log('location.state:', location.state);
+  console.log('passedIndentId:', passedIndentId);
+  console.log('fromCustomerOrder:', fromCustomerOrder);
+  console.log('orderData:', orderData);
 
   // State declarations - NO DUMMY DATA
   const [materials, setMaterials] = useState([]);
@@ -127,9 +147,24 @@ const NewPurchaseIndent = () => {
     console.log('Passed indent ID:', passedIndentId);
   }, []);
 
-  // Pre-fill form if coming from customer order
+  // Debug: Track formData.poFilePath changes
   useEffect(() => {
-    if (fromCustomerOrder && orderData) {
+    console.log('=== FORM DATA PO FILE PATH CHANGED ===');
+    console.log('formData.poFilePath:', formData.poFilePath);
+    console.log('Should show View button:', !!formData.poFilePath);
+  }, [formData.poFilePath]);
+
+  // Debug: Track workflow stage changes
+  useEffect(() => {
+    console.log('=== WORKFLOW STAGE CHANGED ===');
+    console.log('formData.workflowStage:', formData.workflowStage);
+  }, [formData.workflowStage]);
+
+  // Pre-fill form if coming from customer order (ONLY for new indents, not when viewing existing)
+  useEffect(() => {
+    // CRITICAL: Only run if explicitly coming from customer order AND no indent ID exists
+    // This prevents overwriting materials when viewing existing indents
+    if (fromCustomerOrder && orderData && !passedIndentId && !createdIndentId && !indentDataLoaded) {
       console.log('=== PURCHASE INDENT: Receiving customer order data ===');
       console.log('Order Data:', orderData);
       console.log('Order Items:', orderData.orderItems);
@@ -166,7 +201,7 @@ const NewPurchaseIndent = () => {
         justification: `Purchase indent for customer order ${orderData.indentId || orderData.orderId}`,
       }));
 
-      // Pre-fill materials from order items
+      // Pre-fill materials from order items ONLY for new indents
       if (orderData.orderItems && orderData.orderItems.length > 0) {
         const orderMaterials = orderData.orderItems.map((item, idx) => ({
           id: Date.now() + idx,
@@ -180,10 +215,15 @@ const NewPurchaseIndent = () => {
           uom: item.unit || item.uom || 'kg',
           isEditing: false
         }));
+        console.log('Setting materials from customer order (NEW indent only):', orderMaterials);
         setMaterials(orderMaterials);
+      } else {
+        console.log('No order items to set as materials');
       }
+    } else if (passedIndentId || createdIndentId) {
+      console.log('⚠️ SKIPPING customer order data - viewing existing indent ID:', passedIndentId || createdIndentId);
     }
-  }, [fromCustomerOrder, orderData]);
+  }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded]);
 
   // Dynamic workflow steps based on current workflow stage
   const workflowSteps = [
@@ -303,13 +343,16 @@ const NewPurchaseIndent = () => {
           console.log('Workflow Stage:', indent.workflow_stage || 'QMS Init');
           console.log('poNumber:', indent.po_number || '(empty)');
           console.log('poReference:', indent.po_reference || '(empty)');
-          console.log('poFilePath:', indent.po_file_path || '(no file)');
+          console.log('poFilePath from DB:', indent.po_file_path || '(no file)');
           console.log('Store Officer Notes:', indent.store_officer_notes || '(none)');
           console.log('QMS Notes:', indent.qms_notes || '(none)');
           console.log('Admin Notes:', indent.admin_notes || '(none)');
+          console.log('Indent Date from DB:', indent.indent_date || indent.request_date);
+          console.log('Required By Date from DB:', indent.required_by_date);
 
+          console.log('Materials from indent:', indent.materials);
           if (indent.materials && indent.materials.length > 0) {
-            setMaterials(indent.materials.map(m => ({
+            const mappedMaterials = indent.materials.map(m => ({
               id: m.indent_material_id,
               description: m.material_description,
               preferredSupplier: m.preferred_supplier || '',
@@ -320,7 +363,17 @@ const NewPurchaseIndent = () => {
               status: 'pending',
               uom: m.unit_of_measurement || 'kg',
               isEditing: false
-            })));
+            }));
+            console.log('✅ FETCH INDENT: Setting', mappedMaterials.length, 'materials');
+            console.log('Material descriptions:', mappedMaterials.map(m => m.description));
+            console.log('Full materials data:', mappedMaterials);
+            setMaterials(mappedMaterials);
+            setIndentDataLoaded(true);
+          } else {
+            console.log('⚠️ No materials found in indent or materials array is empty');
+            console.log('indent.materials value:', indent.materials);
+            setMaterials([]);
+            setIndentDataLoaded(true);
           }
         }
       } catch (err) {
@@ -371,14 +424,14 @@ const NewPurchaseIndent = () => {
   // Handle edit material
   const handleEditMaterial = (id) => {
     setIsEditingMaterial(id);
-    setMaterials(materials.map(m => 
+    setMaterials(prevMaterials => prevMaterials.map(m => 
       m.id === id ? { ...m, isEditing: true } : m
     ));
   };
 
   // Handle save material edits
   const handleSaveMaterial = (id, updatedFields) => {
-    setMaterials(materials.map(m => 
+    setMaterials(prevMaterials => prevMaterials.map(m => 
       m.id === id ? { ...m, ...updatedFields, isEditing: false } : m
     ));
     setIsEditingMaterial(null);
@@ -386,7 +439,7 @@ const NewPurchaseIndent = () => {
 
   // Handle material field change
   const handleMaterialChange = (id, field, value) => {
-    setMaterials(materials.map(m => 
+    setMaterials(prevMaterials => prevMaterials.map(m => 
       m.id === id ? { ...m, [field]: value } : m
     ));
   };
@@ -424,7 +477,11 @@ const NewPurchaseIndent = () => {
   // Handle view PO file
   const handleViewPOFile = () => {
     if (formData.poFilePath) {
-      const fileUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/${formData.poFilePath}`;
+      // File path from DB is already 'po-files/filename.pdf'  
+      // Uploads are served from /uploads NOT /api/uploads
+      // So we need server base without /api
+      const fileUrl = `http://localhost:5000/uploads/${formData.poFilePath}`;
+      console.log('Opening file URL:', fileUrl);
       window.open(fileUrl, '_blank');
     }
   };
@@ -555,6 +612,14 @@ const NewPurchaseIndent = () => {
             rmRate: formData.rmRate || null,
             piecesPerKg: formData.piecesPerKg || null,
             rmPercentage: formData.rmPercentage || null,
+            materials: materials.map(m => ({
+              description: m.description,
+              quantity: m.requiredQuantity,
+              unit: m.uom || 'kg',
+              currentStock: m.onHand || '0',
+              requiredStock: m.order || m.requiredQuantity,
+              preferredSupplier: m.preferredSupplier || ''
+            })),
             comments: user?.roleName === 'StoreOfficer' 
               ? 'PO details filled by Store Officer' 
               : 'Sent for Store Officer review'
@@ -571,7 +636,15 @@ const NewPurchaseIndent = () => {
             rmCost: formData.rmCost || null,
             rmRate: formData.rmRate || null,
             piecesPerKg: formData.piecesPerKg || null,
-            rmPercentage: formData.rmPercentage || null
+            rmPercentage: formData.rmPercentage || null,
+            materials: materials.map(m => ({
+              description: m.description,
+              quantity: m.requiredQuantity,
+              unit: m.uom || 'kg',
+              currentStock: m.onHand || '0',
+              requiredStock: m.order || m.requiredQuantity,
+              preferredSupplier: m.preferredSupplier || ''
+            }))
           });
         }
       } else {
@@ -606,6 +679,14 @@ const NewPurchaseIndent = () => {
                   rmRate: formData.rmRate || null,
                   piecesPerKg: formData.piecesPerKg || null,
                   rmPercentage: formData.rmPercentage || null,
+                  materials: materials.map(m => ({
+                    description: m.description,
+                    quantity: m.requiredQuantity,
+                    unit: m.uom || 'kg',
+                    currentStock: m.onHand || '0',
+                    requiredStock: m.order || m.requiredQuantity,
+                    preferredSupplier: m.preferredSupplier || ''
+                  })),
                   comments: 'Resubmitted application'
                 });
               } else {
@@ -618,7 +699,15 @@ const NewPurchaseIndent = () => {
                   rmCost: formData.rmCost || null,
                   rmRate: formData.rmRate || null,
                   piecesPerKg: formData.piecesPerKg || null,
-                  rmPercentage: formData.rmPercentage || null
+                  rmPercentage: formData.rmPercentage || null,
+                  materials: materials.map(m => ({
+                    description: m.description,
+                    quantity: m.requiredQuantity,
+                    unit: m.uom || 'kg',
+                    currentStock: m.onHand || '0',
+                    requiredStock: m.order || m.requiredQuantity,
+                    preferredSupplier: m.preferredSupplier || ''
+                  }))
                 });
               }
             } else {
@@ -654,16 +743,76 @@ const NewPurchaseIndent = () => {
         // Upload PO file if selected
         if (selectedPOFile && savedIndentId) {
           try {
+            console.log('===== FILE UPLOAD STARTING =====');
             console.log('Uploading PO file for indent:', savedIndentId);
+            console.log('Selected file:', selectedPOFile.name);
             const uploadResponse = await purchaseIndentService.uploadPOFile(savedIndentId, selectedPOFile);
+            console.log('Upload response:', uploadResponse);
             if (uploadResponse.success) {
-              console.log('PO file uploaded successfully');
-              setFormData(prev => ({ ...prev, poFilePath: uploadResponse.data.filePath }));
+              console.log('PO file uploaded successfully!');
+              console.log('Response data:', uploadResponse.data);
+              // Update formData with the actual file path from server
+              const actualFilePath = uploadResponse.data.filePath || uploadResponse.data.po_file_path;
+              console.log('Extracted file path:', actualFilePath);
+              setFormData(prev => ({ 
+                ...prev, 
+                poFilePath: actualFilePath 
+              }));
               setSelectedPOFile(null); // Clear file selection after upload
+              console.log('===== FILE UPLOAD COMPLETE =====');
+              console.log('formData.poFilePath should now be:', actualFilePath);
+            } else {
+              console.error('Upload failed - response not successful:', uploadResponse);
             }
           } catch (uploadError) {
+            console.error('===== FILE UPLOAD ERROR =====');
             console.error('Failed to upload PO file:', uploadError);
             // Don't fail the whole submission if file upload fails
+          }
+        } else {
+          console.log('Skipping file upload - selectedPOFile:', !!selectedPOFile, 'savedIndentId:', savedIndentId);
+        }
+        
+        // Refetch the indent data after any submission to get updated workflow, materials, and file path
+        if (savedIndentId) {
+          try {
+            console.log('Refreshing indent data after submission...');
+            const refreshResponse = await purchaseIndentService.getIndentById(savedIndentId);
+            if (refreshResponse.success && refreshResponse.data) {
+              const indent = refreshResponse.data;
+              console.log('Refreshed indent data:', indent);
+              
+              // Update formData with latest data
+              setFormData(prev => ({ 
+                ...prev,
+                workflowStage: indent.workflow_stage || prev.workflowStage,
+                poFilePath: indent.po_file_path || prev.poFilePath,
+                poNumber: indent.po_number || prev.poNumber,
+                poReference: indent.po_reference || prev.poReference
+              }));
+              
+              // Update materials if present
+              if (indent.materials && indent.materials.length > 0) {
+                const mappedMaterials = indent.materials.map(m => ({
+                  id: m.indent_material_id,
+                  description: m.material_description,
+                  preferredSupplier: m.preferred_supplier || '',
+                  requiredQuantity: m.quantity,
+                  requiredDate: toDateInputValue(indent.required_by_date) || '',
+                  onHand: m.current_stock || '0',
+                  order: m.required_stock || '',
+                  status: 'pending',
+                  uom: m.unit_of_measurement || 'kg',
+                  isEditing: false
+                }));
+                console.log('✅ Refresh: Setting', mappedMaterials.length, 'materials:', mappedMaterials.map(m => m.description));
+                setMaterials(mappedMaterials);
+              } else {
+                console.log('⚠️ Refresh: No materials in response');
+              }
+            }
+          } catch (refreshError) {
+            console.log('Could not refresh indent data:', refreshError.message);
           }
         }
 
@@ -678,7 +827,8 @@ const NewPurchaseIndent = () => {
             if (user?.roleName === 'StoreOfficer') {
               navigate('/store-verify-indents');
             } else if (user?.roleName === 'QMS') {
-              navigate('/qms-customer-orders');
+              // Navigate to VerifyStoreIndents so QMS can see their created indent with materials
+              navigate('/verify-store-indents');
             } else {
               // For other roles, go back
               navigate(-1);
@@ -717,7 +867,9 @@ const NewPurchaseIndent = () => {
 
   // Render material card with edit capability
   const renderMaterialCard = (material, index) => {
+    console.log(`🎨 Rendering material card ${index + 1}:`, material.description, '| isEditing:', material.isEditing);
     if (material.isEditing) {
+      console.log('  ↳ Rendering EDITING mode');
       return (
         <div key={material.id} className="pi-material-card editing">
           <div className="pi-material-number">{index + 1}</div>
@@ -797,6 +949,7 @@ const NewPurchaseIndent = () => {
       );
     }
 
+    console.log('  ↳ Rendering DISPLAY mode');
     return (
       <div key={material.id} className="pi-material-card">
         <div className="pi-material-number">{index + 1}</div>
@@ -1156,7 +1309,21 @@ const NewPurchaseIndent = () => {
 
             {/* Materials List */}
             <div className="pi-materials-list">
-              {groupBySupplier ? (
+              {console.log('🔍 RENDERING MATERIALS LIST:', {
+                materialsLength: materials.length,
+                filteredLength: filteredMaterials.length,
+                groupBySupplier,
+                searchQuery,
+                userRole: user?.roleName,
+                isViewMode,
+                passedIndentId,
+                materialsData: materials.map(m => ({ id: m.id, desc: m.description, isEditing: m.isEditing }))
+              })}
+              {materials.length === 0 ? (
+                <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
+                  <p>No materials added yet. Click "Add material" to get started.</p>
+                </div>
+              ) : groupBySupplier ? (
                 Object.entries(groupedMaterials).map(([supplier, supplierMaterials]) => (
                   <div key={supplier} className="pi-supplier-group">
                     <div className="pi-supplier-header">
@@ -1189,26 +1356,40 @@ const NewPurchaseIndent = () => {
                 <h2 className="pi-section-title">Part & PO reference</h2>
                 <p className="pi-section-subtitle">Link this indent to customer parts and existing purchase orders.</p>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {formData.poFilePath && (
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {formData.poFilePath ? (
+                  <>
+                    <button 
+                      type="button"
+                      onClick={handleViewPOFile}
+                      className="pi-btn pi-btn-primary"
+                    >
+                      <Eye size={14} />
+                      View PO File
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, poFilePath: null }));
+                        fileInputRef.current?.click();
+                      }}
+                      className="pi-btn pi-btn-secondary"
+                    >
+                      <Upload size={14} />
+                      Replace File
+                    </button>
+                  </>
+                ) : (
                   <button 
                     type="button"
-                    onClick={handleViewPOFile}
+                    onClick={() => fileInputRef.current?.click()}
                     className="pi-btn pi-btn-secondary"
+                    disabled={uploadingFile}
                   >
-                    <Eye size={14} />
-                    View PO File
+                    <Upload size={14} />
+                    {selectedPOFile ? `Selected: ${selectedPOFile.name.substring(0, 25)}...` : 'Upload PO File'}
                   </button>
                 )}
-                <button 
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="pi-btn pi-btn-secondary"
-                  disabled={uploadingFile}
-                >
-                  <Upload size={14} />
-                  {selectedPOFile ? `Selected: ${selectedPOFile.name.substring(0, 20)}...` : 'Select PO File'}
-                </button>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1221,13 +1402,13 @@ const NewPurchaseIndent = () => {
             {selectedPOFile && !formData.poFilePath && (
               <p style={{ fontSize: '12px', color: '#3b82f6', marginTop: '8px', marginBottom: '16px' }}>
                 <FileText size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                File "{selectedPOFile.name}" ready to upload. Click Submit to upload and send for approval.
+                File "{selectedPOFile.name}" selected. Click Submit to upload.
               </p>
             )}
             {formData.poFilePath && (
               <p style={{ fontSize: '12px', color: '#10b981', marginTop: '8px', marginBottom: '16px' }}>
                 <FileText size={14} style={{ display: 'inline', marginRight: '4px' }} />
-                PO file uploaded successfully - Everyone can view this file
+                PO file uploaded - Click "View PO File" button above to open
               </p>
             )}
 

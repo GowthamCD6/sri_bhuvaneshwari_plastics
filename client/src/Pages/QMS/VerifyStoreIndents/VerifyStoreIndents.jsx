@@ -30,9 +30,13 @@ const VerifyStoreIndents = () => {
         
         console.log('Fetching all indents for QMS verification');
         // Fetch indents from multiple workflow stages:
-        // 1. QMS Verified: Pending for QMS to verify after Store Officer filled
-        // 2. Admin, Accountant, Completed: Already verified by QMS, showing history
+        // 1. QMS Init: Draft indents created by QMS
+        // 2. Store Officer: Submitted by QMS, pending Store Officer review
+        // 3. QMS Verified: Pending for QMS to verify after Store Officer filled
+        // 4. Admin, Accountant, Completed: Already verified by QMS, showing history
         const responses = await Promise.all([
+          purchaseIndentService.getAllIndents({ workflowStage: 'QMS Init' }),
+          purchaseIndentService.getAllIndents({ workflowStage: 'Store Officer' }),
           purchaseIndentService.getAllIndents({ workflowStage: 'QMS Verified' }),
           purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
           purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
@@ -57,8 +61,16 @@ const VerifyStoreIndents = () => {
             let displayStatus = 'Pending QMS';
             let statusClass = 'badge-pending';
             
-            if (indent.workflow_stage === 'QMS Verified') {
-              // Still pending QMS verification
+            if (indent.workflow_stage === 'QMS Init') {
+              // Draft created by QMS, not submitted yet
+              displayStatus = 'Draft';
+              statusClass = 'badge-draft';
+            } else if (indent.workflow_stage === 'Store Officer') {
+              // Submitted by QMS, waiting for Store Officer
+              displayStatus = 'Pending Store Review';
+              statusClass = 'badge-pending';
+            } else if (indent.workflow_stage === 'QMS Verified') {
+              // Returned by Store Officer, pending QMS verification
               displayStatus = 'Pending QMS';
               statusClass = 'badge-pending';
             } else if (indent.workflow_stage === 'Admin' || indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
@@ -187,10 +199,17 @@ const VerifyStoreIndents = () => {
 
   // Navigate to view indent details
   const handleViewIndent = (indent) => {
+    console.log('🔍 Navigating to indent:', indent);
+    console.log('Indent ID being passed:', indent.indentId);
+    
+    // Clear any existing state and navigate with fresh state
     navigate('/qms-purchase-indents', {
       state: {
-        indentId: indent.indentId
-      }
+        indentId: indent.indentId,
+        fromCustomerOrder: false,
+        orderData: null
+      },
+      replace: false
     });
   };
 

@@ -423,12 +423,10 @@ export const purchaseIndentService = {
     const formData = new FormData();
     formData.append('poFile', file);
     
-    const token = useAuthStore.getState().token;
+    // Use credentials: 'include' to send auth cookie automatically
+    // Don't set Authorization header or Content-Type header for multipart/form-data
     const response = await fetch(`${API_BASE_URL}/purchase-indents/${indentId}/upload-po`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
       body: formData,
       credentials: 'include'
     });
