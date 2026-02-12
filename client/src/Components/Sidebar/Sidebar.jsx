@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
-
+import logo from "../../assets/SBP_logo.png";
 const Sidebar = ({ userRole, userData, onLogout }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [orderManagementOpen, setOrderManagementOpen] = useState(true);
@@ -154,21 +154,23 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
 
   return (
-    <div className="sidebar">
-      {/* Header */}
-      <div className="sidebar-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon">
-              <span className="logo-text">SBP</span>
-            </div>
-            <div className="company-name">
-              <div className="company-title">Sri Bhuvaneswari</div>
-              <div className="company-subtitle">Plastics</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="sidebar"> 
+    {/* Header */} 
+    <div className="sidebar-header"> 
+      <div className="header-content"> 
+        <div className="logo-section"> 
+          <div className="logo-icon"> 
+            <span className="logo-text">
+              <img src={logo} alt="SBP Logo" className="logo-image" />
+            </span> 
+               </div> 
+               <div className="company-name"> 
+                 <div className="company-title">Sri Bhuvaneshwari</div>
+                 <div className="company-subtitle">Plastics</div>
+               </div> 
+       </div> 
+      </div> 
+    </div>
 
       {/* Navigation */}
       <nav className="sidebar-nav">

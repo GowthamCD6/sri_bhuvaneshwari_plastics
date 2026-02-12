@@ -14,26 +14,27 @@
   border-radius: 10px;
   transition: all 0.2s ease;
   cursor: pointer;
-  background: #f8fafc;
+  background: transparent;
 }
 
 .user-profile:hover {
-  background: #e2e8f0;
+  background: transparent;
 }
 
 .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #1e293b;
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: none;
 }
 
 .user-info {
