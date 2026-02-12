@@ -19,6 +19,7 @@ const stockAdjustmentRoutes = require('./routes/stockAdjustmentRoutes');
 const storeRequestRoutes = require('./routes/storeRequestRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 // Middleware
 app.use(cors({
@@ -43,6 +44,7 @@ app.use('/api/stock-adjustments', stockAdjustmentRoutes);
 app.use('/api/store-requests', storeRequestRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit, ArrowUpRight, X, Trash2, ChevronDown, Package } from 'lucide-react';
 import './GoodsInventory.css';
-import { inventoryService, materialService } from '../../../services/apiService';
+import { inventoryService, materialService, categoryService } from '../../../services/apiService';
 
 const MaterialManager = () => {
   const navigate = useNavigate();
@@ -49,8 +49,15 @@ const MaterialManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await inventoryService.getAllInventory();
-      const data = response.data || [];
+      
+      // Fetch both inventory and categories in parallel
+      const [inventoryResponse, categoryResponse] = await Promise.all([
+        inventoryService.getAllInventory(),
+        categoryService.getAllCategories()
+      ]);
+      
+      const data = inventoryResponse.data || [];
+      const categoriesData = categoryResponse.data || [];
 
       const mappedMaterials = data.map((item) => {
         const stock = Number(item.current_stock || 0);
@@ -76,13 +83,11 @@ const MaterialManager = () => {
         };
       });
 
-      const categoryMap = new Map();
-      data.forEach((item) => {
-        const name = item.category || 'Uncategorized';
-        categoryMap.set(name, (categoryMap.get(name) || 0) + 1);
-      });
-
-      const mappedCategories = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
+      // Use categories from the API
+      const mappedCategories = categoriesData.map(cat => ({
+        name: cat.category,
+        count: cat.count
+      }));
 
       setMaterials(mappedMaterials);
       setCategories(mappedCategories);
@@ -107,20 +112,27 @@ const MaterialManager = () => {
     return categories.filter(cat => 
       cat.name.toLowerCase().includes(categorySearch.toLowerCase())
     );
-  }, [categorySearch]);
+  }, [categorySearch, categories]);
 
 
-  // Filter materials based on search
+  // Filter materials based on search and active category
   const filteredMaterials = useMemo(() => {
-    if (!materialSearch.trim()) return materials;
-    const query = materialSearch.toLowerCase();
-    return materials.filter(mat =>
-      mat.name.toLowerCase().includes(query) ||
-      mat.id.toLowerCase().includes(query) ||
-      mat.supplier.toLowerCase().includes(query) ||
-      mat.warehouseLocation.toLowerCase().includes(query)
-    );
-  }, [materialSearch]);
+    // First filter by active category
+    let filtered = materials.filter(mat => mat.type === activeCategory);
+    
+    // Then filter by search query if present
+    if (materialSearch.trim()) {
+      const query = materialSearch.toLowerCase();
+      filtered = filtered.filter(mat =>
+        mat.name.toLowerCase().includes(query) ||
+        mat.id.toLowerCase().includes(query) ||
+        mat.supplier.toLowerCase().includes(query) ||
+        mat.warehouseLocation.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [materialSearch, materials, activeCategory]);
 
   // Handle Add Category
   const handleAddCategory = () => {
@@ -129,15 +141,33 @@ const MaterialManager = () => {
   };
 
   // Handle Submit Category
-  const handleSubmitCategory = (e) => {
+  const handleSubmitCategory = async (e) => {
     e.preventDefault();
     if (!newCategory.name.trim()) {
       alert('Please enter a category name');
       return;
     }
-    alert(`Category "${newCategory.name}" added successfully!`);
-    setShowAddCategoryModal(false);
-    setNewCategory({ name: '' });
+    
+    try {
+      const response = await categoryService.createCategory({ name: newCategory.name.trim() });
+      
+      if (response.success) {
+        // Add category to local state immediately
+        const newCat = { name: newCategory.name.trim(), count: 0 };
+        setCategories(prev => [...prev, newCat]);
+        setActiveCategory(newCategory.name.trim());
+        
+        alert(`Category "${newCategory.name}" added successfully!`);
+        setShowAddCategoryModal(false);
+        setNewCategory({ name: '' });
+      } else {
+        alert(response.message || 'Failed to create category');
+      }
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      const errorMessage = err.message || 'Failed to create category. Please try again.';
+      alert(errorMessage);
+    }
   };
 
   // Handle Add Material

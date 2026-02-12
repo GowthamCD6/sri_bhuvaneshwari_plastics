@@ -5,6 +5,7 @@ import {
   FileText,
   ShoppingCart,
   Package,
+  PackageCheck,
   Users,
   BarChart3,
   ChevronLeft,
@@ -14,6 +15,7 @@ import {
   Send,
   AlertTriangle,
   Settings,
+  SlidersHorizontal,
   Shield,
   ClipboardCheck,
   UserCog,
@@ -24,7 +26,7 @@ import {
 } from "lucide-react";
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
-
+import logo from "../../assets/SBP_logo.png";
 const Sidebar = ({ userRole, userData, onLogout }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [orderManagementOpen, setOrderManagementOpen] = useState(true);
@@ -41,111 +43,48 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
   // Role-based menu configuration
   const roleMenus = {
     admin: [
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { label: "Administration", section: true },
-      { path: "/user-management", label: "User Management", icon: UserCog },
-      { path: "/qms-approval", label: "QMS Approval", icon: Shield },
-      { label: "Reports", section: true },
-      { path: "/reports", label: "All Reports", icon: BarChart3 },
-    ],
-    qms: [
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      {
-        label: "Order Management",
-        section: true,
-      },
-      {
-        path: "/customer-orders",
-        label: "Customer Orders",
-        icon: ShoppingCart,
-      },
-      { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
-      {
-        label: "Approvals",
-        section: true,
-      },
-      {
-        path: "/verify-store-indents",
-        label: "Verify Store Indents",
-        icon: CheckCircle,
-      },
-      { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
-    ],
-    purchase: [
-      {
-        label: "Inventory Suite",
-        section: true,
-      },
-      { path: "/purchase/overview", label: "Overview", icon: LayoutDashboard },
-      { path: "/purchase/qms-indents", label: "QMS Indents", icon: FileText },
-      { path: "/purchase/store-requests", label: "Store Requests", icon: Inbox, badge: 3 },
-      { path: "/purchase/purchase-orders", label: "Purchase Orders", icon: ShoppingCart },
-      { path: "/purchase/suppliers", label: "Suppliers", icon: Truck },
-    ],
-    admin: [
-      {
-        path: "/admin-dashboard",
-        label: "Admin Dashboard",
-        icon: LayoutDashboard,
-      },
-      {
-        label: "Approvals",
-        section: true,
-      },
+      { label: "Overview", section: true },
+      { path: "/admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { label: "Approvals", section: true },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       { path: "/qms-approval", label: "QMS Approvals", icon: ClipboardCheck },
-      {
-        label: "Administration",
-        section: true,
-      },
+      { label: "Administration", section: true },
       { path: "/user-management", label: "User Management", icon: UserCog },
+      { label: "Analytics", section: true },
       { path: "/reports", label: "Reports", icon: BarChart3 },
       { path: "/settings", label: "Settings", icon: Settings },
     ],
-    store: [
+    qms: [
+      { label: "Overview", section: true },
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      {
-        label: "Stock Management",
-        section: true,
-      },
-      { path: "/inventory", label: "Inventory", icon: Package },
-      { path: "/goods-inventory", label: "Goods Inventory", icon: Package },
-      {
-        path: "/low-stock-alert",
-        label: "Low Stock Alert",
-        icon: AlertTriangle,
-      },
-      { path: "/stock-adjustment", label: "Stock Adjustment", icon: Settings },
-      {
-        label: "Procurement",
-        section: true,
-      },
-      { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
+      { label: "Order Management", section: true },
+      { path: "/customer-orders", label: "Customer Orders", icon: ShoppingCart },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
-      {
-        path: "/material-request",
-        label: "Material Request",
-        icon: ShoppingCart,
-      },
+      { label: "Approvals", section: true },
+      { path: "/verify-store-indents", label: "Verify Store Indents", icon: CheckCircle },
+      { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
     storeofficer: [
+      { label: "Overview", section: true },
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { label: "Inventory", section: true },
+      { label: "Inventory Management", section: true },
       { path: "/inventory", label: "Inventory", icon: Package },
-      { path: "/goods-inventory", label: "Goods Inventory", icon: Package },
+      { path: "/goods-inventory", label: "Goods Inventory", icon: PackageCheck },
       { path: "/low-stock-alert", label: "Low Stock Alert", icon: AlertTriangle },
-      { path: "/stock-adjustment", label: "Stock Adjustment", icon: Settings },
+      { path: "/stock-adjustment", label: "Stock Adjustment", icon: SlidersHorizontal },
       { label: "Procurement", section: true },
       { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       { path: "/material-request", label: "Material Request", icon: ShoppingCart },
     ],
     purchasedepartment: [
+      { label: "Overview", section: true },
       { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { label: "Purchase", section: true },
+      { label: "Purchase Operations", section: true },
       { path: "/suppliers", label: "Suppliers", icon: Truck },
       { path: "/qms-indents", label: "QMS Indents", icon: FileText },
       { path: "/store-requests", label: "Store Requests", icon: Inbox },
+      { label: "Analytics", section: true },
       { path: "/overview", label: "Overview", icon: BarChart3 },
     ],
   };
@@ -154,21 +93,23 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
 
   return (
-    <div className="sidebar">
-      {/* Header */}
-      <div className="sidebar-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon">
-              <span className="logo-text">SBP</span>
-            </div>
-            <div className="company-name">
-              <div className="company-title">Sri Bhuvaneswari</div>
-              <div className="company-subtitle">Plastics</div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="sidebar"> 
+    {/* Header */} 
+    <div className="sidebar-header"> 
+      <div className="header-content"> 
+        <div className="logo-section"> 
+          <div className="logo-icon"> 
+            <span className="logo-text">
+              <img src={logo} alt="SBP Logo" className="logo-image" />
+            </span> 
+               </div> 
+               <div className="company-name"> 
+                 <div className="company-title">Sri Bhuvaneshwari</div>
+                 <div className="company-subtitle">Plastics</div>
+               </div> 
+       </div> 
+      </div> 
+    </div>
 
       {/* Navigation */}
       <nav className="sidebar-nav">
