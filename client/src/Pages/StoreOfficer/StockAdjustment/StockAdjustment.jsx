@@ -278,8 +278,6 @@ const StockAdjustment = () => {
       {/* Header */}
       <div className="sa-header">
         <div>
-          <h1 className="sa-title">Stock Adjustment</h1>
-          <p className="sa-subtitle">Add or remove inventory stock with full tracking and audit trail.</p>
         </div>
       </div>
 

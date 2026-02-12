@@ -1,5 +1,23 @@
-/* Stock Adjustment Page - Matching Theme */
+/* General Layout & Fonts - Enhanced Theme */
 :root {
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --bg-light: #f8fafc;
+  --text-dark: #0f172a;
+  --text-medium: #334155;
+  --text-light: #94a3b8;
+  --border-color: #e2e8f0;
+  --white: #ffffff;
+  
+  /* Badge Colors */
+  --badge-blue-bg: #dbeafe;
+  --badge-blue-text: #1e40af;
+  --badge-orange-bg: #f97316;
+  --badge-orange-text: #ffffff;
+  --badge-green-bg: #10b981;
+  --badge-green-text: #ffffff;
+  
+  /* Stock Adjustment Specific */
   --sa-bg: #f8fafc;
   --sa-white: #ffffff;
   --sa-border: #e2e8f0;
@@ -8,8 +26,8 @@
   --sa-text-medium: #475569;
   --sa-text-light: #94a3b8;
   
-  --sa-primary: #3b82f6;
-  --sa-primary-hover: #2563eb;
+  --sa-primary: #2563eb;
+  --sa-primary-hover: #1d4ed8;
   --sa-primary-light: #eff6ff;
   
   --sa-green: #10b981;
@@ -19,7 +37,7 @@
   --sa-orange: #f97316;
   --sa-purple: #8b5cf6;
   
-  --sa-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --sa-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 * {
@@ -27,30 +45,24 @@
 }
 
 .sa-container {
-  padding: 24px 32px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 24px;
+  min-height: 100vh;
+  color: var(--text-medium);
 }
 
 /* Header */
 .sa-header {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .sa-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--sa-text-dark);
-  margin: 0 0 6px 0;
-}
-
-.sa-subtitle {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-dark);
   margin: 0;
 }
 
-/* Toggle Buttons */
+/* Toggle Buttons - Enhanced */
 .sa-toggle-group {
   display: flex;
   gap: 12px;
@@ -60,85 +72,93 @@
 .sa-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 10px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  border: 1px solid var(--sa-border);
-  background-color: var(--sa-white);
-  color: var(--sa-text-medium);
+  border: 1px solid var(--border-color);
+  background-color: var(--white);
+  color: var(--text-medium);
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .sa-toggle-btn:hover {
-  background-color: var(--sa-border-light);
-  border-color: var(--sa-primary);
-  color: var(--sa-primary);
+  background-color: #f8fafc;
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sa-toggle-btn.active.in {
-  background-color: var(--sa-primary);
+  background: linear-gradient(135deg, var(--sa-green) 0%, #059669 100%);
   color: #ffffff;
-  border-color: var(--sa-primary);
+  border-color: var(--sa-green);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
 .sa-toggle-btn.active.out {
-  background-color: var(--sa-red);
+  background: linear-gradient(135deg, var(--sa-red) 0%, #dc2626 100%);
   color: #ffffff;
   border-color: var(--sa-red);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 
-/* Cards */
+/* Cards - Enhanced */
 .sa-card {
-  background: var(--sa-white);
-  border: 1px solid var(--sa-border);
+  background: var(--white);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: var(--sa-shadow-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
+  overflow: hidden;
 }
 
 .sa-main-card {
   padding: 24px 28px;
 }
 
-/* Card Header */
+/* Card Header - Enhanced */
 .sa-card-header-flex {
   display: flex;
   align-items: flex-start;
   gap: 16px;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--sa-border-light);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .sa-icon-box {
   width: 48px;
   height: 48px;
   min-width: 48px;
-  background-color: var(--sa-primary);
+  background: linear-gradient(135deg, var(--primary-blue) 0%, #3b82f6 100%);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
 
 .sa-icon-box.out {
-  background-color: var(--sa-red);
+  background: linear-gradient(135deg, var(--sa-red) 0%, #dc2626 100%);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 
 .sa-card-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--sa-text-dark);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
   margin: 0 0 4px 0;
 }
 
 .sa-card-subtitle {
-  font-size: 13px;
-  color: var(--sa-text-light);
+  font-size: 14px;
+  color: var(--text-light);
   margin: 0;
 }
 
