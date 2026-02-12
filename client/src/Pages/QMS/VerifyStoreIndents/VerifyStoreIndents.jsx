@@ -200,13 +200,6 @@ const VerifyStoreIndents = () => {
       {/* Top Navbar Area */}
       <header className="vsi-header">
         <h1 className="vsi-page-title">Verify Store Indents</h1>
-        <div className="vsi-header-right">
-          <div className="vsi-notification">
-            <Bell size={20} className="vsi-stat-icon" style={{color: '#64748b'}} />
-            <span className="vsi-notification-dot"></span>
-          </div>
-          <img src="https://i.pravatar.cc/150?u=admin" alt="User" className="vsi-user-avatar-lg" />
-        </div>
       </header>
 
       {/* Stats Cards Row */}

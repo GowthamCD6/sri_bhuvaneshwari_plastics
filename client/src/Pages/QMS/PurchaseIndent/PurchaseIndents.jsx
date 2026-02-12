@@ -11,6 +11,51 @@ const NewPurchaseIndent = () => {
   const { indentId } = useParams();
   const { user } = useAuthStore();
   
+  // Helper function to get today's date without timezone offset
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Convert backend date/ISO timestamp into an <input type="date"> value (YYYY-MM-DD)
+  // using LOCAL calendar parts to avoid "one day before" timezone bugs.
+  const toDateInputValue = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      // If already in YYYY-MM-DD format, return as-is.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+      // If backend sends an ISO timestamp, keep the calendar date portion
+      // without timezone conversion.
+      if (value.includes('T') && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+        return value.slice(0, 10);
+      }
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Safely parse a date string (including YYYY-MM-DD) into a LOCAL Date for display.
+  const parseLocalDate = (value) => {
+    if (!value) return null;
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      const [y, m, d] = value.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  
   // Check if we're viewing/editing an existing indent OR coming from customer order
   const isViewMode = location.state?.isViewMode || false;
   const passedIndentId = location.state?.indentId || indentId;
@@ -26,7 +71,7 @@ const NewPurchaseIndent = () => {
     requestedBy: '',
     priority: 'Standard',
     indentNumber: '',
-    indentDate: new Date().toISOString().split('T')[0],
+    indentDate: getTodayDate(),
     requiredByDate: '',
     justification: '',
     customerPart: '',
@@ -109,25 +154,6 @@ const NewPurchaseIndent = () => {
       console.log('- requiredByDate:', earliestRequiredDate);
       console.log('- requestedBy:', orderData.customerName);
 
-      // Format dates to YYYY-MM-DD if they exist (without timezone conversion)
-      const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        // If already in YYYY-MM-DD format, return as is
-        if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          return dateStr;
-        }
-        // Otherwise convert carefully to avoid timezone issues
-        try {
-          const date = new Date(dateStr);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        } catch (e) {
-          return dateStr;
-        }
-      };
-
       setFormData(prev => ({
         ...prev,
         department: 'stores',
@@ -135,8 +161,8 @@ const NewPurchaseIndent = () => {
         customerPart: orderData.indentId || orderData.orderId || '',
         customerOrderId: orderData.orderId, // Store numeric order_id
         requestedBy: orderData.customerName || '',
-        indentDate: formatDate(orderData.indentDate) || prev.indentDate,
-        requiredByDate: formatDate(earliestRequiredDate) || prev.requiredByDate,
+        indentDate: toDateInputValue(orderData.indentDate) || prev.indentDate,
+        requiredByDate: toDateInputValue(earliestRequiredDate) || prev.requiredByDate,
         justification: `Purchase indent for customer order ${orderData.indentId || orderData.orderId}`,
       }));
 
@@ -167,13 +193,15 @@ const NewPurchaseIndent = () => {
       subtitle: 'Quality team created indent',
       actor: 'QMS',
       user: formData.requestedBy || 'S. Chen (QMS)',
-      date: formData.indentDate ? new Date(formData.indentDate).toLocaleString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      }) : null,
+      date: parseLocalDate(formData.indentDate)
+        ? parseLocalDate(formData.indentDate).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          })
+        : null,
       status: formData.workflowStage === 'QMS Init' ? 'current' : 'completed'
     },
     {
@@ -245,23 +273,13 @@ const NewPurchaseIndent = () => {
           console.log('PO Number from DB:', indent.po_number);
           console.log('PO Reference from DB:', indent.po_reference);
           
-          // Format dates properly (handle both date strings and ISO timestamps)
-          const formatDate = (dateStr) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-          };
-          
           setFormData({
             department: indent.department || 'stores',
-            requestedBy: indent.requested_by_name || indent.customer_name || '',
+            requestedBy: indent.customer_name || indent.requested_by_name || '',
             priority: indent.priority || 'Standard',
             indentNumber: indent.indent_number || '',
-            indentDate: indent.indent_date?.split('T')[0] || indent.request_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-            requiredByDate: indent.required_by_date?.split('T')[0] || '',
+            indentDate: toDateInputValue(indent.indent_date || indent.request_date) || getTodayDate(),
+            requiredByDate: toDateInputValue(indent.required_by_date) || '',
             justification: indent.justification || '',
             customerPart: indent.customer_order_indent_id || indent.customer_order_id || '',
             customerOrderId: indent.customer_order_id || null,
@@ -296,7 +314,7 @@ const NewPurchaseIndent = () => {
               description: m.material_description,
               preferredSupplier: m.preferred_supplier || '',
               requiredQuantity: m.quantity,
-              requiredDate: indent.required_by_date?.split('T')[0] || '',
+              requiredDate: toDateInputValue(indent.required_by_date) || '',
               onHand: m.current_stock || '0',
               order: m.required_stock || '',
               status: 'pending',
@@ -797,7 +815,7 @@ const NewPurchaseIndent = () => {
               <div style={{fontSize: '14px', fontWeight: '500', color: '#1e293b'}}>{material.requiredQuantity}</div>
               {material.requiredDate && (
                 <div style={{marginTop: '4px', fontSize: '12px', color: '#64748b'}}>
-                  Required on {new Date(material.requiredDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  Required on {parseLocalDate(material.requiredDate)?.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </div>
               )}
             </div>

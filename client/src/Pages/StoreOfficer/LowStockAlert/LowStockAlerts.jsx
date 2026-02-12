@@ -222,8 +222,6 @@ const LowStockAlerts = () => {
       {/* Header */}
       <header className="lsa-header">
         <div className="lsa-header-content">
-          <h1 className="lsa-title">Low Stock Alerts</h1>
-          <p className="lsa-subtitle">Monitor materials that are reaching or below minimum stock levels.</p>
         </div>
       </header>
 
