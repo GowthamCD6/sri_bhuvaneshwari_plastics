@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown, Edit2, Plus, X, Phone, Mail, MapPin, Building, Package, User, Trash2 } from 'lucide-react';
 import '../../QMS/CustomerOrder/CustomerOrders.css';
 import './Suppliers.css';
@@ -234,6 +234,18 @@ const Suppliers = () => {
       lastOrder: 'Oct 24, 2024'
     }
   ]);
+
+  const fetchSuppliers = async () => {
+    try {
+      const data = await supplierService.getAllSuppliers();
+      if (data && Array.isArray(data)) {
+        setSuppliers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      setPageNotice({ type: 'error', message: 'Failed to load suppliers' });
+    }
+  };
 
   useEffect(() => {
     fetchSuppliers();

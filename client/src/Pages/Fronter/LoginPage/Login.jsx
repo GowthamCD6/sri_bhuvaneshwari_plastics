@@ -141,7 +141,7 @@ const Login = ({ onLogin }) => {
         <div className="hero-overlay"></div>
         <div className="hero-content">
           <div className="logo-section">
-            <div className="logo">SB</div>
+            <div className="logo">SB</div>  
             <div className="company-name">Sri Bhuvaneswari Plastics</div>
           </div>
           <div className="hero-tagline">WorkFlow Management Platform</div>
