@@ -711,6 +711,38 @@ export const dashboardService = {
   },
 };
 
+// ========================
+// CATEGORY SERVICES
+// ========================
+
+export const categoryService = {
+  /**
+   * Get all categories with counts
+   */
+  getAllCategories: async () => {
+    return await fetchWithAuth('/categories');
+  },
+
+  /**
+   * Create new category
+   */
+  createCategory: async (categoryData) => {
+    return await fetchWithAuth('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+  },
+
+  /**
+   * Delete category
+   */
+  deleteCategory: async (categoryName) => {
+    return await fetchWithAuth(`/categories/${encodeURIComponent(categoryName)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Export token management utilities for use in components if needed
 export const tokenUtils = {
   getToken: () => getTokenFromCookie() || getTokenFromStorage(),
@@ -739,5 +771,6 @@ export default {
   qmsService,
   stockAdjustmentService,
   dashboardService,
+  categoryService,
   tokenUtils,
 };

@@ -1,0 +1,171 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../config/db');
+const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
+
+// Note: GET route is public for now, POST/DELETE require authentication
+// router.use(verifyToken);
+
+/**
+ * Get all categories with material counts
+ */
+router.get('/', async (req, res) => {
+  console.log('GET /api/categories - Fetching all categories');
+  
+  const query = `
+    SELECT 
+      category, 
+      COUNT(CASE WHEN is_active = 1 THEN 1 END) as count 
+    FROM materials 
+    WHERE category IS NOT NULL
+    GROUP BY category 
+    ORDER BY category ASC
+  `;
+
+  try {
+    const [results] = await db.query(query);
+    console.log('Categories fetched:', results.length, 'categories');
+    console.log('Categories data:', results);
+    res.status(200).json({
+      success: true,
+      data: results
+    });
+  } catch (err) {
+    console.error('Database error in GET /api/categories:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * Create a new category
+ * Note: Creates a placeholder material entry to establish the category
+ */
+router.post('/', verifyToken, async (req, res) => {
+  console.log('=== POST /api/categories - Create Category ===');
+  console.log('Request body:', req.body);
+  console.log('User:', req.user);
+  
+  const { name } = req.body;
+  const userId = req.user?.userId;
+
+  console.log('Extracted data - name:', name, 'userId:', userId);
+
+  if (!name || !name.trim()) {
+    console.log('Validation failed: Category name is required');
+    return res.status(400).json({
+      success: false,
+      message: 'Category name is required'
+    });
+  }
+
+  const categoryName = name.trim();
+  console.log('Processing category name:', categoryName);
+
+  try {
+    // Check if category already exists
+    const checkQuery = 'SELECT category FROM materials WHERE category = ? LIMIT 1';
+    console.log('Checking if category exists...');
+    
+    const [results] = await db.query(checkQuery, [categoryName]);
+    console.log('Check query results:', results);
+
+    if (results.length > 0) {
+      console.log('Category already exists:', categoryName);
+      return res.status(409).json({
+        success: false,
+        message: 'Category already exists'
+      });
+    }
+
+    // Create a placeholder material to establish the category
+    const materialCode = `CAT-${categoryName.toUpperCase().replace(/\s+/g, '-')}-${Date.now()}`;
+    console.log('Creating placeholder material with code:', materialCode);
+    
+    const insertQuery = `
+      INSERT INTO materials (
+        material_code, 
+        material_name, 
+        category, 
+        unit_of_measurement, 
+        current_stock,
+        is_active,
+        created_by,
+        description
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const values = [
+      materialCode,
+      `${categoryName} - Category Placeholder`,
+      categoryName,
+      'kg',
+      0,
+      0, // Set as inactive placeholder
+      userId,
+      'Placeholder entry for category creation'
+    ];
+
+    console.log('Insert query values:', values);
+
+    const [result] = await db.query(insertQuery, values);
+    console.log('Category created successfully! Insert result:', result);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Category created successfully',
+      data: {
+        category: categoryName,
+        count: 0
+      }
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create category'
+    });
+  }
+});
+
+/**
+ * Delete a category (only if it has no active materials)
+ */
+router.delete('/:categoryName', requirePermission('materials', 'delete'), async (req, res) => {
+  const { categoryName } = req.params;
+
+  try {
+    // Check if category has active materials
+    const checkQuery = 'SELECT COUNT(*) as count FROM materials WHERE category = ? AND is_active = 1';
+    
+    const [results] = await db.query(checkQuery, [categoryName]);
+    const activeCount = results[0].count;
+    
+    if (activeCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete category. It contains ${activeCount} active material(s)`
+      });
+    }
+
+    // Delete placeholder materials for this category
+    const deleteQuery = 'DELETE FROM materials WHERE category = ? AND is_active = 0';
+    
+    await db.query(deleteQuery, [categoryName]);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Category deleted successfully'
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete category'
+    });
+  }
+});
+
+module.exports = router;

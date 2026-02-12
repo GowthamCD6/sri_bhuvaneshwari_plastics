@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '../../../services/apiService';
 import './Login.css';
+import logo from '../../../assets/SBP_logo.png';
 
 const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -141,10 +142,10 @@ const Login = ({ onLogin }) => {
         <div className="hero-overlay"></div>
         <div className="hero-content">
           <div className="logo-section">
-            <div className="logo">SB</div>  
+            <div className='logo'><img src={logo} alt="Sri Bhuvaneswari Plastics Logo" /></div>
             <div className="company-name">Sri Bhuvaneswari Plastics</div>
-          </div>
           <div className="hero-tagline">WorkFlow Management Platform</div>
+          </div>
         </div>
       </div>
 
@@ -160,7 +161,7 @@ const Login = ({ onLogin }) => {
 
           <div id="google-signin-button" style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}></div>
 
-          <div className="divider">or sign in with mobile</div>
+          <div className="divider"><span>or sign in with mobile</span></div>
 
           {error && (
             <div style={{
@@ -237,4 +238,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-export default Login;
+export default Login; 
