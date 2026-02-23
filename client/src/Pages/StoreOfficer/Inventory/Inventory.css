@@ -98,6 +98,25 @@
   border-radius: 8px;
   display: inline-flex;
   gap: 4px;
+  min-width: max-content;
+}
+
+.inv-tabs-fixed {
+  width: 100%;
+  max-width: 660px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.inv-tabs-fixed::-webkit-scrollbar {
+  height: 6px;
+}
+
+.inv-tabs-fixed::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 
 .inv-tab {
@@ -130,6 +149,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .inv-search-wrapper {
@@ -413,6 +433,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 
 .btn-page:hover {
   background-color: var(--inv-primary);

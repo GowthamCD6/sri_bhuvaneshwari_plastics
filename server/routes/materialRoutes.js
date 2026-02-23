@@ -9,6 +9,10 @@ router.use(verifyToken);
 // Get all materials
 router.get('/', materialController.getAllMaterials);
 
+// Get low stock materials — MUST be before /:materialId to avoid param capture
+router.get('/low-stock', materialController.getLowStockMaterials);
+router.get('/alerts/low-stock', materialController.getLowStockMaterials); // legacy alias
+
 // Get material by ID
 router.get('/:materialId', materialController.getMaterialById);
 
@@ -20,8 +24,5 @@ router.put('/:materialId', requirePermission('materials', 'update'), materialCon
 
 // Delete material
 router.delete('/:materialId', requirePermission('materials', 'delete'), materialController.deleteMaterial);
-
-// Get low stock materials
-router.get('/alerts/low-stock', materialController.getLowStockMaterials);
 
 module.exports = router;

@@ -1,17 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, Edit, ArrowUpRight, X, Trash2, ChevronDown, Package } from 'lucide-react';
 import './GoodsInventory.css';
 import { inventoryService, materialService, categoryService } from '../../../services/apiService';
 
 const MaterialManager = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [activeCategory, setActiveCategory] = useState('Raw Materials');
   const [categorySearch, setCategorySearch] = useState('');
   const [materialSearch, setMaterialSearch] = useState('');
   const [showAddMaterialModal, setShowAddMaterialModal] = useState(false);
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editCategoryStatus, setEditCategoryStatus] = useState(null);
+  const [editCategorySubmitting, setEditCategorySubmitting] = useState(false);
   const [showEditMaterialModal, setShowEditMaterialModal] = useState(false);
   
   // New Category Form
@@ -38,6 +43,17 @@ const MaterialManager = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [modalStatus, setModalStatus] = useState(null); // { type: 'success'|'error', message: string }
+  const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editModalStatus, setEditModalStatus] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', message: string }
+
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const mapStatus = (stock, reorder) => {
     if (stock <= 0) return { status: 'Out of Stock', statusClass: 'mm-badge-red', stockClass: 'mm-text-red' };
@@ -52,7 +68,7 @@ const MaterialManager = () => {
       
       // Fetch both inventory and categories in parallel
       const [inventoryResponse, categoryResponse] = await Promise.all([
-        inventoryService.getAllInventory(),
+        inventoryService.getAllInventory({ active: 'true' }),
         categoryService.getAllCategories()
       ]);
       
@@ -68,13 +84,13 @@ const MaterialManager = () => {
           id: item.material_code,
           materialId: item.material_id,
           name: item.material_name,
-          supplier: item.supplier || '-',
+          supplier: item.preferred_supplier || '-',
           stock: stock.toLocaleString(),
           unit: item.unit_of_measurement || 'kg',
           status: statusMeta.status,
           statusClass: statusMeta.statusClass,
           stockClass: statusMeta.stockClass,
-          type: item.material_type || item.category || 'Material',
+          type: item.category || item.material_type || 'Material',
           minStock: item.min_stock_level || 0,
           maxStock: item.max_stock_level || 0,
           reorderLevel: reorder || 0,
@@ -105,6 +121,15 @@ const MaterialManager = () => {
   useEffect(() => {
     fetchInventory();
   }, []);
+
+  // Auto-open Add Material modal when navigated from Inventory screen
+  useEffect(() => {
+    if (location.state?.openAddMaterial) {
+      handleAddMaterial();
+      // Clear navigation state so it doesn't re-trigger on re-renders
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
@@ -152,21 +177,68 @@ const MaterialManager = () => {
       const response = await categoryService.createCategory({ name: newCategory.name.trim() });
       
       if (response.success) {
-        // Add category to local state immediately
         const newCat = { name: newCategory.name.trim(), count: 0 };
         setCategories(prev => [...prev, newCat]);
         setActiveCategory(newCategory.name.trim());
-        
-        alert(`Category "${newCategory.name}" added successfully!`);
         setShowAddCategoryModal(false);
         setNewCategory({ name: '' });
+        showToast('success', `Category "${newCategory.name.trim()}" added successfully!`);
       } else {
-        alert(response.message || 'Failed to create category');
+        showToast('error', response.message || 'Failed to create category');
       }
     } catch (err) {
       console.error('Failed to create category:', err);
-      const errorMessage = err.message || 'Failed to create category. Please try again.';
-      alert(errorMessage);
+      showToast('error', err.message || 'Failed to create category. Please try again.');
+    }
+  };
+
+  // Handle Edit Category
+  const handleEditCategory = () => {
+    setEditCategoryName(activeCategory);
+    setEditCategoryStatus(null);
+    setShowEditCategoryModal(true);
+  };
+
+  // Handle Delete Category
+  const handleDeleteCategory = async () => {
+    setEditCategorySubmitting(true);
+    setEditCategoryStatus(null);
+    try {
+      const deletedName = activeCategory;
+      await categoryService.deleteCategory(deletedName);
+      setCategories(prev => prev.filter(c => c.name !== deletedName));
+      setMaterials(prev => prev.filter(m => m.type !== deletedName));
+      const remaining = categories.filter(c => c.name !== deletedName);
+      setActiveCategory(remaining.length > 0 ? remaining[0].name : '');
+      setShowEditCategoryModal(false);
+      setEditCategoryStatus(null);
+      showToast('error', `Category "${deletedName}" deleted.`);
+    } catch (err) {
+      setEditCategoryStatus({ type: 'error', message: err?.data?.message || err?.message || 'Failed to delete category.' });
+    } finally {
+      setEditCategorySubmitting(false);
+    }
+  };
+
+  // Handle Submit Edit Category
+  const handleSubmitEditCategory = async (e) => {
+    e.preventDefault();
+    const trimmed = editCategoryName.trim();
+    if (!trimmed) { setEditCategoryStatus({ type: 'error', message: 'Category name is required.' }); return; }
+    if (trimmed === activeCategory) { setEditCategoryStatus({ type: 'error', message: 'New name is the same as the current name.' }); return; }
+    setEditCategorySubmitting(true);
+    setEditCategoryStatus(null);
+    try {
+      await categoryService.updateCategory(activeCategory, trimmed);
+      setCategories(prev => prev.map(c => c.name === activeCategory ? { ...c, name: trimmed } : c));
+      setMaterials(prev => prev.map(m => m.type === activeCategory ? { ...m, type: trimmed } : m));
+      setActiveCategory(trimmed);
+      setEditCategoryStatus({ type: 'success', message: `Renamed to "${trimmed}" successfully!` });
+      setTimeout(() => { setShowEditCategoryModal(false); setEditCategoryStatus(null); }, 1200);
+    } catch (err) {
+      setEditCategoryStatus({ type: 'error', message: err?.data?.message || err?.message || 'Failed to rename category.' });
+    } finally {
+      setEditCategorySubmitting(false);
     }
   };
 
@@ -181,43 +253,65 @@ const MaterialManager = () => {
       unit: 'kg',
       minStock: '',
       maxStock: '',
-      type: '',
+      type: activeCategory,
       warehouseLocation: ''
     });
+    setModalStatus(null);
     setShowAddMaterialModal(true);
   };
 
   // Handle Submit Material
-  const handleSubmitMaterial = (e) => {
+  const handleSubmitMaterial = async (e) => {
     e.preventDefault();
     if (!materialForm.name.trim() || !materialForm.id.trim()) {
-      alert('Please fill in all required fields');
+      setModalStatus({ type: 'error', message: 'Material code and name are required.' });
       return;
     }
-    materialService.createMaterial({
-      materialCode: materialForm.id,
-      materialName: materialForm.name,
-      materialType: materialForm.type || activeCategory,
-      category: activeCategory,
-      unitOfMeasurement: materialForm.unit,
-      minStockLevel: materialForm.minStock,
-      maxStockLevel: materialForm.maxStock,
-      reorderLevel: materialForm.minStock,
-      description: materialForm.remarks
-    })
-      .then(() => fetchInventory())
-      .catch((err) => {
-        console.error('Failed to create material:', err);
-        alert('Failed to create material');
-      })
-      .finally(() => setShowAddMaterialModal(false));
+    setSubmitting(true);
+    setModalStatus(null);
+    try {
+      await materialService.createMaterial({
+        materialCode: materialForm.id,
+        materialName: materialForm.name,
+        materialType: activeCategory,
+        category: activeCategory,
+        unitOfMeasurement: materialForm.unit,
+        minStockLevel: materialForm.minStock || 0,
+        maxStockLevel: materialForm.maxStock || null,
+        reorderLevel: materialForm.minStock || 0,
+        description: materialForm.remarks || '',
+        preferredSupplier: materialForm.supplier || null,
+        warehouseLocation: materialForm.warehouseLocation || null,
+        openingStock: materialForm.stock || 0
+      });
+      setModalStatus({ type: 'success', message: `"${materialForm.name}" added to ${activeCategory} successfully!` });
+      // Refresh list in background — don't block success UX
+      fetchInventory().catch(() => {});
+      setTimeout(() => {
+        setShowAddMaterialModal(false);
+        setModalStatus(null);
+      }, 1800);
+    } catch (err) {
+      console.error('Failed to create material:', err);
+      const msg = err?.data?.message || err?.message || 'Failed to create material. Please try again.';
+      setModalStatus({ type: 'error', message: msg });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Handle Delete Material
-  const handleDeleteMaterial = () => {
-    if (selectedMaterial && window.confirm(`Are you sure you want to delete ${selectedMaterial.name}?`)) {
-      alert(`${selectedMaterial.name} deleted successfully!`);
+  const handleDeleteMaterial = async () => {
+    if (!selectedMaterial || deleting) return;
+    setDeleting(true);
+    try {
+      await materialService.deleteMaterial(selectedMaterial.materialId);
       setSelectedMaterial(null);
+      fetchInventory().catch(() => {});
+    } catch (err) {
+      console.error('Failed to delete material:', err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -237,45 +331,58 @@ const MaterialManager = () => {
         id: selectedMaterial.id,
         materialId: selectedMaterial.materialId,
         name: selectedMaterial.name,
-        supplier: selectedMaterial.supplier,
+        supplier: (selectedMaterial.supplier === '-' ? '' : selectedMaterial.supplier) || '',
         stock: selectedMaterial.stock,
         unit: selectedMaterial.unit,
         minStock: selectedMaterial.minStock || '',
         maxStock: selectedMaterial.maxStock || '',
         type: selectedMaterial.type,
-        warehouseLocation: selectedMaterial.warehouseLocation
+        warehouseLocation: (selectedMaterial.warehouseLocation === '-' ? '' : selectedMaterial.warehouseLocation) || ''
       });
+      setEditModalStatus(null);
       setShowEditMaterialModal(true);
     }
   };
 
   // Handle Submit Edit Material
-  const handleSubmitEditMaterial = (e) => {
+  const handleSubmitEditMaterial = async (e) => {
     e.preventDefault();
     if (!materialForm.name.trim()) {
-      alert('Please fill in all required fields');
+      setEditModalStatus({ type: 'error', message: 'Material name is required.' });
       return;
     }
     if (!materialForm.materialId) {
-      alert('Material ID is missing');
+      setEditModalStatus({ type: 'error', message: 'Material ID is missing.' });
       return;
     }
-    materialService.updateMaterial(materialForm.materialId, {
-      materialName: materialForm.name,
-      materialType: materialForm.type || activeCategory,
-      category: activeCategory,
-      unitOfMeasurement: materialForm.unit,
-      minStockLevel: materialForm.minStock,
-      maxStockLevel: materialForm.maxStock,
-      reorderLevel: materialForm.minStock,
-      description: materialForm.remarks
-    })
-      .then(() => fetchInventory())
-      .catch((err) => {
-        console.error('Failed to update material:', err);
-        alert('Failed to update material');
-      })
-      .finally(() => setShowEditMaterialModal(false));
+    setEditSubmitting(true);
+    setEditModalStatus(null);
+    try {
+      await materialService.updateMaterial(materialForm.materialId, {
+        materialName: materialForm.name,
+        materialType: materialForm.type || activeCategory,
+        category: materialForm.type || activeCategory,
+        unitOfMeasurement: materialForm.unit,
+        minStockLevel: materialForm.minStock,
+        maxStockLevel: materialForm.maxStock,
+        reorderLevel: materialForm.minStock,
+        description: materialForm.remarks,
+        preferredSupplier: materialForm.supplier,
+        warehouseLocation: materialForm.warehouseLocation
+      });
+      setEditModalStatus({ type: 'success', message: `"${materialForm.name}" updated successfully!` });
+      fetchInventory().catch(() => {});
+      setTimeout(() => {
+        setShowEditMaterialModal(false);
+        setEditModalStatus(null);
+        setSelectedMaterial(null);
+      }, 1500);
+    } catch (err) {
+      const msg = err?.data?.message || err?.message || 'Failed to update material.';
+      setEditModalStatus({ type: 'error', message: msg });
+    } finally {
+      setEditSubmitting(false);
+    }
   };
 
   // Handle Material Form Change
@@ -285,6 +392,20 @@ const MaterialManager = () => {
 
   return (
     <div className="mm-container">
+      {/* ---- Toast Notification ---- */}
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '24px', right: '24px', zIndex: 9999,
+          padding: '14px 20px', borderRadius: '10px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          backgroundColor: toast.type === 'success' ? '#16a34a' : '#dc2626',
+          color: '#fff', fontSize: '14px', fontWeight: 500,
+          display: 'flex', alignItems: 'center', gap: '10px', minWidth: '260px'
+        }}>
+          <span style={{ fontSize: '18px' }}>{toast.type === 'success' ? '✓' : '✕'}</span>
+          {toast.message}
+        </div>
+      )}
+
       {error && (
         <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
           <strong>Error:</strong> {error}
@@ -300,11 +421,18 @@ const MaterialManager = () => {
       {/* --- Left Column: Categories --- */}
       <div className="mm-sidebar">
         <div className="mm-sidebar-header">
-          <h2 className="mm-panel-title">Material<br/>Categories</h2>
-          <button className="mm-btn-outline" onClick={handleAddCategory}>
-            <Plus size={16} />
-            Add Category
-          </button>
+          <h2 className="mm-panel-title">Material Categories</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            <button className="mm-btn-outline" onClick={handleAddCategory}>
+              <Plus size={16} />
+              Add Category
+            </button>
+            {activeCategory && (
+              <button className="mm-btn-icon" onClick={handleEditCategory} title={`Rename "${activeCategory}"`}>
+                <Edit size={15} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="mm-search-box">
@@ -326,7 +454,7 @@ const MaterialManager = () => {
               onClick={() => { setActiveCategory(cat.name); setSelectedMaterial(null); }}
             >
               <div className="mm-cat-name">{cat.name}</div>
-              <div className="mm-cat-count">{cat.count} items</div>
+              <div className="mm-cat-count">{materials.filter(m => m.type === cat.name).length} items</div>
             </div>
           ))}
         </div>
@@ -510,9 +638,9 @@ const MaterialManager = () => {
 
             {/* Footer Actions */}
             <div className="mm-details-footer">
-              <button className="mm-btn-danger" onClick={handleDeleteMaterial}>
+              <button className="mm-btn-danger" onClick={handleDeleteMaterial} disabled={deleting}>
                 <Trash2 size={16} />
-                Delete
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
               <div className="mm-footer-right">
                 <button className="mm-btn-secondary" onClick={handleEditMaterial}>
@@ -568,6 +696,62 @@ const MaterialManager = () => {
         </div>
       )}
 
+      {/* ============ EDIT CATEGORY MODAL ============ */}
+      {showEditCategoryModal && (
+        <div className="mm-modal-overlay" onClick={() => { setShowEditCategoryModal(false); setEditCategoryStatus(null); }}>
+          <div className="mm-modal" onClick={e => e.stopPropagation()}>
+            <div className="mm-modal-header">
+              <h2>Rename Category</h2>
+              <button className="mm-modal-close" onClick={() => { setShowEditCategoryModal(false); setEditCategoryStatus(null); }}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmitEditCategory} className="mm-modal-body">
+              {editCategoryStatus && (
+                <div style={{
+                  padding: '10px 14px', marginBottom: '14px', borderRadius: '8px',
+                  backgroundColor: editCategoryStatus.type === 'success' ? '#dcfce7' : '#fee2e2',
+                  color: editCategoryStatus.type === 'success' ? '#166534' : '#991b1b',
+                  border: `1px solid ${editCategoryStatus.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                  fontSize: '14px', fontWeight: 500
+                }}>
+                  {editCategoryStatus.type === 'success' ? '✓ ' : '✕ '}{editCategoryStatus.message}
+                </div>
+              )}
+              <div className="mm-form-group">
+                <label className="mm-label">Category Name *</label>
+                <input
+                  type="text"
+                  className="mm-input"
+                  value={editCategoryName}
+                  onChange={(e) => setEditCategoryName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="mm-modal-actions">
+                <button type="button" className="mm-btn-secondary" onClick={() => { setShowEditCategoryModal(false); setEditCategoryStatus(null); }} disabled={editCategorySubmitting}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteCategory}
+                  disabled={editCategorySubmitting || editCategoryStatus?.type === 'success'}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', backgroundColor: '#ef4444', color: '#fff', fontWeight: 500, fontSize: '14px' }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+                <button type="submit" className="mm-btn-primary" disabled={editCategorySubmitting || editCategoryStatus?.type === 'success'}>
+                  <Edit size={16} />
+                  {editCategorySubmitting ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ============ ADD MATERIAL MODAL ============ */}
       {showAddMaterialModal && (
         <div className="mm-modal-overlay" onClick={() => setShowAddMaterialModal(false)}>
@@ -579,6 +763,26 @@ const MaterialManager = () => {
               </button>
             </div>
             <form onSubmit={handleSubmitMaterial} className="mm-modal-body">
+
+              {/* Status Banner */}
+              {modalStatus && (
+                <div style={{
+                  padding: '10px 14px',
+                  marginBottom: '14px',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  background: modalStatus.type === 'success' ? '#f0fdf4' : '#fff1f2',
+                  border: `1px solid ${modalStatus.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                  color: modalStatus.type === 'success' ? '#166534' : '#991b1b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  {modalStatus.type === 'success' ? '✓' : '✕'} {modalStatus.message}
+                </div>
+              )}
+
               {/* Material Code & Name */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
@@ -687,12 +891,17 @@ const MaterialManager = () => {
               </div>
 
               <div className="mm-modal-actions">
-                <button type="button" className="mm-btn-secondary" onClick={() => setShowAddMaterialModal(false)}>
+                <button
+                  type="button"
+                  className="mm-btn-secondary"
+                  onClick={() => { setShowAddMaterialModal(false); setModalStatus(null); }}
+                  disabled={submitting}
+                >
                   Cancel
                 </button>
-                <button type="submit" className="mm-btn-primary">
+                <button type="submit" className="mm-btn-primary" disabled={submitting || modalStatus?.type === 'success'}>
                   <Package size={16} />
-                  Add Material
+                  {submitting ? 'Adding...' : 'Add Material'}
                 </button>
               </div>
             </form>
@@ -711,6 +920,17 @@ const MaterialManager = () => {
               </button>
             </div>
             <form onSubmit={handleSubmitEditMaterial} className="mm-modal-body">
+              {editModalStatus && (
+                <div style={{
+                  padding: '10px 14px', marginBottom: '14px', borderRadius: '8px',
+                  backgroundColor: editModalStatus.type === 'success' ? '#dcfce7' : '#fee2e2',
+                  color: editModalStatus.type === 'success' ? '#166534' : '#991b1b',
+                  border: `1px solid ${editModalStatus.type === 'success' ? '#86efac' : '#fca5a5'}`,
+                  fontSize: '14px', fontWeight: 500
+                }}>
+                  {editModalStatus.type === 'success' ? '✓ ' : '✕ '}{editModalStatus.message}
+                </div>
+              )}
               {/* Material Code & Name */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
@@ -748,12 +968,18 @@ const MaterialManager = () => {
                 </div>
                 <div className="mm-form-group half">
                   <label className="mm-label">Material Type</label>
-                  <input 
-                    type="text" 
-                    className="mm-input" 
-                    value={materialForm.type}
-                    onChange={(e) => handleMaterialFormChange('type', e.target.value)}
-                  />
+                  <div className="mm-select-wrapper">
+                    <select
+                      className="mm-select"
+                      value={materialForm.type}
+                      onChange={(e) => handleMaterialFormChange('type', e.target.value)}
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.name} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={16} className="mm-select-icon" />
+                  </div>
                 </div>
               </div>
 
@@ -820,12 +1046,12 @@ const MaterialManager = () => {
               </div>
 
               <div className="mm-modal-actions">
-                <button type="button" className="mm-btn-secondary" onClick={() => setShowEditMaterialModal(false)}>
+                <button type="button" className="mm-btn-secondary" onClick={() => { setShowEditMaterialModal(false); setEditModalStatus(null); }} disabled={editSubmitting}>
                   Cancel
                 </button>
-                <button type="submit" className="mm-btn-primary">
+                <button type="submit" className="mm-btn-primary" disabled={editSubmitting || editModalStatus?.type === 'success'}>
                   <Edit size={16} />
-                  Save Changes
+                  {editSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

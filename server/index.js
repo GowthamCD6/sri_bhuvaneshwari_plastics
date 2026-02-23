@@ -30,8 +30,16 @@ app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({extended:true}));
 app.use(cookieParser());
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files statically with proper error handling
+app.use('/uploads', (req, res, next) => {
+    // Decode URL-encoded characters in the path
+    req.url = decodeURIComponent(req.url);
+    next();
+}, express.static(path.join(__dirname, 'uploads'), {
+    dotfiles: 'deny',
+    maxAge: '1h',
+    etag: false
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);

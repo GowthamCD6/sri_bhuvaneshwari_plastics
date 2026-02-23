@@ -131,9 +131,43 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 /**
+ * Rename a category (updates all materials with the old category name)
+ */
+router.put('/:categoryName', verifyToken, async (req, res) => {
+  const { categoryName } = req.params;
+  const { name } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ success: false, message: 'New category name is required' });
+  }
+
+  const newName = name.trim();
+
+  if (newName === categoryName) {
+    return res.status(400).json({ success: false, message: 'New name is the same as the current name' });
+  }
+
+  try {
+    // Check if new name already exists
+    const [existing] = await db.query('SELECT category FROM materials WHERE category = ? LIMIT 1', [newName]);
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, message: 'A category with that name already exists' });
+    }
+
+    // Rename in all materials rows
+    await db.query('UPDATE materials SET category = ? WHERE category = ?', [newName, categoryName]);
+
+    res.status(200).json({ success: true, message: 'Category renamed successfully', data: { oldName: categoryName, newName } });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ success: false, message: 'Failed to rename category' });
+  }
+});
+
+/**
  * Delete a category (only if it has no active materials)
  */
-router.delete('/:categoryName', requirePermission('materials', 'delete'), async (req, res) => {
+router.delete('/:categoryName', verifyToken, requirePermission('materials', 'delete'), async (req, res) => {
   const { categoryName } = req.params;
 
   try {

@@ -105,9 +105,7 @@ const CustomerOrders = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await customerOrderService.getAllOrders({
-        userId: user?.userId
-      });
+      const response = await customerOrderService.getAllOrders({});
       setOrders(response.data || []);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
@@ -173,14 +171,14 @@ const CustomerOrders = () => {
     const all = orders.length;
     const open = orders.filter(o => isOpenStatus(o.status || o.indentStatus)).length;
     const urgent = orders.filter(o => String(o.priority || '').toLowerCase() === 'urgent').length;
-    const mine = orders.filter(o => (o.created_by || o.createdBy || '') === currentUser.name).length;
+    const mine = orders.filter(o => Number(o.created_by) === Number(user?.userId)).length;
     return [
       { id: 'all', label: 'All', count: all },
       { id: 'open', label: 'Status: Open', count: open },
       { id: 'urgent', label: 'Priority: Urgent', count: urgent },
       { id: 'mine', label: 'My Orders', count: mine },
     ];
-  }, [orders, currentUser.name]);
+  }, [orders, user?.userId]);
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -202,7 +200,7 @@ const CustomerOrders = () => {
       list = list.filter(o => String(o.priority || '').toLowerCase() === 'urgent');
     }
     if (activeTab === 'mine') {
-      list = list.filter(o => (o.created_by || o.createdBy || '') === currentUser.name);
+      list = list.filter(o => Number(o.created_by) === Number(user?.userId));
     }
 
     if (term) {
@@ -233,7 +231,7 @@ const CustomerOrders = () => {
     }
 
     return list;
-  }, [orders, activeTab, searchTerm, currentUser.name]);
+  }, [orders, activeTab, searchTerm, user?.userId]);
 
   // Reset pagination when filters change
   useEffect(() => {

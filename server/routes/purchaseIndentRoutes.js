@@ -7,7 +7,8 @@ const {
   updateIndentStatus,
   sendToNextStage,
   deleteIndent,
-  uploadPOFile
+  uploadPOFile,
+  downloadPOFile
 } = require('../controllers/purchaseIndentController');
 const { verifyToken } = require('../middleware/authMiddleware');
 const upload = require('../middleware/fileUpload');
@@ -32,6 +33,9 @@ router.post('/:id/send-next', sendToNextStage);
 
 // Upload PO file
 router.post('/:id/upload-po', upload.single('poFile'), uploadPOFile);
+
+// Download PO file
+router.get('/:id/download-po', downloadPOFile);
 
 // Delete indent
 router.delete('/:id', deleteIndent);

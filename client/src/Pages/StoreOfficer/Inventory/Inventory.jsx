@@ -1,12 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, MoreVertical } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Inventory.css';
 import { inventoryService } from '../../../services/apiService';
 
+const PAGE_SIZE = 10;
+
 const InventoryDashboard = () => {
-  const [materials, setMaterials] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [allMaterials, setAllMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('All Materials');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const mapStatus = (stock, reorder) => {
     if (stock <= 0) return { status: 'Out of Stock', statusClass: 'badge-red', stockColor: 'text-red' };
@@ -14,31 +22,35 @@ const InventoryDashboard = () => {
     return { status: 'In Stock', statusClass: 'badge-green', stockColor: 'text-dark' };
   };
 
-  useEffect(() => {
-    const fetchInventory = async () => {
+  const fetchInventory = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await inventoryService.getAllInventory();
+        const response = await inventoryService.getAllInventory({ active: 'true' });
         const data = response.data || [];
         const mapped = data.map((item) => {
           const stock = Number(item.current_stock || 0);
           const reorder = Number(item.reorder_level || item.reorder_point || 0);
+          const cost = Number(item.standard_cost || 0);
           const statusMeta = mapStatus(stock, reorder);
           return {
             code: item.material_code,
             name: item.material_name,
-            supplier: item.supplier ? `Supplier: ${item.supplier}` : 'Supplier: -',
+            supplierName: item.preferred_supplier || '-',
+            supplier: item.preferred_supplier ? `Supplier: ${item.preferred_supplier}` : 'Supplier: -',
             category: item.category || '-',
+            rawStock: stock,
+            standardCost: cost,
             stock: stock.toLocaleString(),
             stockColor: statusMeta.stockColor,
             unit: item.unit_of_measurement || '-',
             reorder: reorder.toLocaleString(),
             status: statusMeta.status,
-            statusClass: statusMeta.statusClass
+            statusClass: statusMeta.statusClass,
+            materialId: item.material_id,
           };
         });
-        setMaterials(mapped);
+        setAllMaterials(mapped);
       } catch (err) {
         console.error('Failed to fetch inventory:', err);
         setError('Failed to load inventory');
@@ -47,8 +59,79 @@ const InventoryDashboard = () => {
       }
     };
 
+  useEffect(() => {
     fetchInventory();
   }, []);
+
+  // Re-fetch when returning from GoodsInventory after adding a material
+  useEffect(() => {
+    if (location.state?.refreshInventory) {
+      fetchInventory();
+      // Clear the state so it doesn't fire again
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
+
+  const categoryTabs = useMemo(() => {
+    const categories = Array.from(
+      new Set(
+        allMaterials
+          .map((item) => (item.category || '').trim())
+          .filter((c) => Boolean(c) && c !== '-')
+      )
+    );
+    return ['All Materials', ...categories];
+  }, [allMaterials]);
+
+  useEffect(() => {
+    if (!categoryTabs.includes(activeTab)) {
+      setActiveTab('All Materials');
+    }
+  }, [categoryTabs, activeTab]);
+
+  const filteredMaterials = useMemo(() => {
+    let filtered = allMaterials;
+
+    if (activeTab !== 'All Materials') {
+      const selectedCategory = activeTab.toLowerCase().trim();
+      filtered = filtered.filter(
+        (item) => (item.category || '').toLowerCase().trim() === selectedCategory
+      );
+    }
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((item) =>
+        (item.code || '').toLowerCase().includes(query) ||
+        (item.name || '').toLowerCase().includes(query) ||
+        (item.category || '').toLowerCase().includes(query) ||
+        (item.supplierName || '').toLowerCase().includes(query) ||
+        (item.status || '').toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [allMaterials, activeTab, searchQuery]);
+
+  const totalValue = useMemo(() =>
+    allMaterials.reduce((sum, m) => sum + m.rawStock * m.standardCost, 0)
+  , [allMaterials]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMaterials.length / PAGE_SIZE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const pagedMaterials = filteredMaterials.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => { setCurrentPage(1); }, [activeTab, searchQuery]);
+
+  const handleAddMaterial = () => {
+    navigate('/goods-inventory', { state: { openAddMaterial: true } });
+  };
+
+  const handleUpdateStock = (item) => {
+    navigate('/stock-adjustment', {
+      state: { material: item }
+    });
+  };
 
   return (
     <div className="inv-container">
@@ -72,7 +155,7 @@ const InventoryDashboard = () => {
             <span className="inv-stat-label">Total Materials</span>
             <Package size={20} className="icon-blue" />
           </div>
-          <div className="inv-stat-value">{materials.length}</div>
+          <div className="inv-stat-value">{allMaterials.length}</div>
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
@@ -80,7 +163,7 @@ const InventoryDashboard = () => {
             <AlertTriangle size={20} className="icon-orange" />
           </div>
           <div className="inv-stat-value">
-            {materials.filter(m => m.status === 'Low Stock').length}
+            {allMaterials.filter(m => m.status === 'Low Stock').length}
           </div>
         </div>
         <div className="inv-stat-card">
@@ -89,7 +172,7 @@ const InventoryDashboard = () => {
             <XCircle size={20} className="icon-red" />
           </div>
           <div className="inv-stat-value">
-            {materials.filter(m => m.status === 'Out of Stock').length}
+            {allMaterials.filter(m => m.status === 'Out of Stock').length}
           </div>
         </div>
         <div className="inv-stat-card">
@@ -97,7 +180,7 @@ const InventoryDashboard = () => {
             <span className="inv-stat-label">Total Value</span>
             <DollarSign size={20} className="icon-green" />
           </div>
-          <div className="inv-stat-value">$--</div>
+          <div className="inv-stat-value">₹{totalValue.toLocaleString('en-IN')}</div>
         </div>
       </div>
 
@@ -106,11 +189,18 @@ const InventoryDashboard = () => {
         
         {/* Toolbar (Tabs + Search + Add) */}
         <div className="inv-toolbar">
-          <div className="inv-tabs-container">
-            <button className="inv-tab active">All Materials</button>
-            <button className="inv-tab">Raw Materials</button>
-            <button className="inv-tab">Finished Goods</button>
-            <button className="inv-tab">Packaging</button>
+          <div className="inv-tabs-fixed">
+            <div className="inv-tabs-container" role="tablist" aria-label="Material categories">
+              {categoryTabs.map((tab) => (
+                <button
+                  key={tab}
+                  className={`inv-tab ${activeTab === tab ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="inv-actions">
@@ -122,9 +212,11 @@ const InventoryDashboard = () => {
                 type="text" 
                 placeholder="Search inventory..." 
                 className="inv-search-input" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="inv-btn-primary">
+            <button className="inv-btn-primary" onClick={handleAddMaterial}>
               <Plus size={18} />
               Add Material
             </button>
@@ -147,7 +239,7 @@ const InventoryDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {materials.map((item, index) => (
+              {pagedMaterials.map((item, index) => (
                 <tr key={index}>
                   {/* Code */}
                   <td className="font-code">{item.code}</td>
@@ -182,7 +274,7 @@ const InventoryDashboard = () => {
                   {/* Actions */}
                   <td>
                     <div className="action-cell">
-                      <button className="btn-update">Update Stock</button>
+                      <button className="btn-update" onClick={() => handleUpdateStock(item)}>Update Stock</button>
                       <button className="btn-more">
                         <MoreVertical size={18} className="icon-gray" />
                       </button>
@@ -190,16 +282,27 @@ const InventoryDashboard = () => {
                   </td>
                 </tr>
               ))}
+              {!loading && pagedMaterials.length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                    No materials found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Footer */}
         <div className="inv-footer">
-          <span className="footer-text">Showing 1-5 of 142 items</span>
+          <span className="footer-text">Showing {pagedMaterials.length > 0 ? (safePage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(safePage * PAGE_SIZE, filteredMaterials.length)} of {filteredMaterials.length} items</span>
           <div className="pagination-group">
-            <button className="btn-page">Previous</button>
-            <button className="btn-page">Next</button>
+            <button className="btn-page" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>
+              <ChevronLeft size={16} /> Previous
+            </button>
+            <button className="btn-page" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}>
+              Next <ChevronRight size={16} />
+            </button>
           </div>
         </div>
 

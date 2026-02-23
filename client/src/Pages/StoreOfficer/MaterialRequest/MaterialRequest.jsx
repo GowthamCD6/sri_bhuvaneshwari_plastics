@@ -18,6 +18,7 @@ const MaterialRequest = () => {
   const [urgencyFilter, setUrgencyFilter] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
   // New request form state
   const [newRequest, setNewRequest] = useState({
@@ -64,6 +65,7 @@ const MaterialRequest = () => {
       const data = response.data || [];
       const mapped = data.map((req) => ({
         id: req.request_number,
+        dbId: req.request_id,
         rmCode: req.material_code || '-',
         rmName: req.material_name,
         itemType: req.item_type || 'Stock',
@@ -214,6 +216,7 @@ const MaterialRequest = () => {
   };
 
   const handleEditRequest = (request) => {
+    setEditingId(request.dbId);
     setNewRequest({
       itemType: request.itemType.toLowerCase(),
       rmCode: request.rmCode,
@@ -231,7 +234,12 @@ const MaterialRequest = () => {
 
   const handleDeleteRequest = (request) => {
     if (window.confirm(`Are you sure you want to delete ${request.id}?`)) {
-      alert(`Request ${request.id} deleted successfully!`);
+      storeRequestService.deleteRequest(request.dbId)
+        .then(() => fetchRequests())
+        .catch((err) => {
+          console.error('Failed to delete request:', err);
+          alert('Failed to delete request');
+        });
     }
   };
 
@@ -245,7 +253,7 @@ const MaterialRequest = () => {
       alert('Please fill in all required fields');
       return;
     }
-    storeRequestService.createRequest({
+    const payload = {
       itemType: newRequest.itemType,
       materialCode: newRequest.rmCode,
       materialName: newRequest.rmName,
@@ -257,14 +265,19 @@ const MaterialRequest = () => {
       reason: newRequest.reason,
       priority: newRequest.priority,
       requestDate: new Date().toISOString().split('T')[0]
-    })
+    };
+    const apiCall = editingId
+      ? storeRequestService.updateRequest(editingId, payload)
+      : storeRequestService.createRequest(payload);
+    apiCall
       .then(() => fetchRequests())
       .catch((err) => {
-        console.error('Failed to create request:', err);
-        alert('Failed to create request');
+        console.error(`Failed to ${editingId ? 'update' : 'create'} request:`, err);
+        alert(`Failed to ${editingId ? 'update' : 'create'} request`);
       })
       .finally(() => {
         setShowNewRequestModal(false);
+        setEditingId(null);
         resetNewRequestForm();
       });
   };
@@ -548,8 +561,8 @@ const MaterialRequest = () => {
         <div className="mr-modal-overlay" onClick={() => setShowNewRequestModal(false)}>
           <div className="mr-modal" onClick={e => e.stopPropagation()}>
             <div className="mr-modal-header">
-              <h2>New Material Request</h2>
-              <button className="mr-modal-close" onClick={() => setShowNewRequestModal(false)}>
+              <h2>{editingId ? 'Edit Material Request' : 'New Material Request'}</h2>
+              <button className="mr-modal-close" onClick={() => { setShowNewRequestModal(false); setEditingId(null); resetNewRequestForm(); }}>
                 <X size={20} />
               </button>
             </div>
@@ -716,13 +729,13 @@ const MaterialRequest = () => {
                 <button 
                   type="button" 
                   className="mr-btn-secondary" 
-                  onClick={() => { setShowNewRequestModal(false); resetNewRequestForm(); }}
+                  onClick={() => { setShowNewRequestModal(false); setEditingId(null); resetNewRequestForm(); }}
                 >
                   Cancel
                 </button>
                 <button type="submit" className="mr-btn-primary">
                   <Check size={16} />
-                  Submit Request
+                  {editingId ? 'Update Request' : 'Submit Request'}
                 </button>
               </div>
             </form>

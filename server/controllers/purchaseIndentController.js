@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * Get all purchase indents with filters
@@ -713,6 +715,66 @@ const uploadPOFile = async (req, res) => {
   }
 };
 
+/**
+ * Download/Get PO file for purchase indent
+ */
+const downloadPOFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get indent with file path
+    const [indents] = await db.query(
+      'SELECT po_file_path FROM purchase_indents WHERE indent_id = ?',
+      [id]
+    );
+
+    if (indents.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Indent not found'
+      });
+    }
+
+    const indent = indents[0];
+    if (!indent.po_file_path) {
+      return res.status(404).json({
+        success: false,
+        message: 'No PO file attached to this indent'
+      });
+    }
+
+    // File path relative to uploadsDirectory
+    const filePath = path.join(__dirname, '../uploads', indent.po_file_path);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found on server'
+      });
+    }
+
+    // Download the file
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error('Download error:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            message: 'Failed to download file'
+          });
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Download PO file error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to download PO file'
+    });
+  }
+};
+
 module.exports = {
   getAllIndents,
   getIndentById,
@@ -720,5 +782,6 @@ module.exports = {
   updateIndentStatus,
   sendToNextStage,
   deleteIndent,
-  uploadPOFile
+  uploadPOFile,
+  downloadPOFile
 };

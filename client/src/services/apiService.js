@@ -50,10 +50,29 @@ const setTokenInStorage = (token) => {
 };
 
 /**
- * Get JWT from localStorage as backup
+ * Get JWT from localStorage as backup.
+ * Also reads from Zustand's persisted auth-storage so the token
+ * survives page refreshes even if the direct 'jwt_token' key is gone.
  */
 const getTokenFromStorage = () => {
-  return localStorage.getItem('jwt_token');
+  const direct = localStorage.getItem('jwt_token');
+  if (direct) return direct;
+
+  // Fallback: Zustand persist stores { state: { token: '...' }, version: 0 }
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const token = parsed?.state?.token;
+      if (token) {
+        // Re-sync the direct key so subsequent calls hit the fast path
+        localStorage.setItem('jwt_token', token);
+        return token;
+      }
+    }
+  } catch (_) {}
+
+  return null;
 };
 
 /**
@@ -94,11 +113,10 @@ const fetchWithAuth = async (url, options = {}) => {
     ...options.headers,
   };
 
-  // TODO: Uncomment when JWT integration is ready
-  // const token = getTokenFromCookie() || getTokenFromStorage();
-  // if (token) {
-  //   headers['Authorization'] = `Bearer ${token}`;
-  // }
+  const token = getTokenFromCookie() || getTokenFromStorage();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   const config = {
     ...options,
@@ -121,7 +139,10 @@ const fetchWithAuth = async (url, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      const err = new Error(data.message || `HTTP ${response.status}: Something went wrong`);
+      err.data = data;
+      err.status = response.status;
+      throw err;
     }
 
     return data;
@@ -753,6 +774,16 @@ export const categoryService = {
     return await fetchWithAuth('/categories', {
       method: 'POST',
       body: JSON.stringify(categoryData),
+    });
+  },
+
+  /**
+   * Rename category
+   */
+  updateCategory: async (oldName, newName) => {
+    return await fetchWithAuth(`/categories/${encodeURIComponent(oldName)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name: newName }),
     });
   },
 
