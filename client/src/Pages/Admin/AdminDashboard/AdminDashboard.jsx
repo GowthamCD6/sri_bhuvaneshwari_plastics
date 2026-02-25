@@ -155,12 +155,6 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="ad-header">
         <h1 className="ad-title">Admin Dashboard</h1>
-        <div className="ad-header-right">
-          <button className="ad-notification-bell">
-            <Icons.Bell />
-            <span className="ad-notification-badge">3</span>
-          </button>
-        </div>
       </div>
 
       {/* Stats Grid */}

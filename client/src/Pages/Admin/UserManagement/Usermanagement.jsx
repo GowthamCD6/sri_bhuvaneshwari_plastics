@@ -112,13 +112,6 @@ const UserManagement = () => {
       {/* Header */}
       <div className="um-header">
         <h1 className="um-title">User Management</h1>
-        <div className="um-header-right">
-          <button className="um-notification-bell">
-            <Icons.Bell />
-            <span className="um-notification-badge">3</span>
-          </button>
-          <span className="um-last-login">Last login: Today, 09:41 AM</span>
-        </div>
       </div>
 
       {/* Toolbar */}
