@@ -212,7 +212,7 @@ const MaterialManager = () => {
       setActiveCategory(remaining.length > 0 ? remaining[0].name : '');
       setShowEditCategoryModal(false);
       setEditCategoryStatus(null);
-      showToast('error', `Category "${deletedName}" deleted.`);
+      showToast('success', `Category "${deletedName}" deleted.`);
     } catch (err) {
       setEditCategoryStatus({ type: 'error', message: err?.data?.message || err?.message || 'Failed to delete category.' });
     } finally {
@@ -516,7 +516,12 @@ const MaterialManager = () => {
             ))
           ) : (
             <div className="mm-no-results">
-              <p>No materials found matching "{materialSearch}"</p>
+              <Package size={48} className="mm-no-results-icon" />
+              <p>
+                {materialSearch.trim()
+                  ? 'No materials found matching your criteria'
+                  : 'No materials found in this category'}
+              </p>
             </div>
           )}
         </div>

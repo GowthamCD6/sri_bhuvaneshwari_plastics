@@ -299,20 +299,6 @@ const MaterialRequest = () => {
 
   return (
     <div className="mr-container">
-      {/* Page Header */}
-      <div className="mr-header-section">
-        <div className="mr-header-left">
-          <h1 className="mr-title">Material Request</h1>
-          <p className="mr-subtitle">Request purchase for insufficient raw materials or components.</p>
-        </div>
-        <div className="mr-header-right">
-          <button className="mr-btn-primary" onClick={() => setShowNewRequestModal(true)}>
-            <Plus size={18} />
-            New Request
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
           <strong>Error:</strong> {error}
@@ -399,6 +385,10 @@ const MaterialRequest = () => {
               </button>
             </div>
           )}
+            <button className="mr-btn-primary mr-btn-new-request" onClick={() => setShowNewRequestModal(true)}>
+              <Plus size={18} />
+              New Request
+            </button>
         </div>
       </div>
 
@@ -503,7 +493,10 @@ const MaterialRequest = () => {
               ) : (
                 <tr>
                   <td colSpan="9" className="mr-no-data">
-                    No material requests found matching your criteria.
+                    <div className="mr-empty-state">
+                      <Package size={48} className="mr-empty-icon" />
+                      <p>No material requests found matching your criteria</p>
+                    </div>
                   </td>
                 </tr>
               )}

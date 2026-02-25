@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Package, ArrowDownCircle, ArrowUpCircle, Scan, Minus, Plus, Search, ChevronDown, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { Package, ArrowDownCircle, ArrowUpCircle, Minus, Plus, Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import './StockAdjustment.css';
 import { inventoryService, stockAdjustmentService } from '../../../services/apiService';
 
@@ -15,6 +15,7 @@ const StockAdjustment = () => {
   const [mode, setMode] = useState('in');
   
   // Form state
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState('');
   const [quantity, setQuantity] = useState(0);
   const [reason, setReason] = useState('');
@@ -43,7 +44,8 @@ const StockAdjustment = () => {
       setError(null);
 
       const [inventoryRes, historyRes] = await Promise.all([
-        inventoryService.getAllInventory(),
+        // Only active materials should be available for stock adjustments
+        inventoryService.getAllInventory({ active: 'true' }),
         stockAdjustmentService.getAllAdjustments()
       ]);
 
@@ -52,11 +54,13 @@ const StockAdjustment = () => {
         id: item.material_id,
         code: item.material_code,
         name: item.material_name,
+        // Some older rows use material_type as the category label
+        category: item.category || item.material_type || '-',
         stock: Number(item.current_stock || 0),
         unit: item.unit_of_measurement || 'kg',
         minStock: Number(item.min_stock_level || 0),
         maxStock: Number(item.max_stock_level || 0),
-        supplier: item.supplier || '-',
+        supplier: item.preferred_supplier || item.supplier || '-',
         location: item.warehouse_location || '-'
       }));
 
@@ -99,12 +103,30 @@ const StockAdjustment = () => {
     if (passedMaterial) {
       setSelectedMaterial(passedMaterial.id);
       setQuantity(0);
+
+      // Prefer category/type from navigation state when available
+      const initialCategory = passedMaterial.category || passedMaterial.type || '';
+      if (initialCategory) {
+        setSelectedCategory(initialCategory);
+      }
+
       // If material has low/out of stock status, default to Stock In
       if (passedMaterial.status === 'Out of Stock' || passedMaterial.status === 'Low Stock' || passedMaterial.status === 'Critical') {
         setMode('in');
       }
     }
   }, [passedMaterial]);
+
+  // If we navigated with a material but category wasn't provided, infer it after materials load
+  useEffect(() => {
+    if (!passedMaterial) return;
+    if (selectedCategory) return;
+
+    const found = materials.find(m => m.code === passedMaterial.id || m.id === passedMaterial.materialId);
+    if (found?.category && found.category !== '-') {
+      setSelectedCategory(found.category);
+    }
+  }, [passedMaterial, materials, selectedCategory]);
 
   // Get current material data
   const currentMaterial = useMemo(() => {
@@ -135,15 +157,36 @@ const StockAdjustment = () => {
       : Math.max(0, currentMaterial.stock - quantity);
   }, [currentMaterial, quantity, mode]);
 
-  // Filter materials for dropdown
+  // Derive categories
+  const categories = useMemo(() => {
+    const cats = Array.from(new Set(materials.map(m => m.category).filter(c => c && c !== '-')));
+    return cats.sort();
+  }, [materials]);
+
+  // Materials filtered by selected category
+  const materialsInCategory = useMemo(() => {
+    if (!selectedCategory) return [];
+    return materials.filter(m => m.category === selectedCategory);
+  }, [materials, selectedCategory]);
+
+  // Filter materials for dropdown (within category)
   const filteredMaterials = useMemo(() => {
-    if (!materialSearch.trim()) return materials;
+    const base = selectedCategory ? materialsInCategory : materials;
+    if (!materialSearch.trim()) return base;
     const query = materialSearch.toLowerCase();
-    return materials.filter(m => 
-      m.name.toLowerCase().includes(query) || 
-      m.id.toLowerCase().includes(query)
+    return base.filter(m =>
+      m.name.toLowerCase().includes(query) ||
+      (m.code && m.code.toString().toLowerCase().includes(query)) ||
+      (m.id && m.id.toString().toLowerCase().includes(query))
     );
-  }, [materials, materialSearch]);
+  }, [materialsInCategory, materials, selectedCategory, materialSearch]);
+
+  // Filter counts (based on full history, ignoring search)
+  const filterCounts = useMemo(() => ({
+    'All': history.length,
+    'Stock In': history.filter(h => h.type === 'in').length,
+    'Stock Out': history.filter(h => h.type === 'out').length,
+  }), [history]);
 
   // Filter history
   const filteredHistory = useMemo(() => {
@@ -160,10 +203,10 @@ const StockAdjustment = () => {
     if (historySearch.trim()) {
       const query = historySearch.toLowerCase();
       result = result.filter(h => 
-        h.materialName.toLowerCase().includes(query) ||
-        h.materialId.toLowerCase().includes(query) ||
-        h.reason.toLowerCase().includes(query) ||
-        h.adjustedBy.toLowerCase().includes(query)
+        String(h.materialName || '').toLowerCase().includes(query) ||
+        String(h.materialId ?? '').toLowerCase().includes(query) ||
+        String(h.reason || '').toLowerCase().includes(query) ||
+        String(h.adjustedBy || '').toLowerCase().includes(query)
       );
     }
     
@@ -182,6 +225,14 @@ const StockAdjustment = () => {
     setMode(newMode);
     setReason('');
     setQuantity(0);
+  };
+
+  // Handle category change
+  const handleCategoryChange = (e) => {
+    setSelectedCategory(e.target.value);
+    setSelectedMaterial('');
+    setQuantity(0);
+    setReason('');
   };
 
   // Handle material select
@@ -232,6 +283,8 @@ const StockAdjustment = () => {
         setShowSuccessModal(true);
 
         // Reset form
+        setSelectedCategory('');
+        setSelectedMaterial('');
         setQuantity(0);
         setReason('');
         setNotes('');
@@ -275,109 +328,118 @@ const StockAdjustment = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div className="sa-header">
-        <div>
-        </div>
-      </div>
-
-      {/* Toggle Buttons */}
-      <div className="sa-toggle-group">
-        <button 
-          className={`sa-toggle-btn ${mode === 'in' ? 'active in' : ''}`}
-          onClick={() => handleModeChange('in')}
-        >
-          <ArrowDownCircle size={20} />
-          Stock In
-        </button>
-        <button 
-          className={`sa-toggle-btn ${mode === 'out' ? 'active out' : ''}`}
-          onClick={() => handleModeChange('out')}
-        >
-          <ArrowUpCircle size={20} />
-          Stock Out
-        </button>
-      </div>
-
       {/* Main Form Card */}
       <div className="sa-card sa-main-card">
         <div className="sa-card-header-flex">
-          <div className={`sa-icon-box ${mode === 'out' ? 'out' : ''}`}>
-            <Package size={28} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className={`sa-icon-box ${mode === 'out' ? 'out' : ''}`}>
+              <Package size={28} />
+            </div>
+            <div>
+              <h2 className="sa-card-title">
+                {mode === 'in' ? 'Stock In - Add Materials to Inventory' : 'Stock Out - Remove Materials from Inventory'}
+              </h2>
+              <p className="sa-card-subtitle">Fill in the details below to record the stock adjustment</p>
+            </div>
           </div>
-          <div>
-            <h2 className="sa-card-title">
-              {mode === 'in' ? 'Stock In - Add Materials to Inventory' : 'Stock Out - Remove Materials from Inventory'}
-            </h2>
-            <p className="sa-card-subtitle">Fill in the details below to record the stock adjustment</p>
+          <div className="sa-toggle-group">
+            <button
+              className={`sa-toggle-btn ${mode === 'in' ? 'active in' : ''}`}
+              onClick={() => handleModeChange('in')}
+            >
+              <ArrowDownCircle size={20} />
+              Stock In
+            </button>
+            <button
+              className={`sa-toggle-btn ${mode === 'out' ? 'active out' : ''}`}
+              onClick={() => handleModeChange('out')}
+            >
+              <ArrowUpCircle size={20} />
+              Stock Out
+            </button>
           </div>
         </div>
 
         <div className="sa-form-grid">
           
-          {/* Material Selector */}
+          {/* Category Selector */}
           <div className="sa-form-group">
-            <label className="sa-label">Select Material *</label>
-            <div className="sa-input-with-action">
-              <div className="sa-select-wrapper" onClick={(e) => e.stopPropagation()}>
-                <div 
-                  className="sa-select-display"
-                  onClick={() => setShowMaterialDropdown(!showMaterialDropdown)}
-                >
-                  {currentMaterial ? (
-                    <span>{currentMaterial.name}</span>
-                  ) : (
-                    <span className="sa-placeholder">Search or select a material...</span>
-                  )}
-                  <ChevronDown size={18} className="sa-select-chevron" />
-                </div>
-                
-                {showMaterialDropdown && (
-                  <div className="sa-material-dropdown">
-                    <div className="sa-dropdown-search">
-                      <Search size={16} />
-                      <input 
-                        type="text" 
-                        placeholder="Search materials..."
-                        value={materialSearch}
-                        onChange={(e) => setMaterialSearch(e.target.value)}
-                        autoFocus
-                      />
-                    </div>
-                    <div className="sa-dropdown-list">
-                      {filteredMaterials.map(material => (
-                        <div 
-                          key={material.id}
-                          className={`sa-dropdown-item ${selectedMaterial === material.id ? 'active' : ''}`}
-                          onClick={() => handleMaterialSelect(material)}
-                        >
-                          <div className="sa-dropdown-item-main">
-                            <span className="sa-dropdown-item-name">{material.name}</span>
-                            <span className="sa-dropdown-item-code">{material.code || material.id}</span>
-                          </div>
-                          <div className="sa-dropdown-item-stock">
-                            {material.stock.toLocaleString()} {material.unit}
-                          </div>
-                        </div>
-                      ))}
-                      {filteredMaterials.length === 0 && (
-                        <div className="sa-dropdown-empty">No materials found</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <button className="sa-action-btn" title="Scan Barcode">
-                <Scan size={22} />
-              </button>
+            <label className="sa-label">Select Category *</label>
+            <div className="sa-select-wrapper">
+              <select
+                className="sa-select"
+                value={selectedCategory}
+                onChange={handleCategoryChange}
+              >
+                <option value="">-- Select a category --</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
-            {currentMaterial && (
-              <div className="sa-material-info">
-                <span>Location: <strong>{currentMaterial.location}</strong></span>
-                <span>Supplier: <strong>{currentMaterial.supplier}</strong></span>
-              </div>
-            )}
           </div>
+
+          {/* Material Selector (shown only after category is chosen) */}
+          {selectedCategory && (
+            <div className="sa-form-group">
+              <label className="sa-label">Select Material *</label>
+              <div className="sa-input-with-action">
+                <div className="sa-select-wrapper" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="sa-select-display"
+                    onClick={() => setShowMaterialDropdown(!showMaterialDropdown)}
+                  >
+                    {currentMaterial ? (
+                      <span>{currentMaterial.name}</span>
+                    ) : (
+                      <span className="sa-placeholder">Search or select a material...</span>
+                    )}
+                  </div>
+
+                  {showMaterialDropdown && (
+                    <div className="sa-material-dropdown">
+                      <div className="sa-dropdown-search">
+                        <Search size={16} />
+                        <input
+                          type="text"
+                          placeholder="Search materials..."
+                          value={materialSearch}
+                          onChange={(e) => setMaterialSearch(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="sa-dropdown-list">
+                        {filteredMaterials.map(material => (
+                          <div
+                            key={material.id}
+                            className={`sa-dropdown-item ${selectedMaterial === material.id ? 'active' : ''}`}
+                            onClick={() => handleMaterialSelect(material)}
+                          >
+                            <div className="sa-dropdown-item-main">
+                              <span className="sa-dropdown-item-name">{material.name}</span>
+                              <span className="sa-dropdown-item-code">{material.code || material.id}</span>
+                            </div>
+                            <div className="sa-dropdown-item-stock">
+                              {material.stock.toLocaleString()} {material.unit}
+                            </div>
+                          </div>
+                        ))}
+                        {filteredMaterials.length === 0 && (
+                          <div className="sa-dropdown-empty">No materials found in this category</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {currentMaterial && (
+                <div className="sa-material-info">
+                  <span>Location: <strong>{currentMaterial.location}</strong></span>
+                  <span>Supplier: <strong>{currentMaterial.supplier}</strong></span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Quantity */}
           <div className="sa-form-group">
@@ -433,20 +495,7 @@ const StockAdjustment = () => {
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
-              <ChevronDown size={18} className="sa-select-icon" />
             </div>
-          </div>
-
-          {/* Notes */}
-          <div className="sa-form-group">
-            <label className="sa-label">Notes (Optional)</label>
-            <input 
-              type="text" 
-              className="sa-input" 
-              placeholder="e.g. Invoice number, batch ID, quality notes..." 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
           </div>
 
         </div>
@@ -479,6 +528,7 @@ const StockAdjustment = () => {
                   onClick={() => { setHistoryFilter(filter); setCurrentPage(1); }}
                 >
                   {filter}
+                  <span className="sa-filter-badge">{filterCounts[filter] ?? 0}</span>
                 </button>
               ))}
             </div>

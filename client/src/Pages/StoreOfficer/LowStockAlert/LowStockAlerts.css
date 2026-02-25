@@ -459,3 +459,140 @@
   border-color: var(--lsa-primary);
   color: white;
 }
+
+/* --- Card Icon --- */
+.lsa-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lsa-icon-red {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.lsa-icon-orange {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.lsa-icon-yellow {
+  background-color: #fefce8;
+  color: #ca8a04;
+}
+
+/* --- Category Badge --- */
+.lsa-category-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* --- Stock Progress Cell --- */
+.lsa-stock-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 100px;
+}
+
+.lsa-stock-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--lsa-text-dark);
+}
+
+.lsa-stock-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.lsa-stock-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.lsa-stock-fill.low {
+  background-color: #f59e0b;
+}
+
+.lsa-stock-fill.critical {
+  background-color: #ef4444;
+}
+
+.lsa-stock-fill.empty {
+  background-color: #dc2626;
+  width: 0% !important;
+}
+
+/* --- Empty / No Results State --- */
+.lsa-no-results {
+  text-align: center;
+  padding: 0;
+}
+
+.lsa-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.lsa-empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.lsa-empty-state p {
+  font-size: 15px;
+  font-weight: 500;
+  color: #475569;
+  margin: 0 0 20px 0;
+}
+
+.lsa-btn-clear {
+  background-color: #ffffff;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.lsa-btn-clear:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* --- Clickable card --- */
+.lsa-card {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.lsa-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}

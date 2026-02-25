@@ -7,7 +7,7 @@ const getAllAdjustments = async (req, res) => {
     let query = `
       SELECT sa.*, m.material_name, m.material_code, u.username as adjusted_by_name
       FROM stock_adjustments sa
-      LEFT JOIN materials m ON sa.material_id = m.material_id
+      INNER JOIN materials m ON sa.material_id = m.material_id AND m.is_active = 1
       LEFT JOIN users u ON sa.adjusted_by = u.user_id
       WHERE 1=1
     `;
@@ -54,7 +54,7 @@ const getAdjustmentById = async (req, res) => {
     const [rows] = await db.query(
       `SELECT sa.*, m.material_name, m.material_code, u.username as adjusted_by_name
        FROM stock_adjustments sa
-       LEFT JOIN materials m ON sa.material_id = m.material_id
+       INNER JOIN materials m ON sa.material_id = m.material_id AND m.is_active = 1
        LEFT JOIN users u ON sa.adjusted_by = u.user_id
        WHERE sa.adjustment_id = ?`,
       [id]

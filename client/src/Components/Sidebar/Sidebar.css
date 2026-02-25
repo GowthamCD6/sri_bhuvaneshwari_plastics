@@ -418,76 +418,79 @@
   justify-content: center;
 }
 
-.logo-section {
+.sidebar-header .logo-section {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 2px;
+  gap: 0px;
   width: 100%;
 }
 
-.logo-icon {
-  width: 80px;
-  height: 80px;
+.sidebar-header .logo-icon {
+  width: 88px;
+  height: auto;
   background: transparent;
   border: none;
   border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: -20px;
+  margin-right: 80px;
   flex-shrink: 0;
   box-shadow: none;
 }
 
-.logo-icon .logo-image {
-  width: 95px;
-  height: 95px;
+.sidebar-header .logo-icon .logo-image {
+  width: 88px;
+  height: 88px;
   object-fit: contain;
   display: block;
-  margin-top: -20px;
+  margin-top: 0;
 }
 
-.logo-text {
+.sidebar-header .logo-text {
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 0;
 }
 
-.sidebar.collapsed .logo-icon {
+.sidebar.collapsed .sidebar-header .logo-icon {
   width: 44px;
   height: 44px;
   border-radius: 0;
 }
 
-.sidebar.collapsed .logo-text {
+.sidebar.collapsed .sidebar-header .logo-text {
   font-size: 12px;
 }
 
-.sidebar.collapsed .logo-icon .logo-image {
+.sidebar.collapsed .sidebar-header .logo-icon .logo-image {
   width: 44px;
   height: 44px;
 }
 
-.company-name {
+.sidebar-header .company-name {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   gap: 0px;
-  margin-top: -30px;
+  margin-right: 90px;
+  margin-top: -15px;
 }
 
-.company-title {
+.sidebar-header .company-title {
   font-size: 17px;
   font-weight: 700;
   color: #1e293b;
   letter-spacing: -0.02em;
 }
 
-.company-subtitle {
+.sidebar-header .company-subtitle {
   font-size: 14px;
   font-weight: 600;
   color: #64748b;

@@ -41,10 +41,10 @@ const AppNavigator = () => {
       case 'admin':
         return '/admin-dashboard';
       case 'qms':
-        return '/dashboard';
+        return '/customer-orders';
       case 'storeofficer':
       case 'store':
-        return '/dashboard';
+        return '/store-dashboard';
       case 'purchasedepartment':
       case 'purchase':
         return '/overview';
@@ -58,8 +58,10 @@ const AppNavigator = () => {
       {/* ===== DEFAULT REDIRECT BASED ON ROLE ===== */}
       <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
       
-      {/* ===== COMMON ROUTES ===== */}
-      <Route path="/dashboard" element={<Dashboard />} />
+      {/* ===== STORE OFFICER ONLY DASHBOARD ===== */}
+      <Route path="/store-dashboard" element={<Dashboard />} />
+      {/* Legacy /dashboard redirect by role */}
+      <Route path="/dashboard" element={<Navigate to={getDefaultRoute()} replace />} />
 
       {/* ===== QMS ROLE ROUTES ===== */}
       <Route path="/customer-orders" element={<CustomerOrders />} />

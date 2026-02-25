@@ -378,14 +378,6 @@ const VerifyPurchaseIndents = () => {
 
   return (
     <div className="vpi-container">
-      
-      {/* Page Header */}
-      <div className="vpi-header-section">
-        <div className="vpi-header-left">
-          <h1 className="vpi-title">Purchase Indents - Store Officer</h1>
-          <p className="vpi-subtitle">Review purchase indents from QMS and fill PO details before sending back for verification.</p>
-        </div>
-      </div>
 
       {/* Loading and Error States */}
       {loading && (

@@ -142,10 +142,10 @@ const Login = ({ onLogin }) => {
         <div className="hero-overlay"></div>
         <div className="hero-content">
           <div className="logo-section">
-            <div className='logo'><img src={logo} alt="Sri Bhuvaneswari Plastics Logo" /></div>
-            <div className="company-name">Sri Bhuvaneswari Plastics</div>
-          <div className="hero-tagline">WorkFlow Management Platform</div>
+            <div className="logo"><img src={logo} alt="Sri Bhuvaneswari Plastics Logo" /></div>
           </div>
+          <div className="company-name">Sri Bhuvaneshwari Plastics</div>
+          <div className="hero-tagline">WorkFlow Management Platform</div>
         </div>
       </div>
 
@@ -224,6 +224,7 @@ const Login = ({ onLogin }) => {
               </div>
             </div>
 
+
             <button type="submit" className="sign-in-button" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -238,4 +239,4 @@ const Login = ({ onLogin }) => {
   );
 };
 
-export default Login; 
+export default Login

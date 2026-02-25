@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, AlertTriangle, XCircle, DollarSign, Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Inventory.css';
 import { inventoryService } from '../../../services/apiService';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 const InventoryDashboard = () => {
   const navigate = useNavigate();
@@ -82,6 +82,16 @@ const InventoryDashboard = () => {
     );
     return ['All Materials', ...categories];
   }, [allMaterials]);
+
+  const tabCounts = useMemo(() => {
+    const counts = { 'All Materials': allMaterials.length };
+    categoryTabs.slice(1).forEach((cat) => {
+      counts[cat] = allMaterials.filter(
+        (item) => (item.category || '').toLowerCase().trim() === cat.toLowerCase().trim()
+      ).length;
+    });
+    return counts;
+  }, [allMaterials, categoryTabs]);
 
   useEffect(() => {
     if (!categoryTabs.includes(activeTab)) {
@@ -189,17 +199,20 @@ const InventoryDashboard = () => {
         
         {/* Toolbar (Tabs + Search + Add) */}
         <div className="inv-toolbar">
-          <div className="inv-tabs-fixed">
-            <div className="inv-tabs-container" role="tablist" aria-label="Material categories">
-              {categoryTabs.map((tab) => (
-                <button
-                  key={tab}
-                  className={`inv-tab ${activeTab === tab ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab}
-                </button>
-              ))}
+          <div className="inv-tabs-scroll-box">
+            <div className="inv-tabs-fixed">
+              <div className="inv-tabs-container" role="tablist" aria-label="Material categories">
+                {categoryTabs.map((tab) => (
+                  <button
+                    key={tab}
+                    className={`inv-tab ${activeTab === tab ? 'active' : ''}`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {tab}
+                    <span className="inv-tab-badge">{tabCounts[tab] ?? 0}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -228,12 +241,11 @@ const InventoryDashboard = () => {
           <table className="inv-table">
             <thead>
               <tr>
-                <th>ITEM CODE</th>
-                <th>MATERIAL NAME</th>
+                <th>MATERIAL</th>
                 <th>CATEGORY</th>
-                <th>CURRENT STOCK</th>
+                <th>STOCK LEVEL</th>
+                <th>MIN. REQUIRED</th>
                 <th>UNIT</th>
-                <th>REORDER LEVEL</th>
                 <th>STATUS</th>
                 <th style={{ textAlign: 'center' }}>ACTIONS</th>
               </tr>
@@ -241,13 +253,10 @@ const InventoryDashboard = () => {
             <tbody>
               {pagedMaterials.map((item, index) => (
                 <tr key={index}>
-                  {/* Code */}
-                  <td className="font-code">{item.code}</td>
-                  
-                  {/* Name & Supplier */}
+                  {/* Material (name + code) */}
                   <td>
                     <div className="text-bold">{item.name}</div>
-                    <div className="text-sub">{item.supplier}</div>
+                    <div className="text-sub">Code: {item.code} · {item.supplierName !== '-' ? item.supplierName : ''}</div>
                   </td>
                   
                   {/* Category */}
@@ -264,27 +273,20 @@ const InventoryDashboard = () => {
                   
                   {/* Status */}
                   <td>
-                    <span className={`status-badge ${item.statusClass}`}>
-                      {item.status.split(' ').map((word, i) => (
-                        <span key={i} style={{display:'block'}}>{word}</span>
-                      ))}
-                    </span>
+                    <span className={`status-badge ${item.statusClass}`}>{item.status}</span>
                   </td>
                   
                   {/* Actions */}
                   <td>
                     <div className="action-cell">
                       <button className="btn-update" onClick={() => handleUpdateStock(item)}>Update Stock</button>
-                      <button className="btn-more">
-                        <MoreVertical size={18} className="icon-gray" />
-                      </button>
                     </div>
                   </td>
                 </tr>
               ))}
               {!loading && pagedMaterials.length === 0 && (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
                     No materials found.
                   </td>
                 </tr>

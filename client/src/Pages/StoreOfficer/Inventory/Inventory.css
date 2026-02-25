@@ -93,55 +93,88 @@
 
 /* Segmented Tabs */
 .inv-tabs-container {
-  background-color: #f1f5f9;
-  padding: 3px;
-  border-radius: 8px;
   display: inline-flex;
-  gap: 4px;
+  gap: 6px;
   min-width: max-content;
+  align-items: center;
+}
+
+.inv-tabs-scroll-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 4px 6px;
+  overflow: visible;
 }
 
 .inv-tabs-fixed {
   width: 100%;
-  max-width: 660px;
-  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  display: flex;
+  align-items: center;
 }
 
 .inv-tabs-fixed::-webkit-scrollbar {
-  height: 6px;
-}
-
-.inv-tabs-fixed::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  display: none;
 }
 
 .inv-tab {
-  border: none;
-  background: transparent;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
   padding: 7px 14px;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 8px;
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--inv-text-gray);
+  color: #64748b;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
 }
 
 .inv-tab.active {
-  background-color: var(--inv-white);
-  color: var(--inv-text-dark);
+  background-color: #3b82f6;
+  color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+  border-radius: 8px;
 }
 
 .inv-tab:hover:not(.active) {
-  color: var(--inv-text-medium);
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+.inv-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  background-color: #dde3ed;
+  color: #475569;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.inv-tab.active .inv-tab-badge {
+  background-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
 }
 
 /* Actions (Search + Add) */
@@ -226,7 +259,7 @@
 }
 
 .inv-table th {
-  background-color: #fafbfc;
+  background-color: #f1f5f9;
   text-align: left;
   padding: 12px 20px;
   font-family: 'Inter', sans-serif;
@@ -303,12 +336,10 @@
 
 /* Status Badges */
 .status-badge {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
+  display: inline-block;
+  padding: 5px 12px;
   border-radius: 16px;
+  white-space: nowrap;
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
@@ -437,7 +468,7 @@
 
 .btn-page:hover {
   background-color: var(--inv-primary);
-  color: white;
+  color: var(--inv-white);
   border-color: var(--inv-primary);
   box-shadow: var(--inv-shadow-sm);
 }

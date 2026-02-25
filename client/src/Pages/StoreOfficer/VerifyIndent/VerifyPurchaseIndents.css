@@ -69,48 +69,48 @@
 
 .vpi-tabs {
   display: flex;
-  gap: 3px;
-  background: #f1f5f9;
-  padding: 6px;
-  border-radius: 8px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .vpi-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  border: none;
-  background: transparent;
-  color: var(--vpi-text-gray);
+  padding: 12px 20px;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--vpi-text-gray);
   cursor: pointer;
-  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
 .vpi-tab:hover:not(.active) {
-  background: #eff6ff;
-  color: var(--vpi-primary);
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .vpi-tab.active {
-  background: var(--vpi-primary);
+  background-color: var(--vpi-primary);
   color: white;
+  border-color: var(--vpi-primary);
 }
 
 .vpi-tab-count {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 12px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  background-color: #f1f5f9;
+  color: var(--vpi-text-gray);
 }
 
-.vpi-tab:not(.active) .vpi-tab-count {
-  background: #e2e8f0;
-  color: var(--vpi-text-gray);
+.vpi-tab.active .vpi-tab-count {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 .vpi-search-filter {

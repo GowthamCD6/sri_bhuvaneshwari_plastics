@@ -410,18 +410,8 @@ const LowStockAlerts = () => {
                     <span className="lsa-category-badge">{item.category}</span>
                   </td>
 
-                  {/* Stock Level with Progress */}
-                  <td>
-                    <div className="lsa-stock-cell">
-                      <span className="lsa-stock-value">{item.currentStock}</span>
-                      <div className="lsa-stock-bar">
-                        <div 
-                          className={`lsa-stock-fill ${item.currentStock === 0 ? 'empty' : item.currentStock < item.minRequired * 0.5 ? 'critical' : 'low'}`}
-                          style={{ width: `${getStockPercentage(item.currentStock, item.minRequired)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
+                  {/* Stock Level */}
+                  <td className="lsa-text-std">{item.currentStock}</td>
 
                   {/* Min Required */}
                   <td className="lsa-text-std">{item.minRequired}</td>

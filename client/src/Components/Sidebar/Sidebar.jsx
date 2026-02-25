@@ -56,7 +56,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
     qms: [
       { label: "Overview", section: true },
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/customer-orders", label: "Dashboard", icon: LayoutDashboard },
       { label: "Order Management", section: true },
       { path: "/customer-orders", label: "Customer Orders", icon: ShoppingCart },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
@@ -66,7 +66,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
     storeofficer: [
       { label: "Overview", section: true },
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/store-dashboard", label: "Dashboard", icon: LayoutDashboard },
       { label: "Inventory Management", section: true },
       { path: "/inventory", label: "Inventory", icon: Package },
       { path: "/goods-inventory", label: "Goods Inventory", icon: PackageCheck },
@@ -79,7 +79,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
     purchasedepartment: [
       { label: "Overview", section: true },
-      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/overview", label: "Dashboard", icon: LayoutDashboard },
       { label: "Purchase Operations", section: true },
       { path: "/suppliers", label: "Suppliers", icon: Truck },
       { path: "/qms-indents", label: "QMS Indents", icon: FileText },

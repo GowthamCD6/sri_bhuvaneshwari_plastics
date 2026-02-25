@@ -230,7 +230,7 @@ const getInventoryHistory = async (req, res) => {
     const [history] = await db.query(
       `SELECT sa.*, m.material_name, m.material_code, u.username as adjusted_by_name
        FROM stock_adjustments sa
-       LEFT JOIN materials m ON sa.material_id = m.material_id
+       INNER JOIN materials m ON sa.material_id = m.material_id AND m.is_active = 1
        LEFT JOIN users u ON sa.adjusted_by = u.user_id
        WHERE sa.material_id = ?
        ORDER BY sa.adjusted_at DESC`,

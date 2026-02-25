@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require('../config/db');
 const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
 
+const isProd = process.env.NODE_ENV === 'production';
+
 // Note: GET route is public for now, POST/DELETE require authentication
 // router.use(verifyToken);
 
@@ -62,6 +64,14 @@ router.post('/', verifyToken, async (req, res) => {
   }
 
   const categoryName = name.trim();
+
+  // DB schema uses VARCHAR(50) for materials.category
+  if (categoryName.length > 50) {
+    return res.status(400).json({
+      success: false,
+      message: 'Category name must be 50 characters or less'
+    });
+  }
   console.log('Processing category name:', categoryName);
 
   try {
@@ -81,25 +91,31 @@ router.post('/', verifyToken, async (req, res) => {
     }
 
     // Create a placeholder material to establish the category
-    const materialCode = `CAT-${categoryName.toUpperCase().replace(/\s+/g, '-')}-${Date.now()}`;
+    const now = Date.now();
+    const slug = categoryName.toUpperCase().replace(/\s+/g, '-');
+    const maxSlugLen = 50 - 'CAT-'.length - '-'.length - String(now).length;
+    const safeSlug = slug.length > maxSlugLen ? slug.substring(0, maxSlugLen) : slug;
+    const materialCode = `CAT-${safeSlug}-${now}`;
     console.log('Creating placeholder material with code:', materialCode);
     
     const insertQuery = `
       INSERT INTO materials (
         material_code, 
         material_name, 
+        material_type,
         category, 
         unit_of_measurement, 
         current_stock,
         is_active,
         created_by,
         description
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
       materialCode,
       `${categoryName} - Category Placeholder`,
+      categoryName,
       categoryName,
       'kg',
       0,
@@ -125,7 +141,7 @@ router.post('/', verifyToken, async (req, res) => {
     console.error('Database error:', err);
     res.status(500).json({
       success: false,
-      message: 'Failed to create category'
+      message: isProd ? 'Failed to create category' : `Failed to create category: ${err.sqlMessage || err.message}`
     });
   }
 });
@@ -142,6 +158,10 @@ router.put('/:categoryName', verifyToken, async (req, res) => {
   }
 
   const newName = name.trim();
+
+  if (newName.length > 50) {
+    return res.status(400).json({ success: false, message: 'Category name must be 50 characters or less' });
+  }
 
   if (newName === categoryName) {
     return res.status(400).json({ success: false, message: 'New name is the same as the current name' });
@@ -160,7 +180,10 @@ router.put('/:categoryName', verifyToken, async (req, res) => {
     res.status(200).json({ success: true, message: 'Category renamed successfully', data: { oldName: categoryName, newName } });
   } catch (err) {
     console.error('Database error:', err);
-    res.status(500).json({ success: false, message: 'Failed to rename category' });
+    res.status(500).json({
+      success: false,
+      message: isProd ? 'Failed to rename category' : `Failed to rename category: ${err.sqlMessage || err.message}`
+    });
   }
 });
 
@@ -175,7 +198,7 @@ router.delete('/:categoryName', verifyToken, requirePermission('materials', 'del
     const checkQuery = 'SELECT COUNT(*) as count FROM materials WHERE category = ? AND is_active = 1';
     
     const [results] = await db.query(checkQuery, [categoryName]);
-    const activeCount = results[0].count;
+    const activeCount = Number(results?.[0]?.count || 0);
     
     if (activeCount > 0) {
       return res.status(400).json({
@@ -184,10 +207,10 @@ router.delete('/:categoryName', verifyToken, requirePermission('materials', 'del
       });
     }
 
-    // Delete placeholder materials for this category
-    const deleteQuery = 'DELETE FROM materials WHERE category = ? AND is_active = 0';
-    
-    await db.query(deleteQuery, [categoryName]);
+    // Instead of deleting placeholder/inactive rows (can fail due to FK constraints),
+    // detach them so the category disappears from GROUP BY results.
+    const detachQuery = 'UPDATE materials SET category = NULL WHERE category = ? AND is_active = 0';
+    await db.query(detachQuery, [categoryName]);
     
     res.status(200).json({
       success: true,
@@ -197,7 +220,7 @@ router.delete('/:categoryName', verifyToken, requirePermission('materials', 'del
     console.error('Database error:', err);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete category'
+      message: isProd ? 'Failed to delete category' : `Failed to delete category: ${err.sqlMessage || err.message}`
     });
   }
 });
