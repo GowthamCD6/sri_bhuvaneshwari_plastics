@@ -5,15 +5,15 @@
   --lsa-border: #e2e8f0;
   --lsa-text-dark: #0f172a;
   --lsa-text-medium: #334155;
-  --lsa-text-light: #64748b; /* Slate 500 */
-  --lsa-primary: #2563eb;     /* Blue 600 */
+  --lsa-text-light: #64748b; 
+  --lsa-primary: #2563eb;    
   --lsa-primary-hover: #1d4ed8;
   --lsa-red: #ef4444;
   --lsa-orange: #f59e0b;
 }
 
 .lsa-container {
-  padding: 24px 32px;
+  padding: 1px 22px 24px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -85,7 +85,7 @@
 }
 
 .lsa-card-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: #94a3b8;
   margin-top: 4px;
 }
@@ -116,7 +116,7 @@
 }
 
 .lsa-filter-label {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--lsa-text-light);
 }
@@ -130,7 +130,7 @@
   border: 1px solid var(--lsa-border);
   padding: 10px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--lsa-text-medium);
   cursor: pointer;
@@ -173,7 +173,7 @@
 
 .lsa-dropdown-item {
   padding: 11px 16px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--lsa-text-medium);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -219,7 +219,7 @@
   padding: 10px 14px 10px 42px;
   border: 1px solid var(--lsa-border);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
   box-sizing: border-box;
   transition: all 0.2s ease;
@@ -287,25 +287,25 @@
 }
 
 .lsa-prod-name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--lsa-text-dark);
 }
 
 .lsa-prod-code {
-  font-size: 11px;
+  font-size: 15px;
   color: #94a3b8;
   margin-top: 2px;
 }
 
 /* Text Styles */
 .lsa-text-std {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--lsa-text-medium);
 }
 
 .lsa-text-bold {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--lsa-text-dark);
 }
@@ -317,7 +317,7 @@
   gap: 6px;
   padding: 6px 14px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -368,7 +368,7 @@
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
@@ -392,7 +392,7 @@
 }
 
 .lsa-footer-text {
-  font-size: 13px;
+  font-size: 15px;
   color: #94a3b8;
 }
 
@@ -411,7 +411,7 @@
   color: var(--lsa-text-medium);
   padding: 8px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -442,7 +442,7 @@
   background: white;
   border: 1px solid var(--lsa-border);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--lsa-text-medium);
   cursor: pointer;
@@ -493,7 +493,7 @@
   border-radius: 20px;
   background-color: #f1f5f9;
   color: #475569;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -507,7 +507,7 @@
 }
 
 .lsa-stock-value {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--lsa-text-dark);
 }
@@ -595,4 +595,29 @@
 .lsa-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   transform: translateY(-2px);
+}
+
+/* --- Skeleton Loading --- */
+@keyframes lsa-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.lsa-skeleton-val {
+  height: 36px;
+  width: 64px;
+  border-radius: 6px;
+  margin: 4px 0;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: lsa-shimmer 1.4s ease-in-out infinite;
+}
+
+.lsa-skeleton-cell {
+  height: 16px;
+  border-radius: 5px;
+  min-width: 60px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: lsa-shimmer 1.4s ease-in-out infinite;
 }

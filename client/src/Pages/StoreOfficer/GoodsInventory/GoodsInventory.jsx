@@ -411,12 +411,6 @@ const MaterialManager = () => {
           <strong>Error:</strong> {error}
         </div>
       )}
-
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading materials...
-        </div>
-      )}
       
       {/* --- Left Column: Categories --- */}
       <div className="mm-sidebar">
@@ -447,7 +441,11 @@ const MaterialManager = () => {
         </div>
 
         <div className="mm-category-list">
-          {filteredCategories.map((cat, idx) => (
+          {loading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="mm-skeleton-category" />
+              ))
+            : filteredCategories.map((cat, idx) => (
             <div 
               key={idx} 
               className={`mm-category-item ${activeCategory === cat.name ? 'active' : ''}`}
@@ -486,7 +484,11 @@ const MaterialManager = () => {
         </div>
 
         <div className="mm-items-scroll">
-          {filteredMaterials.length > 0 ? (
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="mm-skeleton-item-card" />
+            ))
+          ) : filteredMaterials.length > 0 ? (
             filteredMaterials.map((item, idx) => (
               <div 
                 key={idx} 

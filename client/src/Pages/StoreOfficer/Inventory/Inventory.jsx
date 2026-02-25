@@ -152,12 +152,6 @@ const InventoryDashboard = () => {
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading inventory...
-        </div>
-      )}
-
       {/* --- Stats Row --- */}
       <div className="inv-stats-grid">
         <div className="inv-stat-card">
@@ -165,32 +159,28 @@ const InventoryDashboard = () => {
             <span className="inv-stat-label">Total Materials</span>
             <Package size={20} className="icon-blue" />
           </div>
-          <div className="inv-stat-value">{allMaterials.length}</div>
+          {loading ? <div className="inv-skeleton-val" /> : <div className="inv-stat-value">{allMaterials.length}</div>}
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Low Stock Items</span>
             <AlertTriangle size={20} className="icon-orange" />
           </div>
-          <div className="inv-stat-value">
-            {allMaterials.filter(m => m.status === 'Low Stock').length}
-          </div>
+          {loading ? <div className="inv-skeleton-val" /> : <div className="inv-stat-value">{allMaterials.filter(m => m.status === 'Low Stock').length}</div>}
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Out of Stock</span>
             <XCircle size={20} className="icon-red" />
           </div>
-          <div className="inv-stat-value">
-            {allMaterials.filter(m => m.status === 'Out of Stock').length}
-          </div>
+          {loading ? <div className="inv-skeleton-val" /> : <div className="inv-stat-value">{allMaterials.filter(m => m.status === 'Out of Stock').length}</div>}
         </div>
         <div className="inv-stat-card">
           <div className="inv-stat-header">
             <span className="inv-stat-label">Total Value</span>
             <DollarSign size={20} className="icon-green" />
           </div>
-          <div className="inv-stat-value">₹{totalValue.toLocaleString('en-IN')}</div>
+          {loading ? <div className="inv-skeleton-val" /> : <div className="inv-stat-value">₹{totalValue.toLocaleString('en-IN')}</div>}
         </div>
       </div>
 
@@ -251,7 +241,14 @@ const InventoryDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {pagedMaterials.map((item, index) => (
+              {loading && Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                <tr key={`skel-${i}`} className="inv-skeleton-row">
+                  {Array.from({ length: 7 }).map((__, j) => (
+                    <td key={j}><div className="inv-skeleton-cell" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && pagedMaterials.map((item, index) => (
                 <tr key={index}>
                   {/* Material (name + code) */}
                   <td>

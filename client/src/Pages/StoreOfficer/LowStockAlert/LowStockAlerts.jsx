@@ -213,12 +213,6 @@ const LowStockAlerts = () => {
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading alerts...
-        </div>
-      )}
-
       {/* Header */}
       <header className="lsa-header">
         <div className="lsa-header-content">
@@ -227,36 +221,36 @@ const LowStockAlerts = () => {
 
       {/* Stats Cards */}
       <div className="lsa-stats-row">
-        <div className="lsa-card" onClick={() => handleFilterChange('status', 'Critical')}>
+        <div className="lsa-card" onClick={() => !loading && handleFilterChange('status', 'Critical')}>
           <div className="lsa-card-top">
             <span className="lsa-card-label">CRITICAL ITEMS</span>
             <div className="lsa-card-icon lsa-icon-orange">
               <Clock size={20} />
             </div>
           </div>
-          <div className="lsa-card-val">{stats.critical}</div>
+          {loading ? <div className="lsa-skeleton-val" /> : <div className="lsa-card-val">{stats.critical}</div>}
           <div className="lsa-card-sub">Below minimum limit</div>
         </div>
         
-        <div className="lsa-card" onClick={() => handleFilterChange('status', 'Low Stock')}>
+        <div className="lsa-card" onClick={() => !loading && handleFilterChange('status', 'Low Stock')}>
           <div className="lsa-card-top">
             <span className="lsa-card-label">LOW STOCK</span>
             <div className="lsa-card-icon lsa-icon-yellow">
               <AlertTriangle size={20} />
             </div>
           </div>
-          <div className="lsa-card-val">{stats.lowStock}</div>
+          {loading ? <div className="lsa-skeleton-val" /> : <div className="lsa-card-val">{stats.lowStock}</div>}
           <div className="lsa-card-sub">Restock soon</div>
         </div>
 
-        <div className="lsa-card" onClick={() => handleFilterChange('status', 'Out of Stock')}>
+        <div className="lsa-card" onClick={() => !loading && handleFilterChange('status', 'Out of Stock')}>
           <div className="lsa-card-top">
             <span className="lsa-card-label">OUT OF STOCK</span>
             <div className="lsa-card-icon lsa-icon-red">
               <XCircle size={20} />
             </div>
           </div>
-          <div className="lsa-card-val">{stats.outOfStock}</div>
+          {loading ? <div className="lsa-skeleton-val" /> : <div className="lsa-card-val">{stats.outOfStock}</div>}
           <div className="lsa-card-sub">Unavailable in store</div>
         </div>
       </div>
@@ -389,7 +383,14 @@ const LowStockAlerts = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedAlerts.length > 0 ? (
+            {loading && Array.from({ length: itemsPerPage }).map((_, i) => (
+              <tr key={`skel-${i}`}>
+                {Array.from({ length: 7 }).map((__, j) => (
+                  <td key={j}><div className="lsa-skeleton-cell" /></td>
+                ))}
+              </tr>
+            ))}
+            {!loading && paginatedAlerts.length > 0 ? (
               paginatedAlerts.map((item) => (
                 <tr key={item.id}>
                   {/* Material */}

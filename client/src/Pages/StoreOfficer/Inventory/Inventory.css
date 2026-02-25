@@ -57,7 +57,7 @@
 }
 
 .inv-stat-label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--inv-text-gray);
   letter-spacing: -0.01em;
@@ -129,7 +129,7 @@
   background: #ffffff;
   padding: 7px 14px;
   border-radius: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: #64748b;
   cursor: pointer;
@@ -261,10 +261,10 @@
 .inv-table th {
   background-color: #f1f5f9;
   text-align: left;
-  padding: 12px 20px;
+  padding: 14px 24px;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--inv-text-gray);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -273,7 +273,7 @@
 }
 
 .inv-table td {
-  padding: 16px 20px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--inv-border-light);
   vertical-align: middle;
 }
@@ -292,20 +292,20 @@
   font-family: 'Inter', monospace;
   font-weight: 500;
   color: var(--inv-text-light);
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.01em;
 }
 
 .text-bold {
   font-weight: 600;
   color: var(--inv-text-dark);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.4;
   margin-bottom: 3px;
 }
 
 .text-sub {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 400;
   color: var(--inv-text-light);
   line-height: 1.3;
@@ -313,13 +313,13 @@
 
 .text-normal {
   color: var(--inv-text-medium);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 
 .font-stock {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -330,7 +330,7 @@
 .text-light-blue {
   color: var(--inv-text-light);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -341,7 +341,7 @@
   border-radius: 16px;
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   text-align: center;
   line-height: 1.3;
@@ -378,7 +378,7 @@
   padding: 7px 14px;
   border-radius: 6px;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -475,4 +475,34 @@
 
 .btn-page:active {
   transform: scale(0.97);
+}
+
+/* --- Skeleton Loading --- */
+@keyframes inv-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.inv-skeleton-val {
+  height: 36px;
+  width: 72px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: inv-shimmer 1.4s ease-in-out infinite;
+  margin-top: 4px;
+}
+
+.inv-skeleton-row td {
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.inv-skeleton-cell {
+  height: 16px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: inv-shimmer 1.4s ease-in-out infinite;
+  min-width: 60px;
 }
