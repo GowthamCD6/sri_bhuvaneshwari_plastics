@@ -305,12 +305,6 @@ const MaterialRequest = () => {
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading requests...
-        </div>
-      )}
-
       {/* Tabs and Search Section */}
       <div className="mr-controls-section">
         <div className="mr-tabs">
@@ -425,7 +419,14 @@ const MaterialRequest = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedRequests.length > 0 ? (
+              {loading && Array.from({ length: pageSize }).map((_, i) => (
+                <tr key={`skel-${i}`}>
+                  {Array.from({ length: 9 }).map((__, j) => (
+                    <td key={j}><div className="mr-skeleton-cell" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && paginatedRequests.length > 0 ? (
                 paginatedRequests.map((item, index) => (
                   <tr key={index} className={selectedRequests.includes(item.id) ? 'selected-row' : ''}>
                     <td>

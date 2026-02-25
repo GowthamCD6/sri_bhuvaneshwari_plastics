@@ -380,9 +380,6 @@ const VerifyPurchaseIndents = () => {
     <div className="vpi-container">
 
       {/* Loading and Error States */}
-      {loading && (
-        <div style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>Loading indents...</div>
-      )}
       {error && (
         <div style={{padding: '20px', backgroundColor: '#fee', color: '#c00', borderRadius: '8px', marginBottom: '20px'}}>{error}</div>
       )}
@@ -501,7 +498,14 @@ const VerifyPurchaseIndents = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedIndents.length > 0 ? (
+              {loading && Array.from({ length: pageSize }).map((_, i) => (
+                <tr key={`skel-${i}`}>
+                  {Array.from({ length: 10 }).map((__, j) => (
+                    <td key={j}><div className="vpi-skeleton-cell" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && paginatedIndents.length > 0 ? (
                 paginatedIndents.map((item, index) => (
                   <tr key={index} className={selectedIndents.includes(item.id) ? 'selected-row' : ''}>
                     {/* Checkbox */}

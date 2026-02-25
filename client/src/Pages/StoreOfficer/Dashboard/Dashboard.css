@@ -1,62 +1,717 @@
-﻿/* Store Officer Dashboard - Welcome Screen */
+﻿/* ================================================================
+   Store Officer Dashboard – Full Dashboard CSS
+   Prefix: sod-
+   Theme: matches project palette (#2563eb primary, #f8fafc bg)
+   ================================================================ */
 
-.sod-welcome-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-light, #f8fafc);
+/* ── Page shell ─────────────────────────────────────────────── */
+.sod-page {
+  padding: 24px 22px;
+  max-width: 1600px;
+  margin: 0 auto;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
-.sod-welcome-card {
-  background: #fff;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 56px 64px;
-  text-align: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,.07);
-  max-width: 480px;
-  width: 100%;
-}
-
-.sod-welcome-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 32px;
-  font-weight: 800;
+/* ── Header ─────────────────────────────────────────────────── */
+.sod-header {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  border: 2px solid #bfdbfe;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.sod-welcome-title {
-  font-size: 24px;
+.sod-page-title {
+  font-size: 22px;
   font-weight: 800;
-  color: #111827;
-  margin: 0 0 12px;
+  color: #0f172a;
+  margin: 0 0 4px;
   letter-spacing: -0.02em;
 }
 
-.sod-welcome-sub {
-  font-size: 16px;
-  color: #374151;
-  margin: 0 0 10px;
+.sod-page-sub {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.sod-welcome-name {
+.sod-ico-sm {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  color: #94a3b8;
+}
+.sod-ico-sm svg { width: 100%; height: 100%; }
+
+.sod-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.sod-refresh-btn svg { width: 15px; height: 15px; }
+.sod-refresh-btn:hover:not(:disabled) { background: #f1f5f9; box-shadow: 0 4px 8px rgba(0,0,0,.08); }
+.sod-refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@keyframes sod-spin { to { transform: rotate(360deg); } }
+.sod-spin svg { animation: sod-spin 0.8s linear infinite; }
+
+/* ── KPI Cards ───────────────────────────────────────────────── */
+.sod-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sod-kpi-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.sod-kpi-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
+
+.sod-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sod-kpi-icon svg { width: 22px; height: 22px; }
+
+.sod-kpi-body { flex: 1; min-width: 0; }
+
+.sod-kpi-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sod-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 4px;
+  line-height: 1;
+}
+
+.sod-kpi-note {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ── Panels (shared) ─────────────────────────────────────────── */
+.sod-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  min-width: 0;
+}
+
+.sod-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.sod-panel-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sod-panel-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sod-panel-icon svg { width: 16px; height: 16px; }
+
+.sod-icon-purple { background: #f5f3ff; color: #7c3aed; }
+.sod-icon-teal   { background: #ecfdf5; color: #059669; }
+.sod-icon-orange { background: #fff7ed; color: #ea580c; }
+.sod-icon-blue   { background: #eff6ff; color: #2563eb; }
+
+.sod-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.sod-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2563eb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.sod-link-btn svg { width: 13px; height: 13px; }
+.sod-link-btn:hover { opacity: 0.75; }
+.sod-link-sm { font-size: 11.5px; }
+
+/* ── Gauge Row (Row 1 – 4 semi-circle gauges) ───────────────── */
+.sod-gauge-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sod-gauge-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 16px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.sod-gauge-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.08); transform: translateY(-1px); }
+
+.sod-gauge-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.sod-gauge-note {
+  font-size: 12px;
+  color: #64748b;
+  margin: 2px 0 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.sod-gauge-svg {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.sod-skeleton-gauge {
+  width: 160px;
+  height: 90px;
+  border-radius: 96px 96px 0 0;
+  margin: 8px auto;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8eef4 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: sod-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Charts Row (Row 2 – area + bar side by side) ────────────── */
+.sod-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.sod-skeleton-chart {
+  height: 210px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8eef4 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: sod-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Donut overlay (centered % text inside pie) ──────────────── */
+.sod-donut-center-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.sod-donut-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.sod-donut-pct {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.sod-donut-sub {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* ── Recharts Custom Tooltip ─────────────────────────────────── */
+.sod-chart-tooltip {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.10);
+  font-size: 12px;
+  color: #334155;
+}
+
+.sod-tt-date {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sod-tt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+  color: #334155;
+}
+
+.sod-tt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── Middle Row (Row 3 – donut sidebar + indents table) ──────── */
+.sod-mid-row {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
+.sod-table-wrap {
+  overflow-x: auto;
+}
+
+.sod-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sod-table th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  padding: 0 10px 10px 0;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.sod-table td {
+  padding: 11px 10px 11px 0;
+  border-bottom: 1px solid #f8fafc;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.sod-table tr:last-child td { border-bottom: none; }
+.sod-table tr:hover td { background: #f8fafc; }
+
+.sod-indent-id {
+  font-size: 12px;
   font-weight: 700;
   color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
 }
 
-.sod-welcome-hint {
-  font-size: 13.5px;
-  color: #6b7280;
+.sod-cell-main { font-weight: 600; color: #0f172a; margin: 0 0 2px; font-size: 13px; }
+.sod-cell-sub  { font-size: 11.5px; color: #94a3b8; margin: 0; }
+
+.sod-items-count {
+  font-weight: 700;
+  color: #334155;
+}
+
+.sod-date-cell {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* ── Badges ──────────────────────────────────────────────────── */
+.sod-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.sod-badge-red    { background: #fef2f2; color: #dc2626; }
+.sod-badge-orange { background: #fff7ed; color: #ea580c; }
+.sod-badge-yellow { background: #fefce8; color: #d97706; }
+.sod-badge-green  { background: #f0fdf4; color: #16a34a; }
+.sod-badge-blue   { background: #eff6ff; color: #2563eb; }
+.sod-badge-gray   { background: #f8fafc; color: #64748b; }
+
+/* ── Donut chart ─────────────────────────────────────────────── */
+.sod-donut-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-bottom: 4px;
+}
+
+.sod-donut-legend {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sod-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #334155;
+}
+
+.sod-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.sod-legend-label { flex: 1; }
+.sod-legend-count { font-weight: 700; color: #0f172a; }
+
+/* ── Health Bar ──────────────────────────────────────────────── */
+.sod-health-bar-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+.sod-health-bar-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin: 0 0 8px;
+}
+
+.sod-health-bar {
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f1f5f9;
+  display: flex;
+  margin-bottom: 8px;
+}
+.sod-health-bar > div { transition: width 0.6s ease; }
+
+.sod-health-pct {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Bottom Row ──────────────────────────────────────────────── */
+.sod-bot-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Low Stock Alert List ────────────────────────────────────── */
+.sod-alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sod-alert-item {
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fffbf5;
+}
+.sod-alert-item.sod-alert-out {
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.sod-alert-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.sod-alert-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 3px;
+}
+
+.sod-alert-code {
+  font-size: 11px;
+  color: #94a3b8;
   margin: 0;
-  line-height: 1.6;
+}
+
+.sod-stock-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sod-stock-bar-bg {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.sod-stock-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.sod-stock-nums {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* ── Material Request Feed ───────────────────────────────────── */
+.sod-request-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sod-request-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sod-request-item:last-child { border-bottom: none; }
+
+.sod-req-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.5px solid #bfdbfe;
+}
+
+.sod-req-body { flex: 1; min-width: 0; }
+
+.sod-req-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sod-req-meta {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.sod-req-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.sod-req-qty {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+/* ── Empty states ────────────────────────────────────────────── */
+.sod-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+.sod-empty-state p { margin: 0; }
+
+.sod-empty-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+}
+.sod-empty-ico svg { width: 20px; height: 20px; }
+
+.sod-empty-green .sod-empty-ico {
+  background: #f0fdf4;
+  color: #86efac;
+}
+
+/* ── Skeleton loaders ────────────────────────────────────────── */
+@keyframes sod-shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.sod-skeleton-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.sod-skeleton-row {
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8eef4 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: sod-shimmer 1.4s ease-in-out infinite;
+}
+
+.sod-skeleton-donut {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  margin: 8px auto 20px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8eef4 50%, #f1f5f9 75%);
+  background-size: 600px 100%;
+  animation: sod-shimmer 1.4s ease-in-out infinite;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 1400px) {
+  .sod-gauge-row   { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 1200px) {
+  .sod-kpi-grid    { grid-template-columns: repeat(3, 1fr); }
+  .sod-charts-row  { grid-template-columns: 1fr; }
+  .sod-mid-row     { grid-template-columns: 1fr; }
+  .sod-panel-narrow { order: -1; }
+}
+
+@media (max-width: 900px) {
+  .sod-gauge-row   { grid-template-columns: repeat(2, 1fr); }
+  .sod-charts-row  { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sod-page        { padding: 16px; }
+  .sod-gauge-row   { grid-template-columns: repeat(2, 1fr); }
+  .sod-kpi-grid    { grid-template-columns: repeat(2, 1fr); }
+  .sod-bot-row     { grid-template-columns: 1fr; }
+  .sod-kpi-value   { font-size: 22px; }
+  .sod-mid-row     { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .sod-gauge-row   { grid-template-columns: 1fr; }
+  .sod-kpi-grid    { grid-template-columns: 1fr; }
 }

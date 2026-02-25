@@ -322,12 +322,6 @@ const StockAdjustment = () => {
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading stock adjustments...
-        </div>
-      )}
-
       {/* Main Form Card */}
       <div className="sa-card sa-main-card">
         <div className="sa-card-header-flex">
@@ -560,7 +554,14 @@ const StockAdjustment = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedHistory.length > 0 ? (
+              {loading && Array.from({ length: itemsPerPage }).map((_, i) => (
+                <tr key={`skel-${i}`}>
+                  {Array.from({ length: 8 }).map((__, j) => (
+                    <td key={j}><div className="sa-skeleton-cell" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && paginatedHistory.length > 0 ? (
                 paginatedHistory.map((row) => (
                   <tr key={row.id}>
                     <td className="sa-date-cell">{formatDate(row.date)}</td>
