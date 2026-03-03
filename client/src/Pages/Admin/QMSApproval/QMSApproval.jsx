@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './QMSApproval.css';
 import { purchaseIndentService } from '../../../services/apiService';
 
 const QMSIndentApprovals = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -46,7 +48,9 @@ const QMSIndentApprovals = () => {
 
         // Determine status based on workflow_stage
         let displayStatus = indent.status;
-        if (indent.workflow_stage === 'Admin') {
+        if (indent.status === 'Rejected') {
+          displayStatus = 'Rejected';
+        } else if (indent.workflow_stage === 'Admin') {
           displayStatus = 'Pending Admin Approval';
         } else if (indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
           displayStatus = 'Admin Approved';
@@ -77,17 +81,52 @@ const QMSIndentApprovals = () => {
     fetchIndents();
   }, []);
 
-  const filteredIndents = indents.filter(indent => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      indent.id.toLowerCase().includes(searchLower) ||
-      indent.material.toLowerCase().includes(searchLower) ||
-      indent.details.toLowerCase().includes(searchLower)
-    );
-  });
+  const tabCounts = useMemo(() => {
+    const pending = indents.filter((i) => i.status === 'Pending Admin Approval').length;
+    const approved = indents.filter((i) => i.status === 'Admin Approved').length;
+    const rejected = indents.filter((i) => i.status === 'Rejected').length;
+    return { pending, approved, rejected };
+  }, [indents]);
 
-  const handleViewIndent = (indentId) => {
-    console.log('Viewing indent:', indentId);
+  const filteredIndents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const searched = !q
+      ? indents
+      : indents.filter((indent) => {
+          const haystack = [
+            indent.id,
+            indent.material,
+            indent.details,
+            indent.requestedBy,
+            indent.status
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(q);
+        });
+
+    if (activeTab === 'pending') {
+      return searched.filter((i) => i.status === 'Pending Admin Approval');
+    }
+    if (activeTab === 'approved') {
+      return searched.filter((i) => i.status === 'Admin Approved');
+    }
+    if (activeTab === 'rejected') {
+      return searched.filter((i) => i.status === 'Rejected');
+    }
+
+    return searched;
+  }, [indents, searchQuery, activeTab]);
+
+  const handleViewIndent = (indent) => {
+    if (!indent?.indentId) return;
+    navigate('/admin-purchase-indents', {
+      state: {
+        indentId: indent.indentId,
+        isViewMode: true
+      }
+    });
   };
 
   const handleApprove = async (indentId) => {
@@ -141,7 +180,7 @@ const QMSIndentApprovals = () => {
                 className={`qms-tab ${activeTab === 'pending' ? 'active' : ''}`}
                 onClick={() => setActiveTab('pending')}
               >
-                Pending Review (5)
+                Pending Review ({tabCounts.pending})
               </button>
               <button 
                 className={`qms-tab ${activeTab === 'approved' ? 'active' : ''}`}
@@ -210,7 +249,7 @@ const QMSIndentApprovals = () => {
                 <div>
                   <button 
                     className="qms-view-btn"
-                    onClick={() => handleViewIndent(indent.id)}
+                    onClick={() => handleViewIndent(indent)}
                   >
                     View
                   </button>
@@ -223,12 +262,18 @@ const QMSIndentApprovals = () => {
                 </div>
               </div>
             ))}
+
+            {!loading && filteredIndents.length === 0 && (
+              <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
+                No indents found.
+              </div>
+            )}
           </div>
 
           {/* Footer */}
           <div className="qms-footer">
             <span className="qms-footer-info">
-              Showing {filteredIndents.length} of {indents.length} pending indents
+              Showing {filteredIndents.length} of {indents.length} indents
             </span>
             <div className="qms-pagination">
               <button className="qms-pagination-btn" disabled>Previous</button>

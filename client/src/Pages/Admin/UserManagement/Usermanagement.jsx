@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import './UserManagement.css';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import './Usermanagement.css';
 import { userService } from '../../../services/apiService';
 
 // SVG Icons
@@ -31,12 +31,32 @@ const Icons = {
     <svg className="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 9 12 15 18 9"></polyline>
     </svg>
+  ),
+  X: () => (
+    <svg className="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
   )
 };
 
 const UserManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [showRoleFilterDropdown, setShowRoleFilterDropdown] = useState(false);
+  const roleFilterRef = useRef(null);
+
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [addUserSubmitting, setAddUserSubmitting] = useState(false);
+  const [addUserError, setAddUserError] = useState('');
+  const [addUserForm, setAddUserForm] = useState({
+    username: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    roleName: 'StoreOfficer',
+  });
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,14 +102,106 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
+  useEffect(() => {
+    if (!showRoleFilterDropdown) return;
+    const onMouseDown = (e) => {
+      if (roleFilterRef.current && !roleFilterRef.current.contains(e.target)) {
+        setShowRoleFilterDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [showRoleFilterDropdown]);
+
+  const roleOptions = useMemo(() => {
+    const unique = new Set();
+    users.forEach((u) => {
+      const r = String(u.role || '').trim();
+      if (r) unique.add(r);
+    });
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [users]);
+
+  const roleNameOptions = useMemo(() => (
+    ['Admin', 'QMS', 'StoreOfficer', 'PurchaseDepartment']
+  ), []);
+
+  const openAddUserModal = () => {
+    setAddUserError('');
+    setAddUserSubmitting(false);
+    setAddUserForm({
+      username: '',
+      email: '',
+      phoneNumber: '',
+      password: '',
+      roleName: 'StoreOfficer',
+    });
+    setShowAddUserModal(true);
+  };
+
+  const closeAddUserModal = () => {
+    if (addUserSubmitting) return;
+    setShowAddUserModal(false);
+    setAddUserError('');
+  };
+
+  const onAddUserFieldChange = (e) => {
+    const { name, value } = e.target;
+    setAddUserForm((prev) => ({ ...prev, [name]: value }));
+    if (addUserError) setAddUserError('');
+  };
+
+  const submitAddUser = async (e) => {
+    e.preventDefault();
+    setAddUserError('');
+
+    const username = addUserForm.username.trim();
+    const email = addUserForm.email.trim();
+    const phoneNumber = addUserForm.phoneNumber.trim();
+    const password = addUserForm.password;
+    const roleName = addUserForm.roleName;
+
+    if (!username || !email || !phoneNumber || !password) {
+      setAddUserError('Please fill all required fields.');
+      return;
+    }
+
+    try {
+      setAddUserSubmitting(true);
+      await userService.createUser({ username, email, phoneNumber, password, roleName });
+      setShowAddUserModal(false);
+      setSearchQuery('');
+      setRoleFilter('');
+      setCurrentPage(1);
+      await fetchUsers();
+    } catch (err) {
+      setAddUserError(err?.data?.message || err?.message || 'Failed to create user');
+    } finally {
+      setAddUserSubmitting(false);
+    }
+  };
+
+  const applyRoleFilter = (role) => {
+    setRoleFilter(role);
+    setShowRoleFilterDropdown(false);
+    setCurrentPage(1);
+  };
+
   const filteredUsers = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
-    if (!term) return users;
-    return users.filter((u) =>
+    let filtered = users;
+
+    if (roleFilter) {
+      const rf = roleFilter.toLowerCase();
+      filtered = filtered.filter((u) => String(u.role || '').toLowerCase() === rf);
+    }
+
+    if (!term) return filtered;
+    return filtered.filter((u) =>
       u.name.toLowerCase().includes(term) ||
       u.role.toLowerCase().includes(term)
     );
-  }, [users, searchQuery]);
+  }, [users, searchQuery, roleFilter]);
 
   const totalUsers = filteredUsers.length;
   const totalPages = Math.max(1, Math.ceil(totalUsers / usersPerPage));
@@ -125,21 +237,152 @@ const UserManagement = () => {
             className="um-search-input"
             placeholder="Search users by name or role..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
         <div className="um-toolbar-right">
-          <button className="um-filter-btn">
-            <Icons.Filter />
-            Filter Role
-            <Icons.ChevronDown />
-          </button>
-          <button className="um-add-user-btn">
+          <div className="um-filter-wrapper" ref={roleFilterRef}>
+            <button
+              className="um-filter-btn"
+              type="button"
+              onClick={() => setShowRoleFilterDropdown((v) => !v)}
+            >
+              <Icons.Filter />
+              Filter by Role
+            </button>
+            {showRoleFilterDropdown && (
+              <div className="um-filter-dropdown">
+                <button
+                  type="button"
+                  className={`um-filter-option ${!roleFilter ? 'active' : ''}`}
+                  onClick={() => applyRoleFilter('')}
+                >
+                  All
+                </button>
+                {roleOptions.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    className={`um-filter-option ${roleFilter === role ? 'active' : ''}`}
+                    onClick={() => applyRoleFilter(role)}
+                  >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className="um-add-user-btn" type="button" onClick={openAddUserModal}>
             <Icons.Plus />
             Add New User
           </button>
         </div>
       </div>
+
+      {showAddUserModal && (
+        <div className="um-modal-overlay" onMouseDown={closeAddUserModal}>
+          <div className="um-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Add New User">
+            <div className="um-modal-header">
+              <h2 className="um-modal-title">Add New User</h2>
+              <button type="button" className="um-modal-close" onClick={closeAddUserModal} aria-label="Close">
+                <Icons.X />
+              </button>
+            </div>
+            <form className="um-modal-body" onSubmit={submitAddUser}>
+              {addUserError && (
+                <div className="um-modal-error">
+                  {addUserError}
+                </div>
+              )}
+
+              <div className="um-form-row">
+                <div className="um-form-group">
+                  <label className="um-form-label">Name</label>
+                  <input
+                    className="um-form-input"
+                    name="username"
+                    value={addUserForm.username}
+                    onChange={onAddUserFieldChange}
+                    placeholder="Enter name"
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+                <div className="um-form-group">
+                  <label className="um-form-label">Email ID</label>
+                  <input
+                    className="um-form-input"
+                    type="email"
+                    name="email"
+                    value={addUserForm.email}
+                    onChange={onAddUserFieldChange}
+                    placeholder="Enter email"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="um-form-row">
+                <div className="um-form-group">
+                  <label className="um-form-label">Phone</label>
+                  <input
+                    className="um-form-input"
+                    type="tel"
+                    name="phoneNumber"
+                    value={addUserForm.phoneNumber}
+                    onChange={onAddUserFieldChange}
+                    placeholder="Enter phone number"
+                    autoComplete="tel"
+                    required
+                  />
+                </div>
+                <div className="um-form-group">
+                  <label className="um-form-label">Role</label>
+                  <select
+                    className="um-form-input"
+                    name="roleName"
+                    value={addUserForm.roleName}
+                    onChange={onAddUserFieldChange}
+                    required
+                  >
+                    {roleNameOptions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="um-form-group">
+                <label className="um-form-label">Password</label>
+                <input
+                  className="um-form-input"
+                  type="password"
+                  name="password"
+                  value={addUserForm.password}
+                  onChange={onAddUserFieldChange}
+                  placeholder="Create password"
+                  autoComplete="new-password"
+                  required
+                />
+                <div className="um-form-help">User can login using Phone + Password</div>
+              </div>
+
+              <div className="um-modal-footer">
+                <button type="button" className="um-btn-secondary" onClick={closeAddUserModal} disabled={addUserSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="um-btn-primary" disabled={addUserSubmitting}>
+                  {addUserSubmitting ? 'Creating...' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* User Table */}
       <div className="um-table-card">

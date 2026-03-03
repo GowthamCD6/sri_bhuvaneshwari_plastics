@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getAdminApprovals,
   getAllIndents,
   getIndentById,
   createIndent,
@@ -10,7 +11,7 @@ const {
   uploadPOFile,
   downloadPOFile
 } = require('../controllers/purchaseIndentController');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 const upload = require('../middleware/fileUpload');
 
 // All routes require authentication
@@ -18,6 +19,9 @@ router.use(verifyToken);
 
 // Get all indents (with filters)
 router.get('/', getAllIndents);
+
+// Admin approvals feed (QMS -> Admin final verification)
+router.get('/admin/approvals', requireRole('Admin'), getAdminApprovals);
 
 // Get single indent
 router.get('/:id', getIndentById);

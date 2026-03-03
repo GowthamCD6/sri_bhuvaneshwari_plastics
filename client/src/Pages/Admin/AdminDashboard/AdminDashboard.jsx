@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './AdminDashboard.css';
+import { dashboardService, purchaseIndentService } from '../../../services/apiService';
 
 // SVG Icons
 const Icons = {
@@ -58,97 +60,150 @@ const Icons = {
 };
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [showAllPending, setShowAllPending] = useState(false);
 
-  // Dashboard Stats
-  const stats = [
-    {
-      label: 'Pending QMS Indents',
-      value: '12',
-      icon: <Icons.File />,
-      meta: { text: 'Action required', type: 'warning', icon: <Icons.Alert /> }
-    },
-    {
-      label: 'Active Users',
-      value: '48',
-      icon: <Icons.Users />,
-      meta: { text: '+3 this week', type: 'success', icon: <Icons.ArrowUp /> }
-    },
-    {
-      label: 'Total Stock Value',
-      value: '$1.2M',
-      icon: <Icons.Dollar />,
-      meta: { text: 'Healthy', type: 'healthy', icon: <Icons.Check /> }
-    },
-    {
-      label: 'System Status',
-      value: 'Operational',
-      icon: <Icons.Server />,
-      isStatus: true,
-      latency: 'Latency: 24ms'
-    }
-  ];
+  const [dashboardData, setDashboardData] = useState({
+    users: 0,
+    pendingIndents: 0,
+    activeSuppliers: 0
+  });
+  const [pendingIndents, setPendingIndents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // QMS Indent Approvals Data
-  const indentApprovals = [
-    {
-      id: 'IND-2024-089',
-      material: 'HDPE Granules - Blue',
-      qty: 'Qty: 500kg',
-      requestedBy: 'QMS Officer',
-      department: 'Production',
-      urgency: 'High',
-      urgencyClass: 'high'
-    },
-    {
-      id: 'IND-2024-092',
-      material: 'Packing Tape (Clear)',
-      qty: 'Qty: 200 Rolls',
-      requestedBy: 'QMS Officer',
-      department: 'Packaging',
-      urgency: 'Normal',
-      urgencyClass: 'normal'
-    },
-    {
-      id: 'IND-2024-094',
-      material: 'Industrial Solvent X2',
-      qty: 'Qty: 100L',
-      requestedBy: 'QMS Officer',
-      department: 'Maintenance',
-      urgency: 'High',
-      urgencyClass: 'high'
-    }
-  ];
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // Recent Activity Data
-  const recentActivity = [
-    {
-      time: '10:45 AM',
-      user: 'Ramesh Kumar',
-      initial: 'RK',
-      avatarColor: 'blue',
-      activity: 'Created new Purchase Order #PO-8821',
-      module: 'Purchase Dept'
-    },
-    {
-      time: '10:32 AM',
-      user: 'Store Keeper',
-      initial: 'SK',
-      avatarColor: 'yellow',
-      activity: 'Stock updated for Item #RM-002',
-      module: 'Store'
-    },
-    {
-      time: '09:15 AM',
-      user: 'QMS Officer',
-      initial: 'QO',
-      avatarColor: 'green',
-      activity: 'Submitted Indent #IND-2024-095',
-      module: 'QMS'
-    }
-  ];
+        const [dashRes, pendingRes] = await Promise.all([
+          dashboardService.getAdminDashboard(),
+          purchaseIndentService.getAllIndents({ status: 'Pending Admin Approval' })
+        ]);
 
-  const displayedIndents = showAllPending ? indentApprovals : indentApprovals.slice(0, 3);
+        if (dashRes?.success && dashRes.data) {
+          setDashboardData({
+            users: Number(dashRes.data.users || 0),
+            pendingIndents: Number(dashRes.data.pendingIndents || 0),
+            activeSuppliers: Number(dashRes.data.activeSuppliers || 0)
+          });
+        }
+
+        if (pendingRes?.success && Array.isArray(pendingRes.data)) {
+          setPendingIndents(pendingRes.data);
+        } else {
+          setPendingIndents([]);
+        }
+      } catch (err) {
+        console.error('Admin dashboard fetch error:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const stats = useMemo(() => {
+    return [
+      {
+        label: 'Pending Admin Approvals',
+        value: String(dashboardData.pendingIndents ?? 0),
+        icon: <Icons.File />,
+        meta: { text: 'Action required', type: 'warning', icon: <Icons.Alert /> }
+      },
+      {
+        label: 'Total Users',
+        value: String(dashboardData.users ?? 0),
+        icon: <Icons.Users />,
+        meta: { text: 'Registered users', type: 'success', icon: <Icons.Check /> }
+      },
+      {
+        label: 'Active Suppliers',
+        value: String(dashboardData.activeSuppliers ?? 0),
+        icon: <Icons.Dollar />,
+        meta: { text: 'Suppliers available', type: 'healthy', icon: <Icons.Check /> }
+      },
+      {
+        label: 'System Status',
+        value: 'Operational',
+        icon: <Icons.Server />,
+        isStatus: true,
+        latency: loading ? 'Loading…' : 'Live'
+      }
+    ];
+  }, [dashboardData, loading]);
+
+  const mappedPendingIndents = useMemo(() => {
+    return pendingIndents.map((indent) => {
+      const materials = Array.isArray(indent.materials) ? indent.materials : [];
+      const first = materials[0];
+      const materialName = first?.material_description || 'Materials';
+      const qtyText = first?.quantity
+        ? `Qty: ${first.quantity}${first.unit_of_measurement || ''}`
+        : 'Qty: -';
+
+      const urgency = indent.priority === 'Urgent'
+        ? 'Critical'
+        : indent.priority === 'High'
+          ? 'High'
+          : 'Normal';
+
+      return {
+        indentId: indent.indent_id,
+        id: indent.indent_number,
+        material: materialName,
+        qty: qtyText,
+        requestedBy: indent.requested_by_name || indent.customer_name || 'N/A',
+        department: indent.workflow_stage || 'Admin',
+        urgency,
+        urgencyClass: urgency.toLowerCase() === 'critical' || urgency.toLowerCase() === 'high' ? 'high' : 'normal'
+      };
+    });
+  }, [pendingIndents]);
+
+  const displayedIndents = showAllPending ? mappedPendingIndents : mappedPendingIndents.slice(0, 3);
+
+  const recentActivity = useMemo(() => {
+    const toInitials = (name) => {
+      const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 0) return 'NA';
+      return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+    };
+
+    const formatTime = (dateValue) => {
+      if (!dateValue) return '-';
+      const d = new Date(dateValue);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Use real pending indents as “recent” items (no dummy content)
+    return (pendingIndents || []).slice(0, 3).map((indent, idx) => {
+      const userName = indent.requested_by_name || indent.customer_name || 'N/A';
+      return {
+        time: formatTime(indent.created_at || indent.updated_at || indent.request_date),
+        user: userName,
+        initial: toInitials(userName),
+        avatarColor: idx % 3 === 0 ? 'blue' : idx % 3 === 1 ? 'yellow' : 'green',
+        activity: `Pending Admin Approval: ${indent.indent_number}`,
+        module: 'Purchase Indents'
+      };
+    });
+  }, [pendingIndents]);
+
+  const handleReviewIndent = (indentId) => {
+    if (!indentId) return;
+    navigate('/admin-purchase-indents', {
+      state: {
+        indentId,
+        isViewMode: true
+      }
+    });
+  };
 
   return (
     <div className="ad-container">
@@ -156,6 +211,12 @@ const AdminDashboard = () => {
       <div className="ad-header">
         <h1 className="ad-title">Admin Dashboard</h1>
       </div>
+
+      {error && (
+        <div style={{ padding: '12px 16px', margin: '12px 0', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="ad-stats-grid">
@@ -230,10 +291,20 @@ const AdminDashboard = () => {
                   </span>
                 </td>
                 <td>
-                  <button className="ad-review-btn">Review</button>
+                  <button className="ad-review-btn" onClick={() => handleReviewIndent(indent.indentId)}>
+                    Review
+                  </button>
                 </td>
               </tr>
             ))}
+
+            {!loading && displayedIndents.length === 0 && (
+              <tr>
+                <td colSpan="6" style={{ padding: '14px 16px', textAlign: 'center', color: '#64748b' }}>
+                  No pending admin approvals.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

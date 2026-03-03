@@ -5,6 +5,11 @@ const jwt = require('jsonwebtoken');
  */
 const verifyToken = (req, res, next) => {
   try {
+    // Never block CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+
     // Get token from header or cookie
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.startsWith('Bearer ') 

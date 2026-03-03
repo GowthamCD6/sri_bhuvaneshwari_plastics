@@ -3,6 +3,77 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * Admin approvals feed (for Admin QMS Approval page)
+ * Returns indents that are pending Admin final verification + history.
+ *
+ * Query params:
+ * - tab: pending | approved | rejected | all (default: pending)
+ * - search: searches indent_number / customer_name / requested_by username
+ */
+const getAdminApprovals = async (req, res) => {
+  try {
+    const tab = (req.query.tab || 'pending').toString();
+    const search = (req.query.search || '').toString().trim();
+
+    let query = `
+      SELECT 
+        pi.*,
+        MAX(u.username) as requested_by_name,
+        MAX(co.indent_id) as customer_order_indent_id,
+        MAX(co.customer_name) as customer_name,
+        COUNT(pim.indent_material_id) as total_materials
+      FROM purchase_indents pi
+      LEFT JOIN users u ON pi.requested_by = u.user_id
+      LEFT JOIN customer_orders co ON pi.customer_order_id = co.order_id
+      LEFT JOIN purchase_indent_materials pim ON pi.indent_id = pim.indent_id
+      WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (tab === 'pending') {
+      query += ` AND pi.status = 'Pending Admin Approval' AND pi.workflow_stage = 'Admin'`;
+    } else if (tab === 'approved') {
+      query += ` AND pi.status = 'Admin Approved'`;
+    } else if (tab === 'rejected') {
+      query += ` AND pi.status = 'Rejected'`;
+    } else {
+      // all
+      query += ` AND pi.status IN ('Pending Admin Approval', 'Admin Approved', 'Rejected')`;
+    }
+
+    if (search) {
+      query += ` AND (pi.indent_number LIKE ? OR co.customer_name LIKE ? OR u.username LIKE ?)`;
+      const term = `%${search}%`;
+      params.push(term, term, term);
+    }
+
+    query += ` GROUP BY pi.indent_id ORDER BY pi.created_at DESC`;
+
+    const [indents] = await db.query(query, params);
+
+    for (const indent of indents) {
+      const [materials] = await db.query(
+        'SELECT * FROM purchase_indent_materials WHERE indent_id = ? ORDER BY indent_material_id',
+        [indent.indent_id]
+      );
+      indent.materials = materials;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: indents
+    });
+  } catch (error) {
+    console.error('Get admin approvals error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admin approvals'
+    });
+  }
+};
+
+/**
  * Get all purchase indents with filters
  */
 const getAllIndents = async (req, res) => {
@@ -776,6 +847,7 @@ const downloadPOFile = async (req, res) => {
 };
 
 module.exports = {
+  getAdminApprovals,
   getAllIndents,
   getIndentById,
   createIndent,
