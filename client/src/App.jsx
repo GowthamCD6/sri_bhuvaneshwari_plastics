@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Components/Sidebar/Sidebar';
-import AppNavigator from './Navigation/Appnavigator';
+import AppNavigator from './Navigation/appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
 import useAuthStore from './store/authStore';
 import { useEffect } from 'react';

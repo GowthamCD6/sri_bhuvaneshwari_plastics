@@ -33,7 +33,7 @@ const getAllUsers = async (req, res) => {
 /**
  * Get user by ID
  */
-const getUserById = (req, res) => {
+const getUserById = async (req, res) => {
   const { userId } = req.params;
 
   // Check if user is requesting their own data or is admin
@@ -52,14 +52,8 @@ const getUserById = (req, res) => {
     WHERE u.user_id = ?
   `;
 
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
+  try {
+    const [results] = await db.query(query, [userId]);
 
     if (results.length === 0) {
       return res.status(404).json({
@@ -72,7 +66,13 @@ const getUserById = (req, res) => {
       success: true,
       user: results[0]
     });
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
 };
 
 /**
@@ -83,70 +83,53 @@ const createUser = async (req, res) => {
     const { username, phoneNumber, email, password, roleId, roleName, deptId } = req.body;
 
     // Validation
-    if (!phoneNumber || !password || !username || (!roleId && !roleName)) {
+    if (!phoneNumber || !email || !password || !username || (!roleId && !roleName)) {
       return res.status(400).json({
         success: false,
-        message: 'Phone number, password, username, and role are required'
+        message: 'Phone number, email, password, username, and role are required'
       });
     }
 
     // Check if user already exists
     const checkQuery = 'SELECT user_id FROM users WHERE phone_number = ? OR email = ?';
-    
-    db.query(checkQuery, [phoneNumber, email], async (err, results) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Internal server error'
-        });
-      }
 
-      if (results.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: 'User with this phone number or email already exists'
-        });
-      }
-
-      // Hash password
-      const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-      const passwordHash = await bcrypt.hash(password, saltRounds);
-
-      // Insert new user
-      let resolvedRoleId = roleId;
-      if (!resolvedRoleId && roleName) {
-        const [roles] = await db.query('SELECT role_id FROM roles WHERE role_name = ? LIMIT 1', [roleName]);
-        resolvedRoleId = roles[0]?.role_id;
-      }
-
-      if (!resolvedRoleId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid role'
-        });
-      }
-
-      const insertQuery = `
-        INSERT INTO users (phone_number, email, password_hash, username, role_id, dept_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `;
-
-      db.query(insertQuery, [phoneNumber, email, passwordHash, username, resolvedRoleId, deptId || null], (insertErr, result) => {
-        if (insertErr) {
-          console.error('Error inserting user:', insertErr);
-          return res.status(500).json({
-            success: false,
-            message: 'Failed to create user'
-          });
-        }
-
-        res.status(201).json({
-          success: true,
-          message: 'User created successfully',
-          userId: result.insertId
-        });
+    const [existing] = await db.query(checkQuery, [phoneNumber, email]);
+    if (existing.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'User with this phone number or email already exists'
       });
+    }
+
+    // Hash password
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Resolve role
+    let resolvedRoleId = roleId;
+    if (!resolvedRoleId && roleName) {
+      const [roles] = await db.query('SELECT role_id FROM roles WHERE role_name = ? LIMIT 1', [roleName]);
+      resolvedRoleId = roles[0]?.role_id;
+    }
+
+    if (!resolvedRoleId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role'
+      });
+    }
+
+    const insertQuery = `
+      INSERT INTO users (phone_number, email, password_hash, username, role_id, dept_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    const [result] = await db.query(insertQuery, [phoneNumber, email, passwordHash, username, resolvedRoleId, deptId || null]);
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      userId: result.insertId
     });
 
   } catch (error) {
@@ -236,26 +219,18 @@ const updateUser = async (req, res) => {
 
     const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`;
 
-    db.query(updateQuery, values, (err, result) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Internal server error'
-        });
-      }
+    const [result] = await db.query(updateQuery, values);
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'User not found'
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'User updated successfully'
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully'
     });
 
   } catch (error) {
@@ -270,7 +245,7 @@ const updateUser = async (req, res) => {
 /**
  * Delete user (Admin only)
  */
-const deleteUser = (req, res) => {
+const deleteUser = async (req, res) => {
   const { userId } = req.params;
 
   // Prevent deleting self
@@ -283,14 +258,8 @@ const deleteUser = (req, res) => {
 
   const deleteQuery = 'DELETE FROM users WHERE user_id = ?';
 
-  db.query(deleteQuery, [userId], (err, result) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
+  try {
+    const [result] = await db.query(deleteQuery, [userId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -303,13 +272,19 @@ const deleteUser = (req, res) => {
       success: true,
       message: 'User deleted successfully'
     });
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
 };
 
 /**
  * Update user status (Admin only)
  */
-const updateUserStatus = (req, res) => {
+const updateUserStatus = async (req, res) => {
   const { userId } = req.params;
   const { status } = req.body;
 
@@ -322,14 +297,8 @@ const updateUserStatus = (req, res) => {
   const isActive = status === 'active' ? 1 : 0;
   const updateQuery = 'UPDATE users SET is_active = ? WHERE user_id = ?';
 
-  db.query(updateQuery, [isActive, userId], (err, result) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
-    }
+  try {
+    const [result] = await db.query(updateQuery, [isActive, userId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({
@@ -342,7 +311,13 @@ const updateUserStatus = (req, res) => {
       success: true,
       message: 'User status updated successfully'
     });
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
 };
 
 module.exports = {

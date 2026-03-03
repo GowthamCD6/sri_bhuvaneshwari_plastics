@@ -26,7 +26,6 @@ import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
 import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
 
 // ===== PURCHASE DEPARTMENT ROLE PAGES =====
-import PurchaseOverview from '../Pages/PurchaseDepartment/Overview/Overview';
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
 import Suppliers from '../Pages/PurchaseDepartment/Suppliers/Suppliers';
 import QMSIndents from '../Pages/PurchaseDepartment/QMSIndents/QMSIndents';
@@ -47,7 +46,7 @@ const AppNavigator = () => {
         return '/store-dashboard';
       case 'purchasedepartment':
       case 'purchase':
-        return '/overview';
+        return '/qms-indents';
       default:
         return '/dashboard';
     }
@@ -85,7 +84,7 @@ const AppNavigator = () => {
       <Route path="/admin-purchase-indents" element={<QMSPurchaseIndents />} />
 
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
-      <Route path="/overview" element={<PurchaseOverview />} />
+      <Route path="/overview" element={<Navigate to="/qms-indents" replace />} />
       <Route path="/store-requests" element={<StoreRequests />} />
       <Route path="/suppliers" element={<Suppliers />} />
       <Route path="/qms-indents" element={<QMSIndents />} />

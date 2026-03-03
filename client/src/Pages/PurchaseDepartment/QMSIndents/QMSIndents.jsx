@@ -335,7 +335,7 @@ const QMSIndents = () => {
               )}
             </div>
             <div className="qi-modal-footer">
-              <button className="qi-btn-secondary" onClick={() => setShowDetailModal(false)}>
+              <button className="qi-btn-danger" onClick={() => setShowDetailModal(false)}>
                 Close
               </button>
               {selectedIndent.status === 'Verified' && (

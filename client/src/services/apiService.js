@@ -124,6 +124,13 @@ const fetchWithAuth = async (url, options = {}) => {
     credentials: 'include', // Important for cookies
   };
 
+  const timeoutMs = options.timeoutMs ?? 15000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Allow caller to pass a signal, but still enforce timeout
+  config.signal = controller.signal;
+
   try {
     const response = await fetch(`${API_BASE_URL}${url}`, config);
     
@@ -147,8 +154,15 @@ const fetchWithAuth = async (url, options = {}) => {
 
     return data;
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      const err = new Error('Request timed out. Please check server connection and try again.');
+      err.status = 0;
+      throw err;
+    }
     console.error('API Error:', error);
     throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

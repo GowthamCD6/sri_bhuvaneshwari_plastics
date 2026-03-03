@@ -6,7 +6,7 @@ const path = require('path');
 const app=express();
 require('dotenv').config();
 const db=require('./config/db');
-const port=process.env.PORT;
+const port=process.env.PORT || 5000;
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -22,10 +22,27 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 
 // Middleware
-app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true
-}));
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow non-browser tools (no Origin header)
+        if (!origin) return callback(null, true);
+
+        // Dev-friendly: allow any localhost port (Vite may pick 5174, 5175, ...)
+        if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+
+        const allowed = process.env.CLIENT_URL || 'http://localhost:5173';
+        if (origin === allowed) return callback(null, true);
+
+        return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+// Important: handle preflight requests before auth middleware routes
+app.options(/.*/, cors(corsOptions));
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({extended:true}));
 app.use(cookieParser());
