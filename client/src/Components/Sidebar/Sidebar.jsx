@@ -23,6 +23,7 @@ import {
   Truck,
   User,
   LogOut,
+  ClipboardList,
 } from "lucide-react";
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
@@ -76,8 +77,9 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
     purchasedepartment: [
       { label: "Overview", section: true },
-        { path: "/qms-indents", label: "Dashboard", icon: LayoutDashboard },
+        { path: "/purchase-dashboard", label: "Dashboard", icon: LayoutDashboard },
       { label: "Purchase Operations", section: true },
+      { path: "/create-purchase-indent", label: "Purchase Indent", icon: ClipboardList },
       { path: "/suppliers", label: "Suppliers", icon: Truck },
       { path: "/qms-indents", label: "QMS Indents", icon: FileText },
       { path: "/store-requests", label: "Store Requests", icon: Inbox },

@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, ChevronDown, Eye, Calendar, FileText, X, Package, User, MapPin, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, ChevronDown, Eye, Calendar, FileText, X, Package, User, MapPin, Clock, Plus } from 'lucide-react';
 import './QMSIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 
 const QMSIndents = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('this-month');
@@ -25,16 +27,20 @@ const QMSIndents = () => {
       const mapped = data.map((indent) => {
         const materials = Array.isArray(indent.materials) ? indent.materials : [];
         const first = materials[0];
+        const isPurchaseDept = !indent.customer_order_id &&
+          (indent.workflow_stage === 'Purchase Dept' || indent.workflow_stage === 'QMS Init');
         return {
           id: indent.indent_number,
           date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
           material: first?.material_description || 'Materials',
-          category: indent.customer_order_id ? 'Customer Order' : 'Store Request',
+          category: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'Customer Order' : 'Store Request'),
           priority: String(indent.priority || 'NORMAL').toUpperCase(),
           status: indent.status || 'Pending',
-          origin: indent.customer_order_id ? 'QMS Dept' : 'Store Request',
+          origin: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'QMS Dept' : 'Store Request'),
           quantity: first?.quantity ? `${first.quantity} ${first.unit_of_measurement || ''}` : '-',
-          requestedBy: indent.requested_by_name || '-'
+          requestedBy: indent.requested_by_name || '-',
+          remarks: indent.reason || '',
+          materials: materials,
         };
       });
       setIndents(mapped);
@@ -151,6 +157,13 @@ const QMSIndents = () => {
               </select>
               <ChevronDown size={14} className="qi-dropdown-icon" />
             </div>
+            <button
+              className="qi-create-btn"
+              onClick={() => navigate('/create-purchase-indent')}
+            >
+              <Plus size={14} />
+              Create Indent
+            </button>
           </div>
         </div>
 
@@ -317,7 +330,7 @@ const QMSIndents = () => {
 
               <div className="qi-detail-section">
                 <span className="qi-detail-label">Remarks</span>
-                <p className="qi-detail-remarks">{selectedIndent.remarks}</p>
+                <p className="qi-detail-remarks">{selectedIndent.remarks || '—'}</p>
               </div>
 
               {selectedIndent.status === 'Processed' && selectedIndent.poNumber && (

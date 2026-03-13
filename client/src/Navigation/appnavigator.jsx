@@ -29,6 +29,8 @@ import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
 import Suppliers from '../Pages/PurchaseDepartment/Suppliers/Suppliers';
 import QMSIndents from '../Pages/PurchaseDepartment/QMSIndents/QMSIndents';
+import CreatePurchaseIndent from '../Pages/PurchaseDepartment/CreatePurchaseIndent/CreatePurchaseIndent';
+import PurchaseDashboard from '../Pages/PurchaseDepartment/Dashboard/PurchaseDashboard';
 
 const AppNavigator = () => {
   const { user } = useAuthStore();
@@ -46,7 +48,7 @@ const AppNavigator = () => {
         return '/store-dashboard';
       case 'purchasedepartment':
       case 'purchase':
-        return '/qms-indents';
+        return '/purchase-dashboard';
       default:
         return '/dashboard';
     }
@@ -84,10 +86,12 @@ const AppNavigator = () => {
       <Route path="/admin-purchase-indents" element={<QMSPurchaseIndents />} />
 
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
-      <Route path="/overview" element={<Navigate to="/qms-indents" replace />} />
+      <Route path="/purchase-dashboard" element={<PurchaseDashboard />} />
+      <Route path="/overview" element={<Navigate to="/purchase-dashboard" replace />} />
       <Route path="/store-requests" element={<StoreRequests />} />
       <Route path="/suppliers" element={<Suppliers />} />
       <Route path="/qms-indents" element={<QMSIndents />} />
+      <Route path="/create-purchase-indent" element={<CreatePurchaseIndent />} />
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-purchase-indents" element={<QMSPurchaseIndents />} />
