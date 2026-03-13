@@ -58,6 +58,19 @@ const UserManagement = () => {
     roleName: 'StoreOfficer',
   });
 
+  // Edit User Modal States
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editUserSubmitting, setEditUserSubmitting] = useState(false);
+  const [editUserError, setEditUserError] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [editUserForm, setEditUserForm] = useState({
+    username: '',
+    email: '',
+    phoneNumber: '',
+    roleName: '',
+    password: '',
+  });
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,8 +93,10 @@ const UserManagement = () => {
       const response = await userService.getAllUsers();
       const data = response.data || response.users || [];
       const mapped = data.map((u) => ({
+        userId: u.user_id,
         name: u.username || u.full_name || 'User',
         email: u.email || '-',
+        phoneNumber: u.phone_number || '',
         avatar: u.profile_image || 'https://i.pravatar.cc/150?img=12',
         role: u.role_name || u.role || 'User',
         roleClass: roleToClass(u.role_name || u.role),
@@ -178,6 +193,68 @@ const UserManagement = () => {
       setAddUserError(err?.data?.message || err?.message || 'Failed to create user');
     } finally {
       setAddUserSubmitting(false);
+    }
+  };
+
+  // Edit User Modal Functions
+  const openEditUserModal = (user) => {
+    setEditUserError('');
+    setEditUserSubmitting(false);
+    setSelectedUserId(user.userId);
+    setEditUserForm({
+      username: user.name,
+      email: user.email,
+      phoneNumber: user.phoneNumber,
+      roleName: user.role,
+      password: '', // Leave empty - only fill if user wants to change password
+    });
+    setShowEditUserModal(true);
+  };
+
+  const closeEditUserModal = () => {
+    if (editUserSubmitting) return;
+    setShowEditUserModal(false);
+    setEditUserError('');
+    setSelectedUserId(null);
+  };
+
+  const onEditUserFieldChange = (e) => {
+    const { name, value } = e.target;
+    setEditUserForm((prev) => ({ ...prev, [name]: value }));
+    if (editUserError) setEditUserError('');
+  };
+
+  const submitEditUser = async (e) => {
+    e.preventDefault();
+    setEditUserError('');
+
+    const username = editUserForm.username.trim();
+    const email = editUserForm.email.trim();
+    const phoneNumber = editUserForm.phoneNumber.trim();
+    const roleName = editUserForm.roleName;
+    const password = editUserForm.password.trim();
+
+    if (!username || !email || !phoneNumber || !roleName) {
+      setEditUserError('Please fill all required fields.');
+      return;
+    }
+
+    try {
+      setEditUserSubmitting(true);
+      const updateData = { username, email, phoneNumber, roleName };
+      
+      // Only include password if user wants to change it
+      if (password) {
+        updateData.password = password;
+      }
+
+      await userService.updateUser(selectedUserId, updateData);
+      setShowEditUserModal(false);
+      await fetchUsers();
+    } catch (err) {
+      setEditUserError(err?.data?.message || err?.message || 'Failed to update user');
+    } finally {
+      setEditUserSubmitting(false);
     }
   };
 
@@ -384,6 +461,108 @@ const UserManagement = () => {
         </div>
       )}
 
+      {/* Edit User Modal */}
+      {showEditUserModal && (
+        <div className="um-modal-overlay" onMouseDown={closeEditUserModal}>
+          <div className="um-modal" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Edit User">
+            <div className="um-modal-header">
+              <h2 className="um-modal-title">Edit User Profile</h2>
+              <button type="button" className="um-modal-close" onClick={closeEditUserModal} aria-label="Close">
+                <Icons.X />
+              </button>
+            </div>
+            <form className="um-modal-body" onSubmit={submitEditUser}>
+              {editUserError && (
+                <div className="um-modal-error">
+                  {editUserError}
+                </div>
+              )}
+
+              <div className="um-form-row">
+                <div className="um-form-group">
+                  <label className="um-form-label">Name</label>
+                  <input
+                    className="um-form-input"
+                    name="username"
+                    value={editUserForm.username}
+                    onChange={onEditUserFieldChange}
+                    placeholder="Enter name"
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+                <div className="um-form-group">
+                  <label className="um-form-label">Email ID</label>
+                  <input
+                    className="um-form-input"
+                    type="email"
+                    name="email"
+                    value={editUserForm.email}
+                    onChange={onEditUserFieldChange}
+                    placeholder="Enter email"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="um-form-row">
+                <div className="um-form-group">
+                  <label className="um-form-label">Phone</label>
+                  <input
+                    className="um-form-input"
+                    type="tel"
+                    name="phoneNumber"
+                    value={editUserForm.phoneNumber}
+                    onChange={onEditUserFieldChange}
+                    placeholder="Enter phone number"
+                    autoComplete="tel"
+                    required
+                  />
+                </div>
+                <div className="um-form-group">
+                  <label className="um-form-label">Role</label>
+                  <select
+                    className="um-form-input"
+                    name="roleName"
+                    value={editUserForm.roleName}
+                    onChange={onEditUserFieldChange}
+                    required
+                  >
+                    {roleNameOptions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="um-form-group">
+                <label className="um-form-label">New Password (Optional)</label>
+                <input
+                  className="um-form-input"
+                  type="password"
+                  name="password"
+                  value={editUserForm.password}
+                  onChange={onEditUserFieldChange}
+                  placeholder="Leave empty to keep current password"
+                  autoComplete="new-password"
+                />
+                <div className="um-form-help">Leave blank if you don't want to change the password</div>
+              </div>
+
+              <div className="um-modal-footer">
+                <button type="button" className="um-btn-secondary" onClick={closeEditUserModal} disabled={editUserSubmitting}>
+                  Cancel
+                </button>
+                <button type="submit" className="um-btn-primary" disabled={editUserSubmitting}>
+                  {editUserSubmitting ? 'Updating...' : 'Update User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* User Table */}
       <div className="um-table-card">
         <table className="um-table">
@@ -427,7 +606,12 @@ const UserManagement = () => {
                   <span className="um-last-active">{user.lastActive}</span>
                 </td>
                 <td>
-                  <button className="um-manage-btn">Manage</button>
+                  <button 
+                    className="um-manage-btn"
+                    onClick={() => openEditUserModal(user)}
+                  >
+                    Manage
+                  </button>
                 </td>
               </tr>
             ))}
