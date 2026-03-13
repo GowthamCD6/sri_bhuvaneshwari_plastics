@@ -76,6 +76,29 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.listen(port,()=>{
+// Auto-run DB migrations on startup
+async function runMigrations() {
+    const migrations = [
+        // Add reason column if not present
+        `ALTER TABLE purchase_indents ADD COLUMN IF NOT EXISTS reason TEXT AFTER priority`,
+        // Extend priority ENUM to include Normal
+        `ALTER TABLE purchase_indents MODIFY COLUMN priority ENUM('Normal','Standard','High','Urgent') DEFAULT 'Normal'`,
+        // Extend workflow_stage ENUM to include Purchase Dept
+        `ALTER TABLE purchase_indents MODIFY COLUMN workflow_stage ENUM('Purchase Dept','QMS Init','Store Officer','QMS Verified','Admin','Accountant','Completed') DEFAULT 'QMS Init'`,
+        // Ensure full status ENUM
+        `ALTER TABLE purchase_indents MODIFY COLUMN status ENUM('Draft','Pending Store Review','Store Verified','Pending QMS Verification','QMS Verified','Pending Admin Approval','Admin Approved','Rejected') DEFAULT 'Draft'`,
+    ];
+    for (const sql of migrations) {
+        try {
+            await db.query(sql);
+        } catch (err) {
+            console.warn('Migration warning:', err.message);
+        }
+    }
+    console.log('DB migrations applied.');
+}
+
+app.listen(port, async () => {
     console.log(`Server running on port ${port}`);
+    await runMigrations();
 });

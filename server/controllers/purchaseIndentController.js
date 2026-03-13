@@ -846,11 +846,162 @@ const downloadPOFile = async (req, res) => {
   }
 };
 
+/**
+ * Create a Purchase Department indent
+ * Workflow: Purchase Dept → QMS Verification → Admin Approval
+ */
+const createPurchaseDeptIndent = async (req, res) => {
+  try {
+    const { indentNumber, requestDate, priority, reason, status, workflowStage, materials } = req.body;
+    const userId = req.user.userId;
+
+    if (!indentNumber || !requestDate || !materials || materials.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    // Validate materials
+    for (const m of materials) {
+      if (!m.description || !m.description.trim()) {
+        return res.status(400).json({ success: false, message: 'Each material must have a description' });
+      }
+      if (!m.quantity || parseFloat(m.quantity) <= 0) {
+        return res.status(400).json({ success: false, message: `Invalid quantity for material: ${m.description}` });
+      }
+    }
+
+    // Check duplicate indent number
+    const [existing] = await db.query(
+      'SELECT indent_id FROM purchase_indents WHERE indent_number = ?',
+      [indentNumber]
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ success: false, message: 'Indent number already exists' });
+    }
+
+    const resolvedStatus = status || 'Draft';
+    const resolvedStage = workflowStage || 'Purchase Dept';
+    const resolvedPriority = priority || 'Normal';
+
+    // Insert indent
+    const [indentResult] = await db.query(
+      `INSERT INTO purchase_indents
+        (indent_number, requested_by, request_date, priority, reason, status, workflow_stage)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [indentNumber, userId, requestDate, resolvedPriority, reason || null, resolvedStatus, resolvedStage]
+    );
+    const indentId = indentResult.insertId;
+
+    // Insert materials
+    for (const m of materials) {
+      await db.query(
+        `INSERT INTO purchase_indent_materials
+          (indent_id, material_description, quantity, unit_of_measurement, current_stock, specifications)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          indentId,
+          m.description.trim(),
+          parseFloat(m.quantity),
+          m.unit || 'Kg',
+          parseFloat(m.currentStock) || 0,
+          m.specifications || null
+        ]
+      );
+    }
+
+    // Log status history
+    await db.query(
+      `INSERT INTO indent_status_history
+        (indent_id, changed_by, new_status, workflow_stage, comments)
+       VALUES (?, ?, ?, ?, ?)`,
+      [indentId, userId, resolvedStatus, resolvedStage,
+        resolvedStatus === 'Draft' ? 'Indent saved as draft' : 'Indent submitted for QMS Verification']
+    );
+
+    // Return created indent with materials
+    const [newIndent] = await db.query(
+      `SELECT pi.*, u.username AS requested_by_name
+       FROM purchase_indents pi
+       LEFT JOIN users u ON pi.requested_by = u.user_id
+       WHERE pi.indent_id = ?`,
+      [indentId]
+    );
+    const [indentMaterials] = await db.query(
+      'SELECT * FROM purchase_indent_materials WHERE indent_id = ?',
+      [indentId]
+    );
+    newIndent[0].materials = indentMaterials;
+
+    res.status(201).json({
+      success: true,
+      message: resolvedStatus === 'Draft'
+        ? 'Draft saved successfully'
+        : 'Indent submitted for QMS Verification',
+      data: newIndent[0]
+    });
+  } catch (error) {
+    console.error('Create purchase dept indent error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create indent' });
+  }
+};
+
+/**
+ * Get all Purchase Department indents
+ * Returns indents originated from Purchase Dept with optional filters
+ */
+const getPurchaseDeptIndents = async (req, res) => {
+  try {
+    const { status, search } = req.query;
+
+    let query = `
+      SELECT
+        pi.*,
+        u.username AS requested_by_name,
+        COUNT(pim.indent_material_id) AS total_materials
+      FROM purchase_indents pi
+      LEFT JOIN users u ON pi.requested_by = u.user_id
+      LEFT JOIN purchase_indent_materials pim ON pi.indent_id = pim.indent_id
+      WHERE pi.workflow_stage IN ('Purchase Dept', 'QMS Init')
+        AND pi.customer_order_id IS NULL
+    `;
+    const params = [];
+
+    if (status && status !== 'all') {
+      query += ' AND pi.status = ?';
+      params.push(status);
+    }
+
+    if (search) {
+      query += ' AND (pi.indent_number LIKE ? OR u.username LIKE ?)';
+      const term = `%${search}%`;
+      params.push(term, term);
+    }
+
+    query += ' GROUP BY pi.indent_id ORDER BY pi.created_at DESC';
+
+    const [indents] = await db.query(query, params);
+
+    for (const indent of indents) {
+      const [materials] = await db.query(
+        'SELECT * FROM purchase_indent_materials WHERE indent_id = ? ORDER BY indent_material_id',
+        [indent.indent_id]
+      );
+      indent.materials = materials;
+    }
+
+    res.status(200).json({ success: true, data: indents });
+  } catch (error) {
+    console.error('Get purchase dept indents error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch indents' });
+  }
+};
+
 module.exports = {
   getAdminApprovals,
   getAllIndents,
   getIndentById,
   createIndent,
+  createPurchaseDeptIndent,
+  getPurchaseDeptIndents,
   updateIndentStatus,
   sendToNextStage,
   deleteIndent,

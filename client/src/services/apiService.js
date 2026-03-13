@@ -83,6 +83,65 @@ const removeTokenFromStorage = () => {
 };
 
 /**
+ * Store refresh token in localStorage
+ */
+const setRefreshTokenInStorage = (token) => {
+  localStorage.setItem('refresh_token', token);
+};
+
+/**
+ * Get refresh token from localStorage
+ */
+const getRefreshTokenFromStorage = () => {
+  return localStorage.getItem('refresh_token');
+};
+
+/**
+ * Remove refresh token from localStorage
+ */
+const removeRefreshTokenFromStorage = () => {
+  localStorage.removeItem('refresh_token');
+};
+
+/**
+ * Clear all authentication data including Zustand persisted state
+ */
+const clearAllAuth = () => {
+  removeTokenFromCookie();
+  removeTokenFromStorage();
+  removeRefreshTokenFromStorage();
+  removeUserData();
+  localStorage.removeItem('auth-storage');
+};
+
+/**
+ * Attempt to refresh the access token using the stored refresh token.
+ * Returns true on success, false otherwise.
+ */
+const _attemptTokenRefresh = async () => {
+  const storedRefreshToken = getRefreshTokenFromStorage();
+  if (!storedRefreshToken) return false;
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ refreshToken: storedRefreshToken }),
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    if (data.token) {
+      setTokenInCookie(data.token);
+      setTokenInStorage(data.token);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Store user data in localStorage
  */
 const setUserData = (userData) => {
@@ -134,13 +193,17 @@ const fetchWithAuth = async (url, options = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}${url}`, config);
     
-    // Handle token expiration
-    if (response.status === 401) {
-      removeTokenFromCookie();
-      removeTokenFromStorage();
-      removeUserData();
-      // Optionally redirect to login
-      // window.location.href = '/login';
+    // Handle token expiration with automatic refresh
+    if (response.status === 401 && !options._isRetry) {
+      const refreshed = await _attemptTokenRefresh();
+      if (refreshed) {
+        return fetchWithAuth(url, { ...options, _isRetry: true });
+      }
+      clearAllAuth();
+      window.location.href = '/';
+      const sessionErr = new Error('Session expired. Please log in again.');
+      sessionErr.status = 401;
+      throw sessionErr;
     }
 
     const data = await response.json();
@@ -185,6 +248,9 @@ export const authService = {
       setTokenInCookie(response.token);
       setTokenInStorage(response.token);
     }
+    if (response.refreshToken) {
+      setRefreshTokenInStorage(response.refreshToken);
+    }
     if (response.user) {
       setUserData(response.user);
     }
@@ -205,6 +271,9 @@ export const authService = {
       setTokenInCookie(response.token);
       setTokenInStorage(response.token);
     }
+    if (response.refreshToken) {
+      setRefreshTokenInStorage(response.refreshToken);
+    }
     if (response.user) {
       setUserData(response.user);
     }
@@ -221,9 +290,7 @@ export const authService = {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      removeTokenFromCookie();
-      removeTokenFromStorage();
-      removeUserData();
+      clearAllAuth();
     }
   },
 
@@ -402,6 +469,24 @@ export const purchaseIndentService = {
   getAllIndents: async (filters = {}) => {
     const queryParams = new URLSearchParams(filters).toString();
     return await fetchWithAuth(`/purchase-indents${queryParams ? '?' + queryParams : ''}`);
+  },
+
+  /**
+   * Get Purchase Department indents
+   */
+  getPurchaseDeptIndents: async (filters = {}) => {
+    const queryParams = new URLSearchParams(filters).toString();
+    return await fetchWithAuth(`/purchase-indents/purchase-dept${queryParams ? '?' + queryParams : ''}`);
+  },
+
+  /**
+   * Create Purchase Department indent (Purchase Dept → QMS → Admin workflow)
+   */
+  createPurchaseDeptIndent: async (indentData) => {
+    return await fetchWithAuth('/purchase-indents/purchase-dept', {
+      method: 'POST',
+      body: JSON.stringify(indentData),
+    });
   },
 
   /**

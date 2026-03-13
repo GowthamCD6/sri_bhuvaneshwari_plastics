@@ -248,66 +248,57 @@ const getProfile = async (req, res) => {
  */
 const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken: token } = req.body;
 
-    if (!refreshToken) {
+    if (!token) {
       return res.status(400).json({
         success: false,
         message: 'Refresh token is required'
       });
     }
 
-    // Verify refresh token
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET + '_REFRESH');
-
-    // Check if refresh token exists in database
-    const query = `
-      SELECT rt.*, u.* 
-      FROM refresh_tokens rt
-      JOIN users u ON rt.user_id = u.user_id
-      WHERE rt.token = ? AND rt.expires_at > NOW() AND u.is_active = 1
-    `;
-
-    db.query(query, [refreshToken], (err, results) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Internal server error'
-        });
-      }
-
-      if (results.length === 0) {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid or expired refresh token'
-        });
-      }
-
-      const user = results[0];
-
-      // Generate new access token
-      const newAccessToken = generateAccessToken(user);
-
-      // Set new cookie
-      setTokenCookie(res, newAccessToken);
-
-      res.status(200).json({
-        success: true,
-        token: newAccessToken
-      });
-    });
-
-  } catch (error) {
-    console.error('Refresh token error:', error);
-    
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+    // Verify refresh token signature
+    let decoded;
+    try {
+      decoded = verifyRefreshToken(token);
+    } catch (err) {
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired refresh token'
       });
     }
 
+    // Fetch current user from database
+    const query = `
+      SELECT u.*, r.role_name
+      FROM users u
+      JOIN roles r ON u.role_id = r.role_id
+      WHERE u.user_id = ? AND u.is_active = 1
+    `;
+    const [results] = await db.query(query, [decoded.userId]);
+
+    if (results.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found or inactive'
+      });
+    }
+
+    const user = results[0];
+
+    // Generate new access token
+    const newAccessToken = generateAccessToken(user);
+
+    // Set new cookie
+    setTokenCookie(res, newAccessToken);
+
+    res.status(200).json({
+      success: true,
+      token: newAccessToken
+    });
+
+  } catch (error) {
+    console.error('Refresh token error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

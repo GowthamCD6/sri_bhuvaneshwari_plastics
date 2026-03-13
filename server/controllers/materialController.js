@@ -6,25 +6,28 @@ const db = require('../config/db');
 const getAllMaterials = async (req, res) => {
   const { type, category, active } = req.query;
   
-  let query = 'SELECT * FROM materials WHERE 1=1';
+  let query = `SELECT m.*, i.warehouse_location, i.current_stock AS stock_quantity
+    FROM materials m
+    LEFT JOIN inventory i ON m.material_id = i.material_id
+    WHERE 1=1`;
   const params = [];
 
   if (type) {
-    query += ' AND material_type = ?';
+    query += ' AND m.material_type = ?';
     params.push(type);
   }
 
   if (category) {
-    query += ' AND category = ?';
+    query += ' AND m.category = ?';
     params.push(category);
   }
 
   if (active !== undefined) {
-    query += ' AND is_active = ?';
+    query += ' AND m.is_active = ?';
     params.push(active === 'true' ? 1 : 0);
   }
 
-  query += ' ORDER BY material_name ASC';
+  query += ' ORDER BY m.material_name ASC';
 
   try {
     const [results] = await db.query(query, params);

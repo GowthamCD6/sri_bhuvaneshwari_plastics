@@ -5,6 +5,8 @@ const {
   getAllIndents,
   getIndentById,
   createIndent,
+  createPurchaseDeptIndent,
+  getPurchaseDeptIndents,
   updateIndentStatus,
   sendToNextStage,
   deleteIndent,
@@ -17,31 +19,21 @@ const upload = require('../middleware/fileUpload');
 // All routes require authentication
 router.use(verifyToken);
 
-// Get all indents (with filters)
+// ── Purchase Department indent routes ─────────────────────────────────────
+// GET  /api/purchase-indents/purchase-dept       – list all Purchase Dept indents
+// POST /api/purchase-indents/purchase-dept       – create a new Purchase Dept indent
+router.get('/purchase-dept', getPurchaseDeptIndents);
+router.post('/purchase-dept', createPurchaseDeptIndent);
+
+// ── General routes ─────────────────────────────────────────────────────────
 router.get('/', getAllIndents);
-
-// Admin approvals feed (QMS -> Admin final verification)
 router.get('/admin/approvals', requireRole('Admin'), getAdminApprovals);
-
-// Get single indent
 router.get('/:id', getIndentById);
-
-// Create new indent
 router.post('/', createIndent);
-
-// Update indent status/workflow
 router.patch('/:id/status', updateIndentStatus);
-
-// Send indent to next workflow stage
 router.post('/:id/send-next', sendToNextStage);
-
-// Upload PO file
 router.post('/:id/upload-po', upload.single('poFile'), uploadPOFile);
-
-// Download PO file
 router.get('/:id/download-po', downloadPOFile);
-
-// Delete indent
 router.delete('/:id', deleteIndent);
 
 module.exports = router;
