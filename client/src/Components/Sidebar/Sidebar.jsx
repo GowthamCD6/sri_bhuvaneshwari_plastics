@@ -33,14 +33,6 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const location = useLocation();
 
-  // Remove onToggle effect since we're not using collapse anymore
-  // useEffect(() => {
-  //   if (onToggle) {
-  //     onToggle(collapsed);
-  //   }
-  // }, [collapsed, onToggle]);
-
-  // Role-based menu configuration
   const roleMenus = {
     admin: [
       { label: "Overview", section: true },
@@ -52,8 +44,16 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         icon: ClipboardCheck,
         isDropdown: true,
         children: [
-          { path: "/customer-order", label: "Customer Order", icon: ClipboardCheck },
-          { path: "/store-request-approvals", label: "Store Requests", icon: Inbox },
+          {
+            path: "/customer-order",
+            label: "Customer Order",
+            icon: ClipboardCheck,
+          },
+          {
+            path: "/store-request-approvals",
+            label: "Store Requests",
+            icon: Inbox,
+          },
         ],
       },
       { label: "Administration", section: true },
@@ -63,10 +63,23 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       { label: "Overview", section: true },
       { path: "/customer-orders", label: "Dashboard", icon: LayoutDashboard },
       { label: "Order Management", section: true },
-      { path: "/customer-orders", label: "Customer Orders", icon: ShoppingCart },
+      {
+        path: "/customer-orders",
+        label: "Customer Orders",
+        icon: ShoppingCart,
+      },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
       { label: "Approvals", section: true },
-      { path: "/verify-store-indents", label: "Verify Store Indents", icon: CheckCircle },
+      {
+        path: "/verify-purchase-dept-indents",
+        label: "Verify Purchase Indents",
+        icon: ClipboardList,
+      },
+      {
+        path: "/verify-store-indents",
+        label: "Verify Store Indents",
+        icon: CheckCircle,
+      },
       { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
     storeofficer: [
@@ -74,51 +87,71 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       { path: "/store-dashboard", label: "Dashboard", icon: LayoutDashboard },
       { label: "Inventory Management", section: true },
       { path: "/inventory", label: "Inventory", icon: Package },
-      { path: "/goods-inventory", label: "Goods Inventory", icon: PackageCheck },
-      { path: "/low-stock-alert", label: "Low Stock Alert", icon: AlertTriangle },
-      { path: "/stock-adjustment", label: "Stock Adjustment", icon: SlidersHorizontal },
+      {
+        path: "/goods-inventory",
+        label: "Goods Inventory",
+        icon: PackageCheck,
+      },
+      {
+        path: "/low-stock-alert",
+        label: "Low Stock Alert",
+        icon: AlertTriangle,
+      },
+      {
+        path: "/stock-adjustment",
+        label: "Stock Adjustment",
+        icon: SlidersHorizontal,
+      },
       { label: "Procurement", section: true },
       { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
-      { path: "/material-request", label: "Material Request", icon: ShoppingCart },
+      {
+        path: "/material-request",
+        label: "Material Request",
+        icon: ShoppingCart,
+      },
     ],
     purchasedepartment: [
       { label: "Overview", section: true },
-        { path: "/purchase-dashboard", label: "Dashboard", icon: LayoutDashboard },
+      {
+        path: "/purchase-dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+      },
       { label: "Purchase Operations", section: true },
-      { path: "/create-purchase-indent", label: "Purchase Indent", icon: ClipboardList },
+      {
+        path: "/create-purchase-indent",
+        label: "Purchase Indent",
+        icon: ClipboardList,
+      },
       { path: "/suppliers", label: "Suppliers", icon: Truck },
       { path: "/qms-indents", label: "QMS Indents", icon: FileText },
       { path: "/store-requests", label: "Store Requests", icon: Inbox },
     ],
   };
 
-  // Get menu items for the user's role, with fallback to qms if role not found
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
 
   return (
-    <div className="sidebar"> 
-    {/* Header */} 
-    <div className="sidebar-header"> 
-      <div className="header-content"> 
-        <div className="logo-section"> 
-          <div className="logo-icon"> 
-            <span className="logo-text">
-              <img src={logo} alt="SBP Logo" className="logo-image" />
-            </span> 
-               </div> 
-               <div className="company-name"> 
-                 <div className="company-title">Sri Bhuvaneshwari</div>
-                 <div className="company-subtitle">Plastics</div>
-               </div> 
-       </div> 
-      </div> 
-    </div>
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <div className="header-content">
+          <div className="logo-section">
+            <div className="logo-icon">
+              <span className="logo-text">
+                <img src={logo} alt="SBP Logo" className="logo-image" />
+              </span>
+            </div>
+            <div className="company-name">
+              <div className="company-title">Sri Bhuvaneshwari</div>
+              <div className="company-subtitle">Plastics</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Navigation */}
       <nav className="sidebar-nav">
         {menuItems.map((item, index) => {
-          // Render section headers
           if (item.section) {
             return (
               <div key={index} className="nav-section">
@@ -195,17 +228,23 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
 
       {/* User Profile */}
       <div className="sidebar-footer">
-        <div className="user-profile" onClick={() => setUserMenuOpen(!userMenuOpen)}>
+        <div
+          className="user-profile"
+          onClick={() => setUserMenuOpen(!userMenuOpen)}
+        >
           <div className="user-avatar">
             <User size={20} />
           </div>
           <div className="user-info">
-            <div className="user-name">{userData?.username || 'User'}</div>
-            <div className="user-role">{userData?.roleName || 'Role'}</div>
+            <div className="user-name">{userData?.username || "User"}</div>
+            <div className="user-role">{userData?.roleName || "Role"}</div>
           </div>
-          <ChevronDown size={18} className={`user-menu-icon ${userMenuOpen ? 'open' : ''}`} />
+          <ChevronDown
+            size={18}
+            className={`user-menu-icon ${userMenuOpen ? "open" : ""}`}
+          />
         </div>
-        
+
         {userMenuOpen && (
           <div className="user-dropdown">
             <button className="logout-btn" onClick={onLogout}>

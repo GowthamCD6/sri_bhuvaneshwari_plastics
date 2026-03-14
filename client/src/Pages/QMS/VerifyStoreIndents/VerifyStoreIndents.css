@@ -34,6 +34,8 @@
   font-weight: 600;
   color: var(--vsi-text-dark);
   margin: 0;
+  padding-top: 8px;
+  padding-bottom: 5px;
 }
 
 /* --- Stats Cards --- */
