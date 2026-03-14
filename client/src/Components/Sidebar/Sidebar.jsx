@@ -30,7 +30,6 @@ import "./SidebarUserProfile.css";
 import logo from "../../assets/SBP_logo.png";
 const Sidebar = ({ userRole, userData, onLogout }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [orderManagementOpen, setOrderManagementOpen] = useState(true);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const location = useLocation();
 
@@ -48,7 +47,15 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       { path: "/admin-dashboard", label: "Dashboard", icon: LayoutDashboard },
       { label: "Approvals", section: true },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
-      { path: "/qms-approval", label: "QMS Approvals", icon: ClipboardCheck },
+      {
+        label: "QMS Approval",
+        icon: ClipboardCheck,
+        isDropdown: true,
+        children: [
+          { path: "/customer-order", label: "Customer Order", icon: ClipboardCheck },
+          { path: "/store-request-approvals", label: "Store Requests", icon: Inbox },
+        ],
+      },
       { label: "Administration", section: true },
       { path: "/user-management", label: "User Management", icon: UserCog },
     ],
@@ -130,26 +137,20 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
             return (
               <div key={index} className="nav-dropdown">
                 <div
-                  className={`nav-item dropdown-trigger ${isAnyChildActive ? "active" : ""} ${collapsed ? "collapsed" : ""}`}
-                  onClick={() =>
-                    !collapsed && setOrderManagementOpen(!orderManagementOpen)
-                  }
-                  title={collapsed ? item.label : ""}
+                  className={`nav-item dropdown-trigger ${isAnyChildActive ? "active" : ""}`}
+                  onClick={() => setApprovalsOpen(!approvalsOpen)}
+                  title={item.label}
                 >
                   {isAnyChildActive && <div className="active-indicator" />}
                   <Icon className="nav-icon" size={22} />
-                  {!collapsed && (
-                    <>
-                      <span className="nav-label">{item.label}</span>
-                      <ChevronDown
-                        className={`dropdown-arrow ${orderManagementOpen ? "open" : ""}`}
-                        size={16}
-                      />
-                    </>
-                  )}
+                  <span className="nav-label">{item.label}</span>
+                  <ChevronDown
+                    className={`dropdown-arrow ${approvalsOpen ? "open" : ""}`}
+                    size={16}
+                  />
                 </div>
 
-                {!collapsed && orderManagementOpen && (
+                {approvalsOpen && (
                   <div className="dropdown-content">
                     {item.children.map((child) => {
                       const ChildIcon = child.icon;

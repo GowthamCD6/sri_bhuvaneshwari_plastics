@@ -23,7 +23,8 @@ import MaterialRequest from '../Pages/StoreOfficer/MaterialRequest/MaterialReque
 // ===== ADMIN ROLE PAGES =====
 import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
 import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
-import QMSApproval from '../Pages/Admin/QMSApproval/QMSApproval';
+import CustomerOrder from '../Pages/Admin/CustomerOrder/CustomerOrder';
+import StoreRequestApproval from '../Pages/Admin/StoreRequestApproval/StoreRequestApproval';
 
 // ===== PURCHASE DEPARTMENT ROLE PAGES =====
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
@@ -82,7 +83,8 @@ const AppNavigator = () => {
       {/* ===== ADMIN ROLE ROUTES ===== */}
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/user-management" element={<UserManagement />} />
-      <Route path="/qms-approval" element={<QMSApproval />} />
+      <Route path="/customer-order" element={<CustomerOrder />} />
+      <Route path="/store-request-approvals" element={<StoreRequestApproval />} />
       <Route path="/admin-purchase-indents" element={<QMSPurchaseIndents />} />
 
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
