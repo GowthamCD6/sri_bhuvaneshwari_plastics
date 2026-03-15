@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Check, Loader2 } from 'lucide-react';
-import './CreatePurchaseIndent.css';
+import './CreateIndent.css';
 import { purchaseIndentService, materialService, storeRequestService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
