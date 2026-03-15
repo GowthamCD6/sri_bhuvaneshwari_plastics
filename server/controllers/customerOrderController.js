@@ -11,7 +11,21 @@ const getAllOrders = async (req, res) => {
       SELECT 
         co.*,
         MAX(u.username) as created_by_name,
-        COUNT(coi.item_id) as total_items
+        COUNT(DISTINCT coi.item_id) as total_items,
+        (
+          SELECT pi2.indent_id
+          FROM purchase_indents pi2
+          WHERE pi2.customer_order_id = co.order_id OR pi2.indent_number = co.indent_id
+          ORDER BY pi2.updated_at DESC, pi2.indent_id DESC
+          LIMIT 1
+        ) as purchase_indent_id,
+        (
+          SELECT pi2.indent_number
+          FROM purchase_indents pi2
+          WHERE pi2.customer_order_id = co.order_id OR pi2.indent_number = co.indent_id
+          ORDER BY pi2.updated_at DESC, pi2.indent_id DESC
+          LIMIT 1
+        ) as purchase_indent_number
       FROM customer_orders co
       LEFT JOIN users u ON co.created_by = u.user_id
       LEFT JOIN customer_order_items coi ON co.order_id = coi.order_id

@@ -32,7 +32,7 @@ router.get('/:id', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartme
 router.post('/', requireRole('QMS'), createIndent);
 router.patch('/:id/status', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), updateIndentStatus);
 router.post('/:id/send-next', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), sendToNextStage);
-router.post('/:id/upload-po', requireRole('StoreOfficer'), upload.single('poFile'), uploadPOFile);
+router.post('/:id/upload-po', requireRole('QMS', 'StoreOfficer'), upload.single('poFile'), uploadPOFile);
 router.get('/:id/download-po', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), downloadPOFile);
 router.delete('/:id', requireRole('Admin', 'QMS'), deleteIndent);
 

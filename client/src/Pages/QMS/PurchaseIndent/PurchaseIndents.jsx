@@ -5,6 +5,19 @@ import './PurchaseIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const resolvePoFilePath = (source) => {
+  if (!source) return null;
+  return source.po_file_path || source.poFilePath || source.filePath || null;
+};
+
+const resolveIndentArray = (response) => {
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.data?.indents)) return response.data.indents;
+  return [];
+};
+
 const NewPurchaseIndent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -120,6 +133,7 @@ const NewPurchaseIndent = () => {
   const [selectedPOFile, setSelectedPOFile] = useState(null);
   const [modalState, setModalState] = useState({ show: false, title: '', message: '', type: 'info' });
   const fileInputRef = useRef(null);
+  const currentIndentId = passedIndentId || createdIndentId;
 
   // Auto-generate indent number on component mount if not editing existing
   useEffect(() => {
@@ -336,14 +350,14 @@ const NewPurchaseIndent = () => {
             storeOfficerNotes: indent.store_officer_notes || '',
             qmsNotes: indent.qms_notes || '',
             adminNotes: indent.admin_notes || '',
-            poFilePath: indent.po_file_path || null
+            poFilePath: resolvePoFilePath(indent)
           });
           
           console.log('=== FORM DATA AFTER SET ===');
           console.log('Workflow Stage:', indent.workflow_stage || 'QMS Init');
           console.log('poNumber:', indent.po_number || '(empty)');
           console.log('poReference:', indent.po_reference || '(empty)');
-          console.log('poFilePath from DB:', indent.po_file_path || '(no file)');
+          console.log('poFilePath from DB:', resolvePoFilePath(indent) || '(no file)');
           console.log('Store Officer Notes:', indent.store_officer_notes || '(none)');
           console.log('QMS Notes:', indent.qms_notes || '(none)');
           console.log('Admin Notes:', indent.admin_notes || '(none)');
@@ -476,14 +490,15 @@ const NewPurchaseIndent = () => {
 
   // Handle view PO file
   const handleViewPOFile = () => {
-    if (formData.poFilePath) {
-      // File path from DB is already 'po-files/filename.pdf'  
-      // Uploads are served from /uploads NOT /api/uploads
-      // So we need server base without /api
-      const fileUrl = `http://localhost:5000/uploads/${formData.poFilePath}`;
-      console.log('Opening file URL:', fileUrl);
-      window.open(fileUrl, '_blank');
-    }
+    if (!formData.poFilePath) return;
+
+    const apiOrigin = new URL(API_BASE_URL).origin;
+    const fileUrl = currentIndentId
+      ? `${API_BASE_URL}/purchase-indents/${currentIndentId}/download-po`
+      : `${apiOrigin}/uploads/${formData.poFilePath}`;
+
+    console.log('Opening file URL:', fileUrl);
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Handle submit form
@@ -491,6 +506,8 @@ const NewPurchaseIndent = () => {
     try {
       setLoading(true);
       setError(null);
+      let poUploadFailed = false;
+      let poUploadErrorMessage = '';
       
       if (action === 'submit') {
         const errors = {};
@@ -582,7 +599,7 @@ const NewPurchaseIndent = () => {
         console.log('Checking for existing indent with number:', indentNumber);
         try {
           const checkResponse = await purchaseIndentService.getAllIndents({});
-          const existingIndent = checkResponse.data?.indents?.find(i => i.indent_number === indentNumber);
+          const existingIndent = resolveIndentArray(checkResponse).find(i => i.indent_number === indentNumber);
           
           if (existingIndent?.indent_id) {
             console.log('Found existing indent - will overwrite ID:', existingIndent.indent_id);
@@ -663,7 +680,7 @@ const NewPurchaseIndent = () => {
           if (createError.message?.includes('already exists')) {
             console.log('Creation failed - indent exists. Fetching and updating...');
             const allIndents = await purchaseIndentService.getAllIndents({});
-            const existingIndent = allIndents.data?.indents?.find(i => i.indent_number === indentNumber);
+            const existingIndent = resolveIndentArray(allIndents).find(i => i.indent_number === indentNumber);
             
             if (existingIndent?.indent_id) {
               console.log('Found indent ID:', existingIndent.indent_id, '- Overwriting');
@@ -752,7 +769,7 @@ const NewPurchaseIndent = () => {
               console.log('PO file uploaded successfully!');
               console.log('Response data:', uploadResponse.data);
               // Update formData with the actual file path from server
-              const actualFilePath = uploadResponse.data.filePath || uploadResponse.data.po_file_path;
+              const actualFilePath = resolvePoFilePath(uploadResponse.data);
               console.log('Extracted file path:', actualFilePath);
               setFormData(prev => ({ 
                 ...prev, 
@@ -767,7 +784,8 @@ const NewPurchaseIndent = () => {
           } catch (uploadError) {
             console.error('===== FILE UPLOAD ERROR =====');
             console.error('Failed to upload PO file:', uploadError);
-            // Don't fail the whole submission if file upload fails
+            poUploadFailed = true;
+            poUploadErrorMessage = uploadError.message || 'Failed to upload PO file.';
           }
         } else {
           console.log('Skipping file upload - selectedPOFile:', !!selectedPOFile, 'savedIndentId:', savedIndentId);
@@ -786,7 +804,7 @@ const NewPurchaseIndent = () => {
               setFormData(prev => ({ 
                 ...prev,
                 workflowStage: indent.workflow_stage || prev.workflowStage,
-                poFilePath: indent.po_file_path || prev.poFilePath,
+                poFilePath: resolvePoFilePath(indent) || prev.poFilePath,
                 poNumber: indent.po_number || prev.poNumber,
                 poReference: indent.po_reference || prev.poReference
               }));
@@ -816,16 +834,25 @@ const NewPurchaseIndent = () => {
           }
         }
 
-        showModal('success', 
-          action === 'submit' 
-            ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted successfully!')
-            : 'Draft saved successfully!'
-        );
+        if (poUploadFailed) {
+          showModal(
+            'PO File Upload Failed',
+            `Purchase indent was saved, but the PO file could not be uploaded. ${poUploadErrorMessage}`,
+            'error'
+          );
+        } else {
+          showModal('Success', 
+            action === 'submit' 
+              ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted successfully!')
+              : 'Draft saved successfully!',
+            'success'
+          );
+        }
         
         setTimeout(() => {
-          if (action === 'submit') {
+          if (action === 'submit' && !poUploadFailed) {
             if (user?.roleName === 'StoreOfficer') {
-              navigate('/store-verify-indents');
+              navigate('/verify-indents');
             } else if (user?.roleName === 'QMS') {
               // Navigate to VerifyStoreIndents so QMS can see their created indent with materials
               navigate('/verify-store-indents');

@@ -125,43 +125,22 @@ const MaterialRequest = () => {
         rmCode: rawMaterialCode || '-',
         rawMaterialCode,
         rmName: req.material_name,
-<<<<<<< HEAD
-        itemType: itemTypeValue === 'component' ? 'Component' : 'Stock',
-        itemTypeValue,
-        color: rawColor || '-',
-        rawColor,
-        quantity: `${neededQuantityValue} ${unitValue}`.trim(),
-        neededQuantityValue,
-        unitValue,
-=======
         // Ensure proper casing for display
         itemType: (req.item_type || 'Stock').charAt(0).toUpperCase() + (req.item_type || 'Stock').slice(1).toLowerCase(),
         color: req.color || '-',
         quantity: `${req.quantity} ${req.unit_of_measurement}`,
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
         neededDate: formatDate(req.needed_by_date),
         neededDateValue,
         storageLocation: req.storage_location || '',
         requestedBy: req.requested_by_name || 'Store Officer',
         requestDate: formatDate(req.request_date),
-<<<<<<< HEAD
-        priority,
-        priorityClass: mapPriorityClass(priority),
-        status: req.status || 'Pending',
-        statusClass: mapStatusClass(req.status || 'Pending'),
-        reason: rawReason || '-',
-        rawReason
-        };
-      });
-=======
         priority: req.priority || 'Normal',
         priorityClass: mapPriorityClass(req.priority || 'Normal'),
         // Map 'Processed' to 'Approved' for UI consistency as per user request
         status: (req.status === 'Processed' ? 'Approved' : (req.status || 'Pending')),
         statusClass: mapStatusClass(req.status === 'Processed' ? 'Approved' : (req.status || 'Pending')),
         reason: req.reason || '-'
-      }));
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
+      }});
       setAllRequests(mapped);
     } catch (err) {
       console.error('Failed to fetch requests:', err);

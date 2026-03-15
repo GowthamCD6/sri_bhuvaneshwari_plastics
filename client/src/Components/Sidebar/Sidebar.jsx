@@ -132,19 +132,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
   };
 
-<<<<<<< HEAD
-  const normalizeRole = (role) => {
-    const normalized = String(role || '').toLowerCase().trim();
-    if (normalized === 'store') return 'storeofficer';
-    if (normalized === 'purchase') return 'purchasedepartment';
-    return normalized;
-  };
-
-  // Get menu items for the user's role; unknown roles get no menu entries.
-  const menuItems = roleMenus[normalizeRole(userRole)] || [];
-=======
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
 
   return (
     <div className="sidebar">
