@@ -80,7 +80,6 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Verify Store Indents",
         icon: CheckCircle,
       },
-      { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
     storeofficer: [
       { label: "Overview", section: true },

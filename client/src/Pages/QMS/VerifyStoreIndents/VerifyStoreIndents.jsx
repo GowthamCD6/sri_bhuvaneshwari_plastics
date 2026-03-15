@@ -340,7 +340,17 @@ const VerifyStoreIndents = () => {
                     {/* Raised By */}
                     <td>
                       <div className="vsi-user-cell">
-                        <img src={item.avatar} alt={item.raisedBy} className="vsi-user-avatar-sm" />
+                        <div className="vsi-user-avatar-sm" style={{ 
+                          backgroundColor: '#e2e8f0', 
+                          color: '#475569', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontSize: '12px', 
+                          fontWeight: '600'
+                        }}>
+                          {(item.raisedBy || '?').charAt(0).toUpperCase()}
+                        </div>
                         <span className="vsi-text-medium">{item.raisedBy}</span>
                       </div>
                     </td>

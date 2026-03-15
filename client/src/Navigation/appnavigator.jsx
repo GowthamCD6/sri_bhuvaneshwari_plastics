@@ -9,11 +9,9 @@ import Dashboard from '../Pages/StoreOfficer/Dashboard/Dashboard';
 import QMSPurchaseIndents from '../Pages/QMS/PurchaseIndent/PurchaseIndents';
 import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
-import SentToAdmin from '../Pages/QMS/SentToAdmin';
 import VerifyPurchaseDeptIndents from '../Pages/QMS/VerifyPurchaseDeptIndents/VerifyPurchaseDeptIndents';
 
 // ===== STORE OFFICER ROLE PAGES =====
-// Use unified QMSPurchaseIndents for Store Officer purchase indents (role-aware component)
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
 import GoodsInventory from '../Pages/StoreOfficer/GoodsInventory/GoodsInventory';
 import LowStockAlerts from '../Pages/StoreOfficer/LowStockAlert/LowStockAlerts';
@@ -70,7 +68,6 @@ const AppNavigator = () => {
       <Route path="/customer-orders" element={<CustomerOrders />} />
       <Route path="/qms-purchase-indents" element={<QMSPurchaseIndents />} />
       <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
-      <Route path="/sent-to-admin" element={<SentToAdmin />} />
       <Route path="/verify-purchase-dept-indents" element={<VerifyPurchaseDeptIndents />} />
 
       {/* ===== STORE OFFICER ROLE ROUTES ===== */}
