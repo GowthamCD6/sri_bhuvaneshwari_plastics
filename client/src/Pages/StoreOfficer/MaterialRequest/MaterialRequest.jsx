@@ -18,6 +18,8 @@ const MaterialRequest = () => {
   const [urgencyFilter, setUrgencyFilter] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [viewRequestModalOpen, setViewRequestModalOpen] = useState(false);
+  const [viewRequestData, setViewRequestData] = useState(null);
   const [editingId, setEditingId] = useState(null);
   
   // New request form state
@@ -45,7 +47,8 @@ const MaterialRequest = () => {
   };
 
   const mapStatusClass = (status) => {
-    if (status === 'Approved') return 'status-green';
+    // Processed is now mapped to Approved, but keeping safe check
+    if (status === 'Approved' || status === 'Processed') return 'status-green';
     if (status === 'Rejected') return 'status-red';
     return 'status-orange';
   };
@@ -68,7 +71,8 @@ const MaterialRequest = () => {
         dbId: req.request_id,
         rmCode: req.material_code || '-',
         rmName: req.material_name,
-        itemType: req.item_type || 'Stock',
+        // Ensure proper casing for display
+        itemType: (req.item_type || 'Stock').charAt(0).toUpperCase() + (req.item_type || 'Stock').slice(1).toLowerCase(),
         color: req.color || '-',
         quantity: `${req.quantity} ${req.unit_of_measurement}`,
         neededDate: formatDate(req.needed_by_date),
@@ -76,8 +80,9 @@ const MaterialRequest = () => {
         requestDate: formatDate(req.request_date),
         priority: req.priority || 'Normal',
         priorityClass: mapPriorityClass(req.priority || 'Normal'),
-        status: req.status || 'Pending',
-        statusClass: mapStatusClass(req.status || 'Pending'),
+        // Map 'Processed' to 'Approved' for UI consistency as per user request
+        status: (req.status === 'Processed' ? 'Approved' : (req.status || 'Pending')),
+        statusClass: mapStatusClass(req.status === 'Processed' ? 'Approved' : (req.status || 'Pending')),
         reason: req.reason || '-'
       }));
       setAllRequests(mapped);
@@ -212,7 +217,8 @@ const MaterialRequest = () => {
   };
 
   const handleViewRequest = (request) => {
-    alert(`Viewing details for ${request.id}\n\nMaterial: ${request.rmName}\nQuantity: ${request.quantity}\nNeeded Date: ${request.neededDate}\nReason: ${request.reason}`);
+    setViewRequestData(request);
+    setViewRequestModalOpen(true);
   };
 
   const handleEditRequest = (request) => {
@@ -400,43 +406,27 @@ const MaterialRequest = () => {
           <table className="mr-table">
             <thead>
               <tr>
-                <th style={{width: '4%'}}>
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAll}
-                    checked={selectedRequests.length === paginatedRequests.length && paginatedRequests.length > 0}
-                    className="mr-checkbox"
-                  />
-                </th>
                 <th style={{width: '10%'}}>Request ID</th>
-                <th style={{width: '18%'}}>Material Details</th>
+                <th style={{width: '20%'}}>Material Details</th>
                 <th style={{width: '10%'}}>Type</th>
                 <th style={{width: '10%'}}>Quantity</th>
                 <th style={{width: '12%'}}>Needed Date</th>
                 <th style={{width: '10%'}}>Priority</th>
                 <th style={{width: '12%'}}>Status</th>
-                <th style={{width: '14%', textAlign: 'center'}}>Actions</th>
+                <th style={{width: '16%', textAlign: 'center'}}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading && Array.from({ length: pageSize }).map((_, i) => (
                 <tr key={`skel-${i}`}>
-                  {Array.from({ length: 9 }).map((__, j) => (
+                  {Array.from({ length: 8 }).map((__, j) => (
                     <td key={j}><div className="mr-skeleton-cell" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && paginatedRequests.length > 0 ? (
                 paginatedRequests.map((item, index) => (
-                  <tr key={index} className={selectedRequests.includes(item.id) ? 'selected-row' : ''}>
-                    <td>
-                      <input 
-                        type="checkbox"
-                        checked={selectedRequests.includes(item.id)}
-                        onChange={() => handleSelectRequest(item.id)}
-                        className="mr-checkbox"
-                      />
-                    </td>
+                  <tr key={index}>
                     <td>
                       <div className="mr-id-text">{item.id}</div>
                       <div className="mr-sub-text">{item.requestDate}</div>
@@ -469,6 +459,13 @@ const MaterialRequest = () => {
                     </td>
                     <td>
                       <div className="mr-action-btns">
+                        <button 
+                          className="mr-btn-icon mr-btn-view"
+                          onClick={() => handleViewRequest(item)}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
                         {item.status === 'Pending' && (
                           <>
                             <button 
@@ -493,7 +490,7 @@ const MaterialRequest = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="mr-no-data">
+                  <td colSpan="8" className="mr-no-data">
                     <div className="mr-empty-state">
                       <Package size={48} className="mr-empty-icon" />
                       <p>No material requests found matching your criteria</p>
@@ -733,6 +730,88 @@ const MaterialRequest = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Request Modal */}
+      {viewRequestModalOpen && viewRequestData && (
+        <div className="mr-modal-overlay" onClick={() => setViewRequestModalOpen(false)}>
+          <div className="mr-modal" onClick={e => e.stopPropagation()}>
+            <div className="mr-modal-header">
+              <h2>View Request Details</h2>
+              <button className="mr-modal-close" onClick={() => setViewRequestModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="mr-modal-body">
+              <div className="mr-view-grid">
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Request ID</span>
+                  <span className="mr-view-value">{viewRequestData.id}</span>
+                </div>
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Date</span>
+                  <span className="mr-view-value">{viewRequestData.requestDate}</span>
+                </div>
+                
+                <div className="mr-view-item mr-view-full-width material-highlight">
+                  <span className="mr-view-label">Material Details</span>
+                  <span className="mr-view-value">{viewRequestData.rmName} ({viewRequestData.rmCode})</span>
+                </div>
+
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Item Type</span>
+                  <span className="mr-view-value">{viewRequestData.itemType}</span>
+                </div>
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Color</span>
+                  <span className="mr-view-value">{viewRequestData.color || '-'}</span>
+                </div>
+                
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Quantity</span>
+                  <span className="mr-view-value">{viewRequestData.quantity}</span>
+                </div>
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Needed By</span>
+                  <span className="mr-view-value">{viewRequestData.neededDate}</span>
+                </div>
+
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Priority</span>
+                  <div className="mr-view-value">
+                     <span className={`mr-priority-badge ${viewRequestData.priorityClass}`}>
+                      {viewRequestData.priority}
+                    </span>
+                  </div>
+                </div>
+                <div className="mr-view-item">
+                  <span className="mr-view-label">Status</span>
+                  <div className="mr-view-value">
+                    <span className={`mr-status-pill ${viewRequestData.statusClass}`}>
+                      {viewRequestData.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mr-view-item mr-view-full-width">
+                  <span className="mr-view-label">Reason / Usage</span>
+                  <span className="mr-view-value">{viewRequestData.reason}</span>
+                </div>
+              </div>
+
+              <div className="mr-modal-actions">
+                <button 
+                  type="button" 
+                  className="mr-btn-secondary" 
+                  onClick={() => setViewRequestModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

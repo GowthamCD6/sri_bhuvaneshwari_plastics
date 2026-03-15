@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Check, Loader2 } from 'lucide-react';
 import './CreatePurchaseIndent.css';
-import { purchaseIndentService, materialService } from '../../../services/apiService';
+import { purchaseIndentService, materialService, storeRequestService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -183,12 +183,13 @@ const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
 // ─── Main page component ─────────────────────────────────────────────────────
 const CreatePurchaseIndent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
 
   const [indentNumber] = useState(generateIndentNumber);
   const [formData, setFormData] = useState({
     department: 'QMS',
-    requestedDate: getTodayDate(),
+    requiredDate: getTodayDate(),
     priority: 'Normal',
     reason: '',
   });
@@ -197,14 +198,93 @@ const CreatePurchaseIndent = () => {
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+  
+  // Handling passed store request data
+  const storeRequest = location.state?.storeRequest;
 
-  // Fetch materials for the search dropdown
   useEffect(() => {
-    materialService
-      .getAllMaterials()
-      .then((res) => setAllMaterials(res.materials || res.data || []))
-      .catch(() => {});
-  }, []);
+    if (storeRequest) {
+      setFormData(prev => ({
+        ...prev,
+        requiredDate: storeRequest.neededDate ? new Date(storeRequest.neededDate).toISOString().split('T')[0] : getTodayDate(),
+        priority: storeRequest.priority || 'Normal',
+        reason: storeRequest.reason || ''
+      }));
+      
+      setRows([{
+        _key: Date.now(),
+        materialId: null, // Will need to match by name/code if not provided
+        description: storeRequest.material,
+        materialCode: storeRequest.code,
+        warehouseLocation: '',
+        currentStock: '',
+        quantity: storeRequest.quantity,
+        unit: storeRequest.unit || 'Kg',
+        remarks: storeRequest.specs || ''
+      }]);
+    }
+  }, [storeRequest]);
+
+  // Fetch materials and handle store request pre-fill
+  useEffect(() => {
+    materialService.getAllMaterials()
+      .then((res) => {
+        const materials = res.materials || res.data || [];
+        setAllMaterials(materials);
+        
+        // If we have a store request, try to match the material
+        if (storeRequest) {
+          setFormData(prev => ({
+            ...prev,
+            requiredDate: storeRequest.neededDate ? new Date(storeRequest.neededDate).toISOString().split('T')[0] : getTodayDate(),
+            priority: storeRequest.priority === 'Critical' ? 'Urgent' : (storeRequest.priority || 'Normal'),
+            reason: storeRequest.reason || ''
+          }));
+
+          const matchedMaterial = materials.find(m => 
+            m.material_name === storeRequest.material || 
+            m.material_code === storeRequest.code
+          );
+
+          setRows([{
+            _key: Date.now(),
+            materialId: matchedMaterial ? matchedMaterial.material_id : null,
+            description: storeRequest.material,
+            materialCode: storeRequest.code || (matchedMaterial ? matchedMaterial.material_code : ''),
+            warehouseLocation: matchedMaterial ? matchedMaterial.warehouse_location : '',
+            currentStock: matchedMaterial ? (matchedMaterial.current_stock ?? matchedMaterial.stock_quantity ?? '') : '',
+            quantity: storeRequest.quantity,
+            unit: storeRequest.unit || (matchedMaterial ? matchedMaterial.unit_of_measurement : 'Kg'),
+            remarks: storeRequest.specs || ''
+          }]);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load materials:', err);
+        // Fallback if materials fail to load but we have storeRequest
+        if (storeRequest) {
+          setRows([{
+            _key: Date.now(),
+            materialId: null,
+            description: storeRequest.material,
+            materialCode: storeRequest.code,
+            quantity: storeRequest.quantity,
+            unit: storeRequest.unit || 'Kg',
+            remarks: storeRequest.specs || ''
+          }]);
+        }
+      });
+  }, [storeRequest]); // Depend on storeRequest to trigger once available
+
+/*
+  // Original separate useEffects commented out to prevent race conditions or overwrites
+  // useEffect(() => {
+  //   materialService
+  //     .getAllMaterials()
+  //     .then((res) => setAllMaterials(res.materials || res.data || []))
+  //     .catch(() => {});
+  // }, []);
+*/
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -229,7 +309,8 @@ const CreatePurchaseIndent = () => {
     const validRows = rows.filter((r) => r.description.trim());
     return {
       indentNumber,
-      requestDate: formData.requestedDate,
+      requestDate: getTodayDate(),
+      requiredByDate: formData.requiredDate,
       priority: formData.priority === 'Normal' ? 'Normal' : formData.priority,
       reason: formData.reason,
       status,
@@ -245,8 +326,8 @@ const CreatePurchaseIndent = () => {
   };
 
   const validate = () => {
-    if (!formData.requestedDate) {
-      showToast('error', 'Requested date is required.');
+    if (!formData.requiredDate) {
+      showToast('error', 'Required date is required.');
       return false;
     }
     const validRows = rows.filter((r) => r.description.trim());
@@ -267,10 +348,24 @@ const CreatePurchaseIndent = () => {
     if (!validate()) return;
     try {
       setSaving(true);
-      await purchaseIndentService.createPurchaseDeptIndent(buildPayload('Draft', 'Purchase Dept'));
+      // Use standard createIndent. 
+      // Workflow Stage 'QMS Init' + Status 'Draft' = Purchase Dept Draft
+      const response = await purchaseIndentService.createIndent(
+        buildPayload('Draft', 'QMS Init')
+      );
+
+      // Update store request if this originated from one
+      if (storeRequest && storeRequest.id && response.data?.indent_id) {
+        await storeRequestService.updateRequest(storeRequest.id, {
+          status: 'Processed',
+          indentId: response.data.indent_id
+        });
+      }
+
       showToast('success', 'Draft saved successfully.');
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
+      console.error('Save draft error:', err);
       showToast('error', err.message || 'Failed to save draft.');
     } finally {
       setSaving(false);
@@ -281,12 +376,22 @@ const CreatePurchaseIndent = () => {
     if (!validate()) return;
     try {
       setSubmitting(true);
-      await purchaseIndentService.createPurchaseDeptIndent(
+      const response = await purchaseIndentService.createIndent(
         buildPayload('Pending QMS Verification', 'QMS Init')
       );
+
+      // Update store request if this originated from one
+      if (storeRequest && storeRequest.id && response.data?.indent_id) {
+        await storeRequestService.updateRequest(storeRequest.id, {
+          status: 'Processed',
+          indentId: response.data.indent_id
+        });
+      }
+
       showToast('success', 'Indent submitted for Store Verification.');
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
+      console.error('Submit indent error:', err);
       showToast('error', err.message || 'Failed to submit indent.');
     } finally {
       setSubmitting(false);
@@ -340,14 +445,14 @@ const CreatePurchaseIndent = () => {
             />
           </div>
 
-          {/* Requested Date */}
+          {/* Required Date */}
           <div className="cpi-field">
-            <label className="cpi-label">Requested Date</label>
+            <label className="cpi-label">Required Date</label>
             <input
               type="date"
               className="cpi-input-field"
-              value={formData.requestedDate}
-              onChange={(e) => handleFieldChange('requestedDate', e.target.value)}
+              value={formData.requiredDate}
+              onChange={(e) => handleFieldChange('requiredDate', e.target.value)}
             />
           </div>
 

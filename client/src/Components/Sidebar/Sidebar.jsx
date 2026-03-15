@@ -212,7 +212,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
 
           return (
             <Link
-              key={item.path || index}
+              key={index}
               to={item.path}
               className={`nav-item ${isActive ? "active" : ""}`}
               title={item.label}
