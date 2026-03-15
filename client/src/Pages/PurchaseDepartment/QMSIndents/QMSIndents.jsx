@@ -108,6 +108,10 @@ const QMSIndents = () => {
   return (
     <div className="qi-container">
       <div className="qi-content">
+        <div className="qi-header">
+          <h1 className="qi-title">Purchase Indents</h1>
+        </div>
+        
         {error && (
           <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
             <strong>Error:</strong> {error}

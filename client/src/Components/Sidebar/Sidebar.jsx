@@ -118,15 +118,17 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Dashboard",
         icon: LayoutDashboard,
       },
-      { label: "Purchase Operations", section: true },
+      { label: "Indent Management", section: true },
       {
         path: "/create-purchase-indent",
-        label: "Purchase Indent",
+        label: "Create Indent",
         icon: ClipboardList,
       },
-      { path: "/suppliers", label: "Suppliers", icon: Truck },
-      { path: "/qms-indents", label: "QMS Indents", icon: FileText },
+      { path: "/qms-indents", label: "Purchase Indents", icon: FileText },
+      { label: "Store Management", section: true },
       { path: "/store-requests", label: "Store Requests", icon: Inbox },
+      { label: "Vendor Management", section: true },
+      { path: "/suppliers", label: "Supplier Management", icon: Truck },
     ],
   };
 

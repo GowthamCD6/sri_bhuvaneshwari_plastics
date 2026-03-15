@@ -512,7 +512,7 @@ const Suppliers = () => {
   return (
     <div className="sup-container container">
       <div className="header-row">
-        <h1 className="page-title">Suppliers</h1>
+        <h1 className="page-title">Supplier Management</h1>
         <button
           className="btn-primary"
           onClick={() => {

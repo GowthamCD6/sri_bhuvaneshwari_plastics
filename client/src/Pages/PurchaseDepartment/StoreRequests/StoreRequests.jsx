@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Eye, ChevronLeft, ChevronRight, FileText, X, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import './StoreRequests.css';
-import './StoreRequests-updates.css';
 import { useNavigate } from 'react-router-dom';
 import { storeRequestService } from '../../../services/apiService';
 
@@ -178,6 +177,10 @@ const StoreRequests = () => {
   return (
     <div className="sr-container">
       <div className="sr-content">
+        <div className="sr-header">
+           <h1 className="sr-title">Store Requests</h1>
+        </div>
+        
         {error && (
           <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
             <strong>Error:</strong> {error}
