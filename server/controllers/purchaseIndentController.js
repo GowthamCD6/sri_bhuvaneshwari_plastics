@@ -2,6 +2,45 @@ const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
 
+const getNextIndentNumber = async () => {
+  const currentYear = new Date().getFullYear();
+  const likePattern = `IND-${currentYear}-%`;
+  const [rows] = await db.query(
+    `SELECT indent_number
+     FROM purchase_indents
+     WHERE indent_number LIKE ?
+     ORDER BY CAST(SUBSTRING_INDEX(indent_number, '-', -1) AS UNSIGNED) DESC
+     LIMIT 1`,
+    [likePattern]
+  );
+
+  const lastNumber = rows.length > 0
+    ? Number(String(rows[0].indent_number || '').split('-').pop()) || 0
+    : 0;
+
+  return `IND-${currentYear}-${String(lastNumber + 1).padStart(3, '0')}`;
+};
+
+const isIndentNumberConflict = (error) => {
+  return error?.code === 'ER_DUP_ENTRY' && String(error?.message || '').includes('indent_number');
+};
+
+const insertIndentWithGeneratedNumber = async (insertFn, maxAttempts = 5) => {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const indentNumber = await getNextIndentNumber();
+    try {
+      return await insertFn(indentNumber);
+    } catch (error) {
+      if (isIndentNumberConflict(error) && attempt < maxAttempts - 1) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error('Failed to generate unique indent number');
+};
+
 /**
  * Admin approvals feed (for Admin QMS Approval page)
  * Returns indents that are pending Admin final verification + history.
@@ -220,7 +259,6 @@ const getIndentById = async (req, res) => {
 const createIndent = async (req, res) => {
   try {
     const {
-      indentNumber,
       customerOrderId,
       requestDate,
       requiredByDate,
@@ -233,7 +271,6 @@ const createIndent = async (req, res) => {
     } = req.body;
 
     console.log('=== CREATE INDENT REQUEST ===');
-    console.log('Indent Number:', indentNumber);
     console.log('Workflow Stage:', workflowStage);
     console.log('Status:', status);
     console.log('Materials count:', materials?.length);
@@ -242,7 +279,7 @@ const createIndent = async (req, res) => {
     const userId = req.user.userId;
 
     // Validate required fields
-    if (!indentNumber || !requestDate || !materials || materials.length === 0) {
+    if (!requestDate || !materials || materials.length === 0) {
       console.error('Validation failed - Missing required fields');
       return res.status(400).json({
         success: false,
@@ -250,44 +287,37 @@ const createIndent = async (req, res) => {
       });
     }
 
-    // Check if indent_number already exists
-    const [existing] = await db.query(
-      'SELECT indent_id FROM purchase_indents WHERE indent_number = ?',
-      [indentNumber]
-    );
-
-    if (existing.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'Indent number already exists'
-      });
-    }
-
     // Insert purchase indent
-    const [indentResult] = await db.query(
-      `INSERT INTO purchase_indents 
-        (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_reference, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        indentNumber, 
-        customerOrderId || null, 
-        userId, 
-        requestDate, 
-        requiredByDate, 
-        priority || 'Standard',
-        status || 'Draft',
-        workflowStage || 'QMS Init',
-        poNumber || null,
-        poReference || null,
-        req.body.orderQuantity || null,
-        req.body.rmCost || null,
-        req.body.rmRate || null,
-        req.body.piecesPerKg || null,
-        req.body.rmPercentage || null
-      ]
-    );
+    const { indentResult, indentNumber } = await insertIndentWithGeneratedNumber(async (generatedIndentNumber) => {
+      const [result] = await db.query(
+        `INSERT INTO purchase_indents 
+          (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_reference, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          generatedIndentNumber,
+          customerOrderId || null,
+          userId,
+          requestDate,
+          requiredByDate,
+          priority || 'Standard',
+          status || 'Draft',
+          workflowStage || 'QMS Init',
+          poNumber || null,
+          poReference || null,
+          req.body.orderQuantity || null,
+          req.body.rmCost || null,
+          req.body.rmRate || null,
+          req.body.piecesPerKg || null,
+          req.body.rmPercentage || null
+        ]
+      );
+
+      return { indentResult: result, indentNumber: generatedIndentNumber };
+    });
 
     const indentId = indentResult.insertId;
+
+    console.log('Indent Number:', indentNumber);
 
     console.log('Indent created with ID:', indentId);
     console.log('Inserting materials...');
@@ -859,10 +889,10 @@ const downloadPOFile = async (req, res) => {
  */
 const createPurchaseDeptIndent = async (req, res) => {
   try {
-    const { indentNumber, requestDate, priority, reason, status, workflowStage, materials } = req.body;
+    const { requestDate, priority, reason, status, workflowStage, materials } = req.body;
     const userId = req.user.userId;
 
-    if (!indentNumber || !requestDate || !materials || materials.length === 0) {
+    if (!requestDate || !materials || materials.length === 0) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
@@ -876,26 +906,21 @@ const createPurchaseDeptIndent = async (req, res) => {
       }
     }
 
-    // Check duplicate indent number
-    const [existing] = await db.query(
-      'SELECT indent_id FROM purchase_indents WHERE indent_number = ?',
-      [indentNumber]
-    );
-    if (existing.length > 0) {
-      return res.status(409).json({ success: false, message: 'Indent number already exists' });
-    }
-
     const resolvedStatus = status || 'Draft';
     const resolvedStage = workflowStage || 'Purchase Dept';
     const resolvedPriority = priority || 'Normal';
 
     // Insert indent
-    const [indentResult] = await db.query(
-      `INSERT INTO purchase_indents
-        (indent_number, requested_by, request_date, priority, reason, status, workflow_stage)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [indentNumber, userId, requestDate, resolvedPriority, reason || null, resolvedStatus, resolvedStage]
-    );
+    const { indentResult } = await insertIndentWithGeneratedNumber(async (generatedIndentNumber) => {
+      const [result] = await db.query(
+        `INSERT INTO purchase_indents
+          (indent_number, requested_by, request_date, priority, reason, status, workflow_stage)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [generatedIndentNumber, userId, requestDate, resolvedPriority, reason || null, resolvedStatus, resolvedStage]
+      );
+
+      return { indentResult: result, indentNumber: generatedIndentNumber };
+    });
     const indentId = indentResult.insertId;
 
     // Insert materials

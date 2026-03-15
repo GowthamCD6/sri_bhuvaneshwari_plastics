@@ -22,18 +22,18 @@ router.use(verifyToken);
 // ── Purchase Department indent routes ─────────────────────────────────────
 // GET  /api/purchase-indents/purchase-dept       – list all Purchase Dept indents
 // POST /api/purchase-indents/purchase-dept       – create a new Purchase Dept indent
-router.get('/purchase-dept', getPurchaseDeptIndents);
-router.post('/purchase-dept', createPurchaseDeptIndent);
+router.get('/purchase-dept', requireRole('PurchaseDepartment'), getPurchaseDeptIndents);
+router.post('/purchase-dept', requireRole('PurchaseDepartment'), createPurchaseDeptIndent);
 
 // ── General routes ─────────────────────────────────────────────────────────
-router.get('/', getAllIndents);
+router.get('/', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), getAllIndents);
 router.get('/admin/approvals', requireRole('Admin'), getAdminApprovals);
-router.get('/:id', getIndentById);
-router.post('/', createIndent);
-router.patch('/:id/status', updateIndentStatus);
-router.post('/:id/send-next', sendToNextStage);
-router.post('/:id/upload-po', upload.single('poFile'), uploadPOFile);
-router.get('/:id/download-po', downloadPOFile);
-router.delete('/:id', deleteIndent);
+router.get('/:id', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), getIndentById);
+router.post('/', requireRole('QMS'), createIndent);
+router.patch('/:id/status', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), updateIndentStatus);
+router.post('/:id/send-next', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), sendToNextStage);
+router.post('/:id/upload-po', requireRole('StoreOfficer'), upload.single('poFile'), uploadPOFile);
+router.get('/:id/download-po', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), downloadPOFile);
+router.delete('/:id', requireRole('Admin', 'QMS'), deleteIndent);
 
 module.exports = router;

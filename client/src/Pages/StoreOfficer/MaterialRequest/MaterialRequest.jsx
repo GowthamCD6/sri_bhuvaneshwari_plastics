@@ -1,12 +1,55 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Filter, ChevronLeft, ChevronRight, ChevronDown, Plus, FileText, Eye, Edit, Trash2, Calendar, X, Check, Package } from 'lucide-react';
 import './MaterialRequest.css';
-import { storeRequestService } from '../../../services/apiService';
+import { storeRequestService, materialService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
+
+const DEFAULT_NEW_REQUEST = {
+  materialId: '',
+  itemType: 'stock',
+  rmCode: '',
+  rmName: '',
+  color: '',
+  storageLocation: '',
+  neededQuantity: '',
+  unit: 'kg',
+  neededDate: '',
+  reason: '',
+  priority: 'Normal'
+};
+
+const getTodayDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateParts = (value) => {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return {
+      year: Number(match[1]),
+      month: Number(match[2]),
+      day: Number(match[3])
+    };
+  }
+
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate()
+  };
+};
 
 const MaterialRequest = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   
   // State management
@@ -23,18 +66,7 @@ const MaterialRequest = () => {
   const [editingId, setEditingId] = useState(null);
   
   // New request form state
-  const [newRequest, setNewRequest] = useState({
-    itemType: 'stock',
-    rmCode: '',
-    rmName: '',
-    color: '',
-    storageLocation: '',
-    neededQuantity: '',
-    unit: 'Kg',
-    neededDate: '',
-    reason: '',
-    priority: 'Normal'
-  });
+  const [newRequest, setNewRequest] = useState({ ...DEFAULT_NEW_REQUEST });
 
   const [allRequests, setAllRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +78,14 @@ const MaterialRequest = () => {
     return 'badge-normal';
   };
 
+  const normalizePriority = (priority) => {
+    const normalized = String(priority || '').trim().toLowerCase();
+    if (normalized === 'critical') return 'Critical';
+    if (['urgent', 'high'].includes(normalized)) return 'Urgent';
+    if (['normal', 'standard', 'low'].includes(normalized)) return 'Normal';
+    return 'Normal';
+  };
+
   const mapStatusClass = (status) => {
     // Processed is now mapped to Approved, but keeping safe check
     if (status === 'Approved' || status === 'Processed') return 'status-green';
@@ -55,8 +95,9 @@ const MaterialRequest = () => {
 
   const formatDate = (value) => {
     if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+    const parts = parseDateParts(value);
+    if (!parts) return value;
+    const date = new Date(parts.year, parts.month - 1, parts.day);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
@@ -64,20 +105,55 @@ const MaterialRequest = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await storeRequestService.getAllRequests({ requestedBy: user?.userId });
+      const requestedBy = user?.userId || user?.user_id;
+      const filters = requestedBy ? { requestedBy } : {};
+      const response = await storeRequestService.getAllRequests(filters);
       const data = response.data || [];
-      const mapped = data.map((req) => ({
+      const mapped = data.map((req) => {
+        const priority = normalizePriority(req.priority);
+        const itemTypeValue = normalizeItemType(req.item_type || 'stock');
+        const rawMaterialCode = req.material_code || '';
+        const rawColor = req.color || '';
+        const rawReason = req.reason || '';
+        const neededDateValue = formatDateForInput(req.needed_by_date);
+        const neededQuantityValue = req.quantity !== undefined && req.quantity !== null ? String(req.quantity) : '';
+        const unitValue = normalizeUnit(req.unit_of_measurement);
+        return {
         id: req.request_number,
         dbId: req.request_id,
-        rmCode: req.material_code || '-',
+        materialId: req.material_id || '',
+        rmCode: rawMaterialCode || '-',
+        rawMaterialCode,
         rmName: req.material_name,
+<<<<<<< HEAD
+        itemType: itemTypeValue === 'component' ? 'Component' : 'Stock',
+        itemTypeValue,
+        color: rawColor || '-',
+        rawColor,
+        quantity: `${neededQuantityValue} ${unitValue}`.trim(),
+        neededQuantityValue,
+        unitValue,
+=======
         // Ensure proper casing for display
         itemType: (req.item_type || 'Stock').charAt(0).toUpperCase() + (req.item_type || 'Stock').slice(1).toLowerCase(),
         color: req.color || '-',
         quantity: `${req.quantity} ${req.unit_of_measurement}`,
+>>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
         neededDate: formatDate(req.needed_by_date),
+        neededDateValue,
+        storageLocation: req.storage_location || '',
         requestedBy: req.requested_by_name || 'Store Officer',
         requestDate: formatDate(req.request_date),
+<<<<<<< HEAD
+        priority,
+        priorityClass: mapPriorityClass(priority),
+        status: req.status || 'Pending',
+        statusClass: mapStatusClass(req.status || 'Pending'),
+        reason: rawReason || '-',
+        rawReason
+        };
+      });
+=======
         priority: req.priority || 'Normal',
         priorityClass: mapPriorityClass(req.priority || 'Normal'),
         // Map 'Processed' to 'Approved' for UI consistency as per user request
@@ -85,6 +161,7 @@ const MaterialRequest = () => {
         statusClass: mapStatusClass(req.status === 'Processed' ? 'Approved' : (req.status || 'Pending')),
         reason: req.reason || '-'
       }));
+>>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
       setAllRequests(mapped);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
@@ -96,7 +173,159 @@ const MaterialRequest = () => {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [user?.userId, user?.user_id]);
+
+  const normalizeUnit = (unit) => {
+    const normalized = String(unit || '').trim().toLowerCase();
+    if (['kg', 'kgs', 'kilogram', 'kilograms'].includes(normalized)) return 'kg';
+    if (['g', 'gram', 'grams'].includes(normalized)) return 'g';
+    if (['ml', 'milliliter', 'millilitre', 'milliliters', 'millilitres'].includes(normalized)) return 'ml';
+    if (['ltr', 'l', 'litre', 'liter', 'liters', 'litres'].includes(normalized)) return 'ltr';
+    if (['pcs', 'pc', 'piece', 'pieces'].includes(normalized)) return 'pcs';
+    if (['set', 'sets'].includes(normalized)) return 'sets';
+    if (['sheet', 'sheets'].includes(normalized)) return 'sheets';
+    return normalized || 'kg';
+  };
+
+  const normalizeItemType = (itemType) => {
+    return String(itemType || '').toLowerCase().includes('component') ? 'component' : 'stock';
+  };
+
+  const formatDateForInput = (value) => {
+    if (!value) return '';
+    const parts = parseDateParts(value);
+    if (!parts) return '';
+    return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+  };
+
+  const buildRequestFormState = (record, fallback = {}) => {
+    const materialId = record?.material_id ?? record?.materialId ?? fallback?.materialId ?? '';
+    const itemType = normalizeItemType(
+      record?.item_type ?? record?.itemTypeValue ?? record?.itemType ?? fallback?.itemTypeValue ?? fallback?.itemType
+    );
+    const rmCode =
+      record?.material_code ?? record?.rawMaterialCode ?? record?.rmCode ?? fallback?.rawMaterialCode ?? fallback?.rmCode ?? '';
+    const rmName = record?.material_name ?? record?.rmName ?? fallback?.rmName ?? '';
+    const color = record?.color ?? record?.rawColor ?? fallback?.rawColor ?? fallback?.color ?? '';
+    const storageLocation =
+      record?.storage_location ?? record?.storageLocation ?? fallback?.storageLocation ?? '';
+    const neededQuantity =
+      record?.quantity !== undefined && record?.quantity !== null
+        ? String(record.quantity)
+        : (record?.neededQuantityValue ?? fallback?.neededQuantityValue ?? '');
+    const unit = normalizeUnit(
+      record?.unit_of_measurement ?? record?.unitValue ?? record?.unit ?? fallback?.unitValue ?? fallback?.unit ?? 'kg'
+    );
+    const neededDate =
+      formatDateForInput(record?.needed_by_date) ||
+      record?.neededDateValue ||
+      fallback?.neededDateValue ||
+      '';
+    const reason = record?.reason ?? record?.rawReason ?? fallback?.rawReason ?? fallback?.reason ?? '';
+    const priority = normalizePriority(record?.priority ?? fallback?.priority);
+
+    return {
+      materialId,
+      itemType,
+      rmCode,
+      rmName,
+      color,
+      storageLocation,
+      neededQuantity,
+      unit,
+      neededDate,
+      reason,
+      priority
+    };
+  };
+
+  useEffect(() => {
+    const restockMaterial = location.state?.restockMaterial;
+    const materialCode = String(restockMaterial?.materialCode || '').trim();
+    if (!materialCode) return;
+
+    let isActive = true;
+
+    const prefillFromRestock = async () => {
+      let matchedLowStockMaterial = null;
+      let matchedExistingRequest = null;
+
+      try {
+        const [lowStockResponse, existingRequestResponse] = await Promise.all([
+          materialService.getLowStockMaterials(),
+          storeRequestService.getAllRequests({ search: materialCode })
+        ]);
+
+        const lowStockRows = lowStockResponse.materials || [];
+        matchedLowStockMaterial = lowStockRows.find(
+          (material) => String(material.material_code || '').toLowerCase() === materialCode.toLowerCase()
+        ) || null;
+
+        const existingRequests = existingRequestResponse.data || [];
+        matchedExistingRequest = existingRequests.find(
+          (request) => String(request.material_code || '').toLowerCase() === materialCode.toLowerCase()
+        ) || null;
+      } catch (err) {
+        console.error('Failed to fetch material details for restock prefill:', err);
+      }
+
+      if (!isActive) return;
+
+      const stockFromDb = Number(matchedLowStockMaterial?.available_stock ?? matchedLowStockMaterial?.current_stock);
+      const stockFromRoute = Number(restockMaterial?.currentStock);
+      const effectiveStock = Number.isFinite(stockFromDb)
+        ? stockFromDb
+        : (Number.isFinite(stockFromRoute) ? stockFromRoute : undefined);
+
+      const minFromDb = Number(matchedLowStockMaterial?.min_stock_level ?? matchedLowStockMaterial?.reorder_level);
+      const minFromRoute = Number(restockMaterial?.minRequired);
+      const effectiveMinRequired = Number.isFinite(minFromDb)
+        ? minFromDb
+        : (Number.isFinite(minFromRoute) ? minFromRoute : 0);
+
+      const deficitQty = Math.max(effectiveMinRequired - (effectiveStock ?? 0), 0);
+      const neededQuantity = matchedExistingRequest?.quantity
+        ? String(matchedExistingRequest.quantity)
+        : (deficitQty > 0 ? String(deficitQty) : '');
+
+      const unitValue = normalizeUnit(
+        matchedExistingRequest?.unit_of_measurement ||
+        matchedLowStockMaterial?.unit_of_measurement ||
+        restockMaterial?.unit
+      );
+
+      const priorityValue = normalizePriority(matchedExistingRequest?.priority);
+      const reasonValue = matchedExistingRequest?.reason || '';
+
+      const prefilledRequest = {
+        ...DEFAULT_NEW_REQUEST,
+        materialId: matchedExistingRequest?.material_id || matchedLowStockMaterial?.material_id || '',
+        itemType: normalizeItemType(matchedExistingRequest?.item_type || matchedLowStockMaterial?.material_type || restockMaterial?.category),
+        rmCode: materialCode,
+        rmName: matchedExistingRequest?.material_name || matchedLowStockMaterial?.material_name || restockMaterial?.materialName || '',
+        color: matchedExistingRequest?.color || '',
+        storageLocation: matchedExistingRequest?.storage_location || matchedLowStockMaterial?.warehouse_location || restockMaterial?.warehouseLocation || '',
+        neededQuantity,
+        unit: unitValue,
+        neededDate: formatDateForInput(matchedExistingRequest?.needed_by_date),
+        reason: reasonValue,
+        priority: priorityValue
+      };
+
+      setEditingId(null);
+      setNewRequest(prefilledRequest);
+      setShowNewRequestModal(true);
+
+      // Prevent reopening modal again on refresh/re-render.
+      navigate(location.pathname, { replace: true, state: {} });
+    };
+
+    prefillFromRestock();
+
+    return () => {
+      isActive = false;
+    };
+  }, [location.state, location.pathname, navigate]);
 
   // Tab counts
   const tabCounts = useMemo(() => {
@@ -119,7 +348,7 @@ const MaterialRequest = () => {
 
     // Filter by priority
     if (urgencyFilter) {
-      filtered = filtered.filter(req => req.priority === urgencyFilter);
+      filtered = filtered.filter(req => normalizePriority(req.priority) === urgencyFilter);
     }
 
     // Filter by search query
@@ -221,20 +450,18 @@ const MaterialRequest = () => {
     setViewRequestModalOpen(true);
   };
 
-  const handleEditRequest = (request) => {
+  const handleEditRequest = async (request) => {
     setEditingId(request.dbId);
-    setNewRequest({
-      itemType: request.itemType.toLowerCase(),
-      rmCode: request.rmCode,
-      rmName: request.rmName,
-      color: request.color,
-      storageLocation: '',
-      neededQuantity: request.quantity.split(' ')[0],
-      unit: request.quantity.split(' ')[1] || 'Kg',
-      neededDate: request.neededDate,
-      reason: request.reason,
-      priority: request.priority
-    });
+
+    try {
+      const response = await storeRequestService.getRequestById(request.dbId);
+      const rawRequest = response.data || {};
+      setNewRequest(buildRequestFormState(rawRequest, request));
+    } catch (err) {
+      console.error('Failed to fetch request details for edit:', err);
+      setNewRequest(buildRequestFormState(request));
+    }
+
     setShowNewRequestModal(true);
   };
 
@@ -261,6 +488,7 @@ const MaterialRequest = () => {
     }
     const payload = {
       itemType: newRequest.itemType,
+      materialId: newRequest.materialId || null,
       materialCode: newRequest.rmCode,
       materialName: newRequest.rmName,
       color: newRequest.color,
@@ -269,8 +497,8 @@ const MaterialRequest = () => {
       unitOfMeasurement: newRequest.unit,
       neededByDate: newRequest.neededDate,
       reason: newRequest.reason,
-      priority: newRequest.priority,
-      requestDate: new Date().toISOString().split('T')[0]
+      priority: normalizePriority(newRequest.priority),
+      requestDate: getTodayDate()
     };
     const apiCall = editingId
       ? storeRequestService.updateRequest(editingId, payload)
@@ -289,18 +517,7 @@ const MaterialRequest = () => {
   };
 
   const resetNewRequestForm = () => {
-    setNewRequest({
-      itemType: 'stock',
-      rmCode: '',
-      rmName: '',
-      color: '',
-      storageLocation: '',
-      neededQuantity: '',
-      unit: 'Kg',
-      neededDate: '',
-      reason: '',
-      priority: 'Normal'
-    });
+    setNewRequest({ ...DEFAULT_NEW_REQUEST });
   };
 
   return (
@@ -632,6 +849,9 @@ const MaterialRequest = () => {
                       value={newRequest.storageLocation}
                       onChange={(e) => handleNewRequestChange('storageLocation', e.target.value)}
                     >
+                      {newRequest.storageLocation && !['warehouse-a', 'warehouse-b', 'warehouse-c'].includes(newRequest.storageLocation) && (
+                        <option value={newRequest.storageLocation}>{newRequest.storageLocation}</option>
+                      )}
                       <option value="">Select location...</option>
                       <option value="warehouse-a">Warehouse A</option>
                       <option value="warehouse-b">Warehouse B</option>
@@ -661,11 +881,13 @@ const MaterialRequest = () => {
                         value={newRequest.unit}
                         onChange={(e) => handleNewRequestChange('unit', e.target.value)}
                       >
-                        <option value="Kg">Kg</option>
-                        <option value="Ltr">Ltr</option>
-                        <option value="Pcs">Pcs</option>
-                        <option value="Sets">Sets</option>
-                        <option value="Sheets">Sheets</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="ml">ml</option>
+                        <option value="ltr">ltr</option>
+                        <option value="pcs">pcs</option>
+                        <option value="sets">sets</option>
+                        <option value="sheets">sheets</option>
                       </select>
                       <ChevronDown size={16} className="mr-select-icon" />
                     </div>

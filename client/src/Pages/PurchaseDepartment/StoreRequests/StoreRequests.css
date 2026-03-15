@@ -287,6 +287,11 @@
   color: var(--sr-warning);
 }
 
+.priority-urgent {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
 .priority-normal {
   background-color: var(--sr-success-light);
   color: var(--sr-success);

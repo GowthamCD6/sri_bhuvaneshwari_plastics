@@ -589,14 +589,15 @@ const Dashboard = () => {
             <div className="sod-request-feed">
               {recentRequests.map((req, idx) => {
                 const sta = statusMeta(req.status);
+                const requesterText = String(req.requested_by_name || req.requestedBy || req.requested_by || req.department || 'R');
                 return (
                   <div className="sod-request-item" key={req.request_id || idx}>
                     <div className="sod-req-avatar">
-                      {(req.requested_by || req.department || 'R').charAt(0).toUpperCase()}
+                      {requesterText.charAt(0).toUpperCase()}
                     </div>
                     <div className="sod-req-body">
                       <p className="sod-req-title">{req.material_name || req.description || `Request #${req.request_id}`}</p>
-                      <p className="sod-req-meta">{req.requested_by || req.department || '—'} · {fmtDate(req.created_at || req.request_date)}</p>
+                      <p className="sod-req-meta">{requesterText || '—'} · {fmtDate(req.created_at || req.request_date)}</p>
                     </div>
                     <div className="sod-req-right">
                       <span className="sod-req-qty">{fmt(req.quantity)} {req.unit || ''}</span>

@@ -192,7 +192,7 @@ const PurchaseDashboard = () => {
   // -- Supplier bar chart ---------------------------------------------------
   const supplierData = useMemo(() =>
     suppliers.slice(0, 6).map(s => ({
-      name:   s.supplier_code || s.id || (s.name||"").substring(0,6) || "-",
+      name:   s.supplier_code || s.id || String(s.name || "").substring(0,6) || "-",
       Rating: Math.round(Number(s.rating||0) * 20),
       Orders: Number(s.totalOrders||s.total_orders||0),
     })),
@@ -550,7 +550,10 @@ const PurchaseDashboard = () => {
           ) : (
             <div className="pd-request-feed">
               {recentSR.map((r, i) => {
-                const initials = (r.requested_by || r.department || "SR").substring(0,2).toUpperCase();
+                const requestedByText = String(
+                  r.requested_by_name || r.requestedBy || r.requested_by || r.department || "SR"
+                );
+                const initials = requestedByText.substring(0,2).toUpperCase();
                 const sm = statusMeta(r.priority === "urgent" ? "Critical" : r.status);
                 return (
                   <div className="pd-request-item" key={r.id || i}>
