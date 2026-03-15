@@ -42,9 +42,12 @@ const getCreatedAt = (order) => {
   return parseCreatedOnDate(order?.date);
 };
 
-const isOpenStatus = (status) => {
-  const s = String(status || '').toLowerCase();
-  return s !== 'approved' && !s.includes('rejected');
+const getDeliveryStatus = (order) => {
+  return String(order?.delivery_status || order?.deliveryStatus || 'Open');
+};
+
+const isOpenStatus = (order) => {
+  return getDeliveryStatus(order).toLowerCase() !== 'delivered';
 };
 
 const statusToBadgeClass = (status) => {
@@ -61,6 +64,12 @@ const getPriorityClass = (priority) => {
   if (p === 'urgent') return 'badge-urgent';
   if (p === 'high') return 'badge-high';
   return 'badge-standard';
+};
+
+const deliveryStatusToBadgeClass = (deliveryStatus) => {
+  const value = String(deliveryStatus || 'Open').toLowerCase();
+  if (value === 'delivered') return 'badge-delivery-delivered';
+  return 'badge-delivery-open';
 };
 
 const buildItemsSummary = (order) => {
@@ -193,13 +202,39 @@ const CustomerOrders = () => {
     });
   };
 
-  const updateOrderStatus = async (orderId, status, comments = '') => {
+  const handleOpenOrderDetails = async (order) => {
+    try {
+      const orderId = order.order_id || order.id;
+      const response = await customerOrderService.getOrderById(orderId);
+      if (response?.success && response?.data) {
+        setSelectedOrder(response.data);
+        return;
+      }
+      setSelectedOrder(order);
+    } catch (detailError) {
+      console.error('Failed to load order details:', detailError);
+      setSelectedOrder(order);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, statusOrPayload, comments = '') => {
     try {
       setLoading(true);
-      await customerOrderService.updateOrderStatus(orderId, { status, comments });
+      const payload = typeof statusOrPayload === 'string'
+        ? { status: statusOrPayload, comments }
+        : { ...statusOrPayload, comments: statusOrPayload?.comments || comments };
+
+      await customerOrderService.updateOrderStatus(orderId, payload);
       await fetchOrders();
+
+      if (selectedOrder && Number(selectedOrder.order_id || selectedOrder.id) === Number(orderId)) {
+        const latest = await customerOrderService.getOrderById(orderId);
+        if (latest?.success && latest?.data) {
+          setSelectedOrder(latest.data);
+        }
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update order status');
+      setError(err.message || 'Failed to update order status');
     } finally {
       setLoading(false);
     }
@@ -207,12 +242,14 @@ const CustomerOrders = () => {
 
   const tabs = useMemo(() => {
     const all = orders.length;
-    const open = orders.filter(o => isOpenStatus(o.status || o.indentStatus)).length;
+    const open = orders.filter(o => isOpenStatus(o)).length;
+    const delivered = orders.filter(o => getDeliveryStatus(o).toLowerCase() === 'delivered').length;
     const urgent = orders.filter(o => String(o.priority || '').toLowerCase() === 'urgent').length;
     const mine = orders.filter(o => Number(o.created_by) === Number(user?.userId)).length;
     return [
       { id: 'all', label: 'All', count: all },
       { id: 'open', label: 'Status: Open', count: open },
+      { id: 'delivered', label: 'Delivered', count: delivered },
       { id: 'urgent', label: 'Priority: Urgent', count: urgent },
       { id: 'mine', label: 'My Orders', count: mine },
     ];
@@ -232,7 +269,10 @@ const CustomerOrders = () => {
     });
 
     if (activeTab === 'open') {
-      list = list.filter(o => isOpenStatus(o.status || o.indentStatus));
+      list = list.filter(o => isOpenStatus(o));
+    }
+    if (activeTab === 'delivered') {
+      list = list.filter(o => getDeliveryStatus(o).toLowerCase() === 'delivered');
     }
     if (activeTab === 'urgent') {
       list = list.filter(o => String(o.priority || '').toLowerCase() === 'urgent');
@@ -258,6 +298,8 @@ const CustomerOrders = () => {
           o.componentDesc,
           o.status,
           o.indentStatus,
+          o.delivery_status,
+          o.deliveryStatus,
           o.priority,
         ]
           .filter(Boolean)
@@ -295,7 +337,7 @@ const CustomerOrders = () => {
   }, [pagination.safePage]);
 
   const stats = useMemo(() => {
-    const openOrders = orders.filter(o => isOpenStatus(o.status || o.indentStatus)).length;
+    const openOrders = orders.filter(o => isOpenStatus(o)).length;
     const pendingAdminApproval = orders.filter(o => String(o.status || o.indentStatus || '').toLowerCase().includes('admin')).length;
 
     const today = new Date();
@@ -421,11 +463,16 @@ const CustomerOrders = () => {
                 pagination.pageItems.map((order) => {
                   const itemsSummary = buildItemsSummary(order);
                   const indentId = order.indent_id || order.indentId || order.id;
-                  const linkedPurchaseIndent = order.purchase_indent_number || (order.purchase_indent_id ? `PI Record #${order.purchase_indent_id}` : null);
+                  const linkedPurchaseIndentNumber = order.purchase_indent_number || null;
+                  const linkedPurchaseIndent =
+                    linkedPurchaseIndentNumber && String(linkedPurchaseIndentNumber).trim() !== String(indentId).trim()
+                      ? linkedPurchaseIndentNumber
+                      : null;
                   const customerName = order.customer_name || order.customerName;
                   const customerPhone = order.customer_phone || order.customerPhone;
                   const customerEmail = order.customer_email || order.customerEmail;
                   const status = order.status || order.indentStatus;
+                  const deliveryStatus = getDeliveryStatus(order);
                   const priority = order.priority || 'Standard';
                   const createdBy = order.created_by || order.createdBy || '-';
                   const createdAt = order.created_at || order.createdAt;
@@ -468,6 +515,9 @@ const CustomerOrders = () => {
                             <span className={`badge ${order.indentStatusClass || statusToBadgeClass(status)}`}>
                               {status}
                             </span>
+                            <span className={`badge ${deliveryStatusToBadgeClass(deliveryStatus)}`}>
+                              {deliveryStatus}
+                            </span>
                             <span className={`badge ${order.priorityClass || getPriorityClass(priority)}`}>
                               {priority}
                             </span>
@@ -478,14 +528,23 @@ const CustomerOrders = () => {
 
                       {/* Action Link */}
                       <td>
-                        <button
-                          className="action-link"
-                          type="button"
-                          onClick={() => handleViewOrder(order)}
-                        >
-                          <Eye size={16} />
-                          View
-                        </button>
+                        <div className="table-actions">
+                          <button
+                            className="action-link action-btn"
+                            type="button"
+                            onClick={() => handleViewOrder(order)}
+                          >
+                            <Eye size={16} />
+                            View Indent
+                          </button>
+                          <button
+                            className="action-link action-btn"
+                            type="button"
+                            onClick={() => handleOpenOrderDetails(order)}
+                          >
+                            Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -585,6 +644,16 @@ const CustomerOrders = () => {
                   </div>
                 </div>
                 <div className="detail-card">
+                  <div className="detail-label">Delivery Status</div>
+                  <div className="detail-value">
+                    <span className={`badge ${deliveryStatusToBadgeClass(getDeliveryStatus(selectedOrder))}`}>{getDeliveryStatus(selectedOrder)}</span>
+                  </div>
+                </div>
+                <div className="detail-card">
+                  <div className="detail-label">Delivered At</div>
+                  <div className="detail-value">{selectedOrder.delivered_at ? new Date(selectedOrder.delivered_at).toLocaleString('en-GB') : '-'}</div>
+                </div>
+                <div className="detail-card">
                   <div className="detail-label">Priority</div>
                   <div className="detail-value">
                     <span className={`badge ${selectedOrder.priorityClass || getPriorityClass(selectedOrder.priority)}`}>{selectedOrder.priority}</span>
@@ -632,6 +701,18 @@ const CustomerOrders = () => {
                 <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Store Review')}>Send to Store</button>
                 <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
                 <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Admin Approved')}>Approve</button>
+                {getDeliveryStatus(selectedOrder).toLowerCase() !== 'delivered' && (
+                  <button
+                    type="button"
+                    className="status-btn status-btn-delivered"
+                    onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, {
+                      deliveryStatus: 'Delivered',
+                      comments: 'Marked as delivered to customer'
+                    })}
+                  >
+                    Mark Delivered
+                  </button>
+                )}
               </div>
               <button className="btn-secondary" type="button" onClick={() => setSelectedOrder(null)}>Close</button>
             </div>
