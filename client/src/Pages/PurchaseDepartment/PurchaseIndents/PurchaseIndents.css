@@ -421,3 +421,223 @@
 }
 .qi-toolbar-external { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
 .qi-toolbar { display: none; }
+.qi-td-date-sub { font-size: 12px; color: var(--pi-text-light); margin-top: 4px; font-weight: normal; }
+
+/* Modal Details Grid */
+.qi-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.qi-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.qi-detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: white;
+  border-radius: 6px;
+  color: var(--pi-primary);
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.qi-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qi-detail-label {
+  font-size: 11px;
+  color: var(--pi-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.qi-detail-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pi-text-dark);
+}
+
+.qi-detail-sub {
+  font-size: 12px;
+  color: var(--pi-text-medium);
+  margin-top: 2px;
+}
+
+/* Full width for remarks/notes if needed */
+.qi-detail-full {
+  grid-column: span 2;
+}
+
+
+.qi-detail-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.qi-detail-section.qi-po-info {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.qi-detail-section.qi-rejection-info {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+.qi-detail-remarks {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: var(--pi-text-medium);
+  line-height: 1.5;
+  width: 100%;
+}
+
+.qi-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid var(--pi-border);
+  border-radius: 0 0 12px 12px;
+}
+
+.qi-btn-danger, .qi-btn-primary {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qi-btn-danger {
+  background-color: white;
+  color: var(--pi-danger);
+  border: 1px solid var(--pi-border);
+}
+
+.qi-btn-danger:hover {
+  background-color: var(--pi-danger-bg);
+  border-color: var(--pi-danger);
+}
+
+.qi-btn-primary {
+  background-color: var(--pi-primary);
+  color: white;
+  border: 1px solid var(--pi-primary);
+}
+
+.qi-btn-primary:hover {
+  background-color: var(--pi-primary-hover);
+}
+
+/* Fix for remarks section which might not have icon */
+.qi-detail-section:not(:has(.qi-detail-icon)) {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qi-detail-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 16px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.qi-detail-section.qi-po-info {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.qi-detail-section.qi-rejection-info {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+.qi-detail-remarks {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: var(--pi-text-medium);
+  line-height: 1.5;
+  width: 100%;
+}
+
+.qi-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  background-color: #f8fafc;
+  border-top: 1px solid var(--pi-border);
+  border-radius: 0 0 12px 12px;
+}
+
+.qi-btn-danger, .qi-btn-primary {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qi-btn-danger {
+  background-color: white;
+  color: var(--pi-danger);
+  border: 1px solid var(--pi-border);
+}
+
+.qi-btn-danger:hover {
+  background-color: var(--pi-danger-bg);
+  border-color: var(--pi-danger);
+}
+
+.qi-btn-primary {
+  background-color: var(--pi-primary);
+  color: white;
+  border: 1px solid var(--pi-primary);
+}
+
+.qi-btn-primary:hover {
+  background-color: var(--pi-primary-hover);
+}
+
+/* Fix for remarks section which might not have icon */
+.qi-detail-section:not(:has(.qi-detail-icon)) {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qi-detail-block { flex-direction: column; gap: 8px; align-items: stretch; }
+
+.qi-po-number { display: inline-block; font-family: monospace; font-size: 15px; background-color: #f0fdf4; padding: 4px 8px; border-radius: 4px; border: 1px dashed #bbf7d0; color: #16a34a; }
+
+.qi-btn-secondary { background-color: white; color: var(--pi-text-medium); border: 1px solid var(--pi-border); padding: 8px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+.qi-btn-secondary:hover { background-color: #f1f5f9; border-color: #cbd5e1; }

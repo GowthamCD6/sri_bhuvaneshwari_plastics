@@ -5,7 +5,7 @@ import './CreateIndent.css';
 import { purchaseIndentService, materialService, storeRequestService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// --- helpers ----------------------------------------------------------------
 const getTodayDate = () => {
   const d = new Date();
   const y = d.getFullYear();
@@ -22,7 +22,7 @@ const generateIndentNumber = () => {
 
 const UNITS = ['Kg', 'Ltr', 'Pcs', 'Mtr', 'Box', 'Nos'];
 
-// ─── empty material row factory ──────────────────────────────────────────────
+// --- empty material row factory ----------------------------------------------
 const emptyRow = () => ({
   _key: Date.now() + Math.random(),
   materialId: null,
@@ -35,11 +35,16 @@ const emptyRow = () => ({
   remarks: '',
 });
 
-// ─── MaterialRow component ───────────────────────────────────────────────────
-const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
+// --- MaterialRow component ---------------------------------------------------
+const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete, readOnly }) => {
   const [query, setQuery] = useState(row.description);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  
+  // Sync query if row description changes externally
+  useEffect(() => {
+    setQuery(row.description);
+  }, [row.description]);
 
   const filtered = query.trim()
     ? allMaterials.filter(
@@ -80,18 +85,19 @@ const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
   }, []);
 
   return (
-    <tr className="cpi-table-row">
+    <tr className="pi-tr">
       {/* Material Name / Code */}
-      <td className="cpi-td cpi-td-material">
+      <td className="pi-td" style={{ minWidth: '220px' }}>
         <div className="cpi-search-wrap" ref={wrapRef}>
           <input
-            className="cpi-input cpi-input-material"
+            className="pi-input pi-input-table"
             value={query}
             onChange={handleQueryChange}
-            onFocus={() => query.trim() && setOpen(true)}
+            onFocus={() => !readOnly && query.trim() && setOpen(true)}
             placeholder="Search material..."
+            disabled={readOnly}
           />
-          {open && filtered.length > 0 && (
+          {!readOnly && open && filtered.length > 0 && (
             <ul className="cpi-dropdown">
               {filtered.slice(0, 8).map((m) => (
                 <li
@@ -109,43 +115,51 @@ const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
       </td>
 
       {/* Material Code */}
-      <td className="cpi-td">
+      <td className="pi-td">
         <input
-          className="cpi-input cpi-input-code"
+          className="pi-input pi-input-table"
           value={row.materialCode}
           onChange={(e) => onChange({ ...row, materialCode: e.target.value })}
           placeholder="e.g. MAT-001"
+          disabled={readOnly}
+          style={{ width: '120px' }}
         />
       </td>
 
       {/* Warehouse Location */}
-      <td className="cpi-td">
+      <td className="pi-td">
         <input
-          className="cpi-input cpi-input-location"
+          className="pi-input pi-input-table"
           value={row.warehouseLocation}
           onChange={(e) => onChange({ ...row, warehouseLocation: e.target.value })}
           placeholder="e.g. A-01"
+          disabled={readOnly}
+          style={{ width: '120px' }}
         />
       </td>
 
       {/* Required Qty */}
-      <td className="cpi-td">
+      <td className="pi-td">
         <input
-          className="cpi-input cpi-input-qty"
+          className="pi-input pi-input-table"
           type="number"
           min="0"
           value={row.quantity}
           onChange={(e) => onChange({ ...row, quantity: e.target.value })}
           placeholder="0"
+          disabled={readOnly}
+          style={{ width: '100px' }}
         />
       </td>
 
       {/* Unit */}
-      <td className="cpi-td">
+      <td className="pi-td">
         <select
-          className="cpi-select-unit"
+          className="pi-input pi-input-table"
           value={row.unit}
           onChange={(e) => onChange({ ...row, unit: e.target.value })}
+          disabled={readOnly}
+          style={{ width: '90px', cursor: 'pointer' }}
         >
           {UNITS.map((u) => (
             <option key={u} value={u}>{u}</option>
@@ -154,20 +168,21 @@ const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
       </td>
 
       {/* Remarks */}
-      <td className="cpi-td">
+      <td className="pi-td">
         <input
-          className="cpi-input cpi-input-remarks"
+          className="pi-input pi-input-table"
           value={row.remarks}
           onChange={(e) => onChange({ ...row, remarks: e.target.value })}
           placeholder="Notes..."
+          disabled={readOnly}
         />
       </td>
 
       {/* Delete */}
-      <td className="cpi-td cpi-td-action">
-        {showDelete && (
+      <td className="pi-td" style={{ width: '50px', textAlign: 'center' }}>
+        {showDelete && !readOnly && (
           <button
-            className="cpi-delete-btn"
+            className="pi-btn-delete"
             onClick={onDelete}
             type="button"
             title="Remove row"
@@ -180,7 +195,7 @@ const MaterialRow = ({ row, allMaterials, onChange, onDelete, showDelete }) => {
   );
 };
 
-// ─── Main page component ─────────────────────────────────────────────────────
+// --- Main page component -----------------------------------------------------
 const CreatePurchaseIndent = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -197,13 +212,50 @@ const CreatePurchaseIndent = () => {
   const [allMaterials, setAllMaterials] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+  const [toast, setToast] = useState(null);
+  const [isReadOnly, setIsReadOnly] = useState(false);
   
-  // Handling passed store request data
   const storeRequest = location.state?.storeRequest;
+  const viewIndentData = location.state?.indentData;
+  const readOnlyMode = location.state?.readOnly;
 
   useEffect(() => {
-    if (storeRequest) {
+    if (viewIndentData) {
+      setIsReadOnly(!!readOnlyMode);
+      
+      const mapPriority = (p) => {
+        if (!p) return 'Normal';
+        const l = p.toString().toLowerCase();
+        if (l === 'high') return 'High';
+        if (l === 'urgent') return 'Urgent';
+        return 'Normal';
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        indentNumber: viewIndentData.id || viewIndentData.indent_number,
+        requiredDate: viewIndentData.rawRequiredDate 
+          ? new Date(viewIndentData.rawRequiredDate).toISOString().split('T')[0]
+          : getTodayDate(),
+        priority: mapPriority(viewIndentData.priority),
+        reason: viewIndentData.remarks || viewIndentData.reason || ''
+      }));
+
+      const mats = viewIndentData.materials || [];
+      if (mats.length > 0) {
+        setRows(mats.map(m => ({
+          _key: Math.random(),
+          materialId: m.material_id,
+          description: m.material_name || m.material_description || '',
+          materialCode: m.material_code || '',
+          warehouseLocation: m.warehouse_location || '',
+          currentStock: m.current_stock || m.stock_quantity || '',
+          quantity: m.quantity || '',
+          unit: m.unit_of_measurement || 'Kg',
+          remarks: m.specifications || m.remarks || ''
+        })));
+      }
+    } else if (storeRequest) {
       setFormData(prev => ({
         ...prev,
         requiredDate: storeRequest.neededDate ? new Date(storeRequest.neededDate).toISOString().split('T')[0] : getTodayDate(),
@@ -213,7 +265,7 @@ const CreatePurchaseIndent = () => {
       
       setRows([{
         _key: Date.now(),
-        materialId: null, // Will need to match by name/code if not provided
+        materialId: null,
         description: storeRequest.material,
         materialCode: storeRequest.code,
         warehouseLocation: '',
@@ -223,68 +275,38 @@ const CreatePurchaseIndent = () => {
         remarks: storeRequest.specs || ''
       }]);
     }
-  }, [storeRequest]);
+  }, [storeRequest, viewIndentData, readOnlyMode]);
 
-  // Fetch materials and handle store request pre-fill
   useEffect(() => {
     materialService.getAllMaterials()
       .then((res) => {
         const materials = res.materials || res.data || [];
         setAllMaterials(materials);
         
-        // If we have a store request, try to match the material
         if (storeRequest) {
-          setFormData(prev => ({
-            ...prev,
-            requiredDate: storeRequest.neededDate ? new Date(storeRequest.neededDate).toISOString().split('T')[0] : getTodayDate(),
-            priority: storeRequest.priority === 'Critical' ? 'Urgent' : (storeRequest.priority || 'Normal'),
-            reason: storeRequest.reason || ''
-          }));
-
           const matchedMaterial = materials.find(m => 
             m.material_name === storeRequest.material || 
             m.material_code === storeRequest.code
           );
-
-          setRows([{
-            _key: Date.now(),
-            materialId: matchedMaterial ? matchedMaterial.material_id : null,
-            description: storeRequest.material,
-            materialCode: storeRequest.code || (matchedMaterial ? matchedMaterial.material_code : ''),
-            warehouseLocation: matchedMaterial ? matchedMaterial.warehouse_location : '',
-            currentStock: matchedMaterial ? (matchedMaterial.current_stock ?? matchedMaterial.stock_quantity ?? '') : '',
-            quantity: storeRequest.quantity,
-            unit: storeRequest.unit || (matchedMaterial ? matchedMaterial.unit_of_measurement : 'Kg'),
-            remarks: storeRequest.specs || ''
-          }]);
+          if (matchedMaterial) {
+            setRows(prev => {
+              const r = prev[0];
+              return [{
+                ...r,
+                materialId: matchedMaterial.material_id,
+                materialCode: storeRequest.code || matchedMaterial.material_code,
+                warehouseLocation: matchedMaterial.warehouse_location,
+                currentStock: matchedMaterial.current_stock ?? matchedMaterial.stock_quantity ?? '',
+                quantity: storeRequest.quantity,
+                unit: storeRequest.unit || matchedMaterial.unit_of_measurement,
+                remarks: storeRequest.specs || ''
+              }];
+            });
+          }
         }
       })
-      .catch((err) => {
-        console.error('Failed to load materials:', err);
-        // Fallback if materials fail to load but we have storeRequest
-        if (storeRequest) {
-          setRows([{
-            _key: Date.now(),
-            materialId: null,
-            description: storeRequest.material,
-            materialCode: storeRequest.code,
-            quantity: storeRequest.quantity,
-            unit: storeRequest.unit || 'Kg',
-            remarks: storeRequest.specs || ''
-          }]);
-        }
-      });
-  }, [storeRequest]); // Depend on storeRequest to trigger once available
-
-/*
-  // Original separate useEffects commented out to prevent race conditions or overwrites
-  // useEffect(() => {
-  //   materialService
-  //     .getAllMaterials()
-  //     .then((res) => setAllMaterials(res.materials || res.data || []))
-  //     .catch(() => {});
-  // }, []);
-*/
+      .catch((err) => console.error('Failed to load materials:', err));
+  }, [storeRequest]);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -303,27 +325,6 @@ const CreatePurchaseIndent = () => {
 
   const handleDeleteRow = (index) =>
     setRows((prev) => prev.filter((_, i) => i !== index));
-
-  // ── build payload ─────────────────────────────────────────────────────────
-  const buildPayload = (status, workflowStage) => {
-    const validRows = rows.filter((r) => r.description.trim());
-    return {
-      indentNumber,
-      requestDate: getTodayDate(),
-      requiredByDate: formData.requiredDate,
-      priority: formData.priority === 'Normal' ? 'Normal' : formData.priority,
-      reason: formData.reason,
-      status,
-      workflowStage,
-      materials: validRows.map((r) => ({
-        description: r.description,
-        quantity: parseFloat(r.quantity) || 0,
-        unit: r.unit,
-        currentStock: parseFloat(r.currentStock) || 0,
-        specifications: r.remarks || '',
-      })),
-    };
-  };
 
   const validate = () => {
     if (!formData.requiredDate) {
@@ -344,32 +345,24 @@ const CreatePurchaseIndent = () => {
     return true;
   };
 
-  const handleSaveDraft = async () => {
-    if (!validate()) return;
-    try {
-      setSaving(true);
-      // Use standard createIndent. 
-      // Workflow Stage 'QMS Init' + Status 'Draft' = Purchase Dept Draft
-      const response = await purchaseIndentService.createIndent(
-        buildPayload('Draft', 'QMS Init')
-      );
-
-      // Update store request if this originated from one
-      if (storeRequest && storeRequest.id && response.data?.indent_id) {
-        await storeRequestService.updateRequest(storeRequest.id, {
-          status: 'Processed',
-          indentId: response.data.indent_id
-        });
-      }
-
-      showToast('success', 'Draft saved successfully.');
-      setTimeout(() => navigate('/qms-indents'), 1500);
-    } catch (err) {
-      console.error('Save draft error:', err);
-      showToast('error', err.message || 'Failed to save draft.');
-    } finally {
-      setSaving(false);
-    }
+  const buildPayload = (status, workflowStage) => {
+    const validRows = rows.filter((r) => r.description.trim());
+    return {
+      indentNumber,
+      requestDate: getTodayDate(),
+      requiredByDate: formData.requiredDate,
+      priority: formData.priority === 'Normal' ? 'Normal' : formData.priority,
+      reason: formData.reason,
+      status,
+      workflowStage,
+      materials: validRows.map((r) => ({
+        description: r.description,
+        quantity: parseFloat(r.quantity) || 0,
+        unit: r.unit,
+        currentStock: parseFloat(r.currentStock) || 0,
+        specifications: r.remarks || '',
+      })),
+    };
   };
 
   const handleSubmit = async () => {
@@ -379,15 +372,12 @@ const CreatePurchaseIndent = () => {
       const response = await purchaseIndentService.createIndent(
         buildPayload('Pending QMS Verification', 'QMS Init')
       );
-
-      // Update store request if this originated from one
       if (storeRequest && storeRequest.id && response.data?.indent_id) {
         await storeRequestService.updateRequest(storeRequest.id, {
           status: 'Processed',
           indentId: response.data.indent_id
         });
       }
-
       showToast('success', 'Indent submitted for Store Verification.');
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
@@ -399,148 +389,155 @@ const CreatePurchaseIndent = () => {
   };
 
   return (
-    <div className="cpi-page">
-      {/* ── Toast ── */}
-      {toast && (
-        <div className={`cpi-toast cpi-toast-${toast.type}`}>{toast.message}</div>
-      )}
+    <div className="purchase-indent-page">
+      <div className="purchase-indent-container">
+        {toast && <div className={`cpi-toast cpi-toast-${toast.type}`}>{toast.message}</div>}
 
-      {/* ── Header ── */}
-      <div className="cpi-header">
-        <button className="cpi-back-btn" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16} />
-        </button>
-        <h1 className="cpi-title">Create Purchase Indent</h1>
-        <div className="cpi-header-actions">
-          <button
-            className="cpi-btn cpi-btn-submit"
-            onClick={handleSubmit}
-            disabled={saving || submitting}
-          >
-            {submitting ? (
-              <Loader2 size={14} className="cpi-spin" />
-            ) : (
-              <Check size={14} />
+        {/* -- Header -- */}
+        <div className="pi-header">
+          <div className="pi-header-left" style={{ display: "flex", alignItems: "center" }}>
+            <button className="pi-back-btn" onClick={() => navigate(-1)}>
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1>{isReadOnly ? 'View Purchase Indent' : 'New Purchase Indent'}</h1>
+              <p>{isReadOnly ? `Viewing details for ${formData.indentNumber}` : 'Create a new material request'}</p>
+            </div>
+          </div>
+          
+          <div className="pi-header-right">
+            {!isReadOnly && (
+              <button
+                className="pi-btn pi-btn-primary"
+                onClick={handleSubmit}
+                disabled={saving || submitting}
+              >
+                {submitting ? <Loader2 size={16} className="cpi-spin" /> : <Check size={16} />}
+                Submit Indent
+              </button>
             )}
-            Submit Indent
-          </button>
-        </div>
-      </div>
-
-      {/* ── General Information ── */}
-      <div className="cpi-card">
-        <div className="cpi-card-header">
-          <h2 className="cpi-section-title">General Information</h2>
-          <span className="cpi-indent-num">Indent # {indentNumber}</span>
-        </div>
-
-        <div className="cpi-form-grid">
-          {/* Department */}
-          <div className="cpi-field">
-            <label className="cpi-label">Department</label>
-            <input
-              className="cpi-input-field"
-              value="QMS"
-              readOnly
-            />
-          </div>
-
-          {/* Required Date */}
-          <div className="cpi-field">
-            <label className="cpi-label">Required Date</label>
-            <input
-              type="date"
-              className="cpi-input-field"
-              value={formData.requiredDate}
-              onChange={(e) => handleFieldChange('requiredDate', e.target.value)}
-            />
-          </div>
-
-          {/* Priority */}
-          <div className="cpi-field">
-            <label className="cpi-label">Priority</label>
-            <select
-              className="cpi-select"
-              value={formData.priority}
-              onChange={(e) => handleFieldChange('priority', e.target.value)}
-            >
-              <option value="Normal">Normal</option>
-              <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
-            </select>
           </div>
         </div>
 
-        {/* Reason */}
-        <div className="cpi-field cpi-field-full">
-          <label className="cpi-label">Reason / Purpose</label>
-          <textarea
-            className="cpi-textarea"
-            rows={3}
-            placeholder="e.g., Restocking for Q4 production..."
-            value={formData.reason}
-            onChange={(e) => handleFieldChange('reason', e.target.value)}
-          />
-        </div>
-      </div>
+        {/* -- Form Content -- */}
+        <div className="pi-form-content">
+          
+          {/* General Information Section */}
+          <div className="pi-section">
+            <h2 className="pi-section-title">
+              <span>General Information</span>
+              <span className="pi-section-info">Indent # {formData.indentNumber || indentNumber}</span>
+            </h2>
+            
+            <div className="pi-form-grid">
+              <div className="pi-field">
+                <label className="pi-label">Department</label>
+                <input className="pi-input" value="QMS" readOnly />
+              </div>
 
-      {/* ── Material Details ── */}
-      <div className="cpi-card">
-        <div className="cpi-card-header">
-          <h2 className="cpi-section-title">Material Details</h2>
-          <button className="cpi-btn cpi-btn-add" onClick={handleAddRow} type="button">
-            <Plus size={14} />
-            Add Item
-          </button>
-        </div>
-
-        <div className="cpi-table-wrap">
-          <table className="cpi-table">
-            <thead>
-              <tr>
-                <th className="cpi-th">Material Name</th>
-                <th className="cpi-th">Material Code</th>
-                <th className="cpi-th">Warehouse Location</th>
-                <th className="cpi-th">Required Qty</th>
-                <th className="cpi-th">Unit</th>
-                <th className="cpi-th">Remarks</th>
-                <th className="cpi-th" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, idx) => (
-                <MaterialRow
-                  key={row._key}
-                  row={row}
-                  allMaterials={allMaterials}
-                  onChange={(updated) => handleRowChange(idx, updated)}
-                  onDelete={() => handleDeleteRow(idx)}
-                  showDelete={rows.length > 1}
+              <div className="pi-field">
+                <label className="pi-label">Required Date</label>
+                <input
+                  type="date"
+                  className="pi-input"
+                  value={formData.requiredDate}
+                  onChange={(e) => handleFieldChange('requiredDate', e.target.value)}
+                  disabled={isReadOnly}
                 />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </div>
 
-      {/* ── Approval Workflow ── */}
-      <div className="cpi-card">
-        <h2 className="cpi-section-title">Approval Workflow</h2>
-        <div className="cpi-workflow">
-          <div className="cpi-step cpi-step-active">
-            <div className="cpi-step-circle cpi-step-circle-active">1</div>
-            <span className="cpi-step-label">Purchase Department</span>
+              <div className="pi-field">
+                <label className="pi-label">Priority</label>
+                <select
+                  className="pi-select"
+                  value={formData.priority}
+                  onChange={(e) => handleFieldChange('priority', e.target.value)}
+                  disabled={isReadOnly}
+                >
+                  <option value="Normal">Normal</option>
+                  <option value="High">High</option>
+                  <option value="Urgent">Urgent</option>
+                </select>
+              </div>
+              
+              <div className="pi-field pi-field-full" style={{ gridColumn: "1 / -1" }}>
+                <label className="pi-label">Reason / Purpose</label>
+                <textarea
+                  className="pi-textarea"
+                  placeholder="e.g., Restocking for Q4 production..."
+                  value={formData.reason}
+                  onChange={(e) => handleFieldChange('reason', e.target.value)}
+                  disabled={isReadOnly}
+                />
+              </div>
+            </div>
           </div>
-          <div className="cpi-step-line" />
-          <div className="cpi-step">
-            <div className="cpi-step-circle">2</div>
-            <span className="cpi-step-label">QMS Verification</span>
+
+          {/* Material Details Section */}
+          <div className="pi-section">
+            <div className="pi-section-title">
+              <span>Material Details</span>
+              {!isReadOnly && (
+                <button className="pi-btn pi-btn-add" onClick={handleAddRow} type="button">
+                  <Plus size={14} />
+                  Add Item
+                </button>
+              )}
+            </div>
+
+            <div className="pi-table-wrap">
+              <table className="pi-table">
+                <thead>
+                  <tr>
+                    <th className="pi-th">Material Name</th>
+                    <th className="pi-th">Material Code</th>
+                    <th className="pi-th">Location</th>
+                    <th className="pi-th">Required Qty</th>
+                    <th className="pi-th">Unit</th>
+                    <th className="pi-th">Remarks</th>
+                    <th className="pi-th" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, idx) => (
+                    <MaterialRow
+                      key={row._key}
+                      row={row}
+                      allMaterials={allMaterials}
+                      onChange={(updated) => handleRowChange(idx, updated)}
+                      onDelete={() => handleDeleteRow(idx)}
+                      showDelete={rows.length > 1}
+                      readOnly={isReadOnly}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="cpi-step-line" />
-          <div className="cpi-step">
-            <div className="cpi-step-circle">3</div>
-            <span className="cpi-step-label">Admin Approval</span>
+
+          {/* Approval Workflow */}
+          <div className="pi-section">
+            <h2 className="pi-section-title">Approval Workflow</h2>
+            <div className="pi-workflow-steps">
+              <div className="pi-step-item active">
+                <div className="pi-step-circle">1</div>
+                <div className="pi-step-label">Purchase Dept</div>
+              </div>
+              <div className="pi-step-item">
+                <div className="pi-step-circle">2</div>
+                <div className="pi-step-label">QMS Verification</div>
+              </div>
+              <div className="pi-step-item">
+                <div className="pi-step-circle">3</div>
+                <div className="pi-step-label">Admin Appoval</div>
+              </div>
+               <div className="pi-step-item">
+                <div className="pi-step-circle">4</div>
+                <div className="pi-step-label">Accountant</div>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </div>

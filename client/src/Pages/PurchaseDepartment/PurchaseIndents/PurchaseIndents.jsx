@@ -12,7 +12,7 @@ const PurchaseIndents = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedIndent, setSelectedIndent] = useState(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 6;
 
   const [indents, setIndents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +32,10 @@ const PurchaseIndents = () => {
         return {
           id: indent.indent_number,
           date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          requiredDate: indent.required_by_date 
+            ? new Date(indent.required_by_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+            : '-',
+          rawRequiredDate: indent.required_by_date, // Pass raw date for editing/viewing
           material: first?.material_description || 'Materials',
           category: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'Customer Order' : 'Store Request'),
           priority: String(indent.priority || 'NORMAL').toUpperCase(),
@@ -173,8 +177,8 @@ const PurchaseIndents = () => {
             <thead>
               <tr>
                 <th>Indent ID</th>
-                <th>Date</th>
                 <th>Requested Material</th>
+                <th>Required Date</th>
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Origin</th>
@@ -185,11 +189,19 @@ const PurchaseIndents = () => {
               {paginatedIndents.length > 0 ? (
                 paginatedIndents.map((indent) => (
                   <tr key={indent.id}>
-                    <td className="qi-td-id">{indent.id}</td>
-                    <td className="qi-td-date">{indent.date}</td>
+                    <td className="qi-td-id">
+                      <div>{indent.id}</div>
+                      <div className="qi-td-date-sub">{indent.date}</div>
+                    </td>
                     <td className="qi-td-material">
                       <div className="qi-material-name">{indent.material}</div>
                       <div className="qi-material-category">{indent.category}</div>
+                    </td>
+                    <td className="qi-td-req-date">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#334155' }}>
+                        <Calendar size={14} className="qi-date-icon" />
+                        {indent.requiredDate}
+                      </div>
                     </td>
                     <td className="qi-td-priority">
                       <span className={`qi-priority-badge ${getPriorityClass(indent.priority)}`}>
@@ -329,26 +341,32 @@ const PurchaseIndents = () => {
                 </div>
               </div>
 
-              <div className="qi-detail-section">
+              <div className="qi-detail-section qi-detail-block">
                 <span className="qi-detail-label">Remarks</span>
                 <p className="qi-detail-remarks">{selectedIndent.remarks || '—'}</p>
               </div>
 
               {selectedIndent.status === 'Processed' && selectedIndent.poNumber && (
-                <div className="qi-detail-section qi-po-info">
+                <div className="qi-detail-section qi-po-info qi-detail-block">
                   <span className="qi-detail-label">Purchase Order</span>
                   <span className="qi-detail-value qi-po-number">{selectedIndent.poNumber}</span>
                 </div>
               )}
 
               {selectedIndent.status === 'Rejected' && selectedIndent.rejectionReason && (
-                <div className="qi-detail-section qi-rejection-info">
+                <div className="qi-detail-section qi-rejection-info qi-detail-block">
                   <span className="qi-detail-label">Rejection Reason</span>
                   <p className="qi-detail-remarks">{selectedIndent.rejectionReason}</p>
                 </div>
               )}
             </div>
             <div className="qi-modal-footer">
+              <button 
+                className="qi-btn-secondary"
+                onClick={() => navigate('/create-purchase-indent', { state: { indentData: selectedIndent, readOnly: true } })}
+              >
+                View Full Indent
+              </button>
               <button className="qi-btn-danger" onClick={() => setShowDetailModal(false)}>
                 Close
               </button>
