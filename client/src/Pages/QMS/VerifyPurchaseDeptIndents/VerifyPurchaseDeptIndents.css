@@ -1,0 +1,35 @@
+/* ─── Page-specific overrides for VerifyPurchaseDeptIndents ──────────
+   All vsi-* base styles come from ../VerifyStoreIndents/VerifyStoreIndents.css
+   ─────────────────────────────────────────────────────────────────── */
+
+/* ─── Error banner ───────────────────────────────────────────────── */
+.vpdi-error {
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+/* ─── Avatar "P" circle (Purchase Dept requester) ────────────────── */
+.vpdi-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ─── Rejected status badge (not in VerifyStoreIndents.css) ─────── */
+.badge-rejected {
+  background-color: #fef2f2;
+  color: #b91c1c;
+}

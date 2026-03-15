@@ -1,89 +1,87 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './QMSApproval.css';
+import '../CustomerOrder/CustomerOrder.css';
+import './StoreRequestApproval.css';
 import { purchaseIndentService } from '../../../services/apiService';
 
-const QMSIndentApprovals = () => {
+const StoreRequestApproval = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [indents, setIndents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchIndents = async () => {
+  const formatDate = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const toUrgencyLabel = (priority) => {
+    if (priority === 'Urgent') return 'Critical';
+    if (priority === 'High') return 'High';
+    return 'Normal';
+  };
+
+  const fetchStoreRequestIndents = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('Fetching all indents for Admin approval');
-      // Fetch indents from multiple workflow stages:
-      // 1. Admin: Pending for Admin approval
-      // 2. Accountant, Completed: Already approved by Admin, showing history
-      const responses = await Promise.all([
-        purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
-      ]);
-      
-      console.log('Admin fetched responses:', responses);
-      
-      // Combine all responses
-      const allIndentsData = responses.reduce((acc, response) => {
-        if (response.success && response.data) {
-          return [...acc, ...response.data];
-        }
-        return acc;
-      }, []);
-      
-      console.log('Admin combined indents:', allIndentsData);
-      
-      const mapped = allIndentsData.map((indent) => {
-        const materials = Array.isArray(indent.materials) ? indent.materials : [];
-        const first = materials[0];
-        const materialName = first?.material_description || 'Materials';
-        const quantity = first?.quantity ? `${first.quantity}${first.unit_of_measurement || ''}` : '-';
-        const details = materials.length > 1 ? `${quantity} • +${materials.length - 1} more` : `${quantity} • ${materialName}`;
 
-        // Determine status based on workflow_stage
-        let displayStatus = indent.status;
-        if (indent.status === 'Rejected') {
-          displayStatus = 'Rejected';
-        } else if (indent.workflow_stage === 'Admin') {
-          displayStatus = 'Pending Admin Approval';
-        } else if (indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
-          displayStatus = 'Admin Approved';
-        }
+      const response = await purchaseIndentService.getAllIndents();
+      const data = response?.data || [];
 
-        return {
-          id: indent.indent_number,
-          indentId: indent.indent_id,
-          date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-          material: materialName,
-          details,
-          requestedBy: indent.requested_by_name || 'QMS Officer',
-          urgency: indent.priority === 'High' ? 'High' : indent.priority === 'Urgent' ? 'Critical' : 'Normal',
-          status: displayStatus,
-          workflowStage: indent.workflow_stage
-        };
-      });
-      setIndents(mapped);
+      const storeRequestIndents = data
+        .filter((indent) => indent.customer_order_id == null)
+        .map((indent) => {
+          const materials = Array.isArray(indent.materials) ? indent.materials : [];
+          const first = materials[0];
+          const materialName = first?.material_description || 'Materials';
+          const quantity = first?.quantity ? `${first.quantity}${first.unit_of_measurement || ''}` : '-';
+          const details = materials.length > 1 ? `${quantity} • +${materials.length - 1} more` : `${quantity} • ${materialName}`;
+
+          let displayStatus = indent.status;
+          if (indent.status === 'Rejected') {
+            displayStatus = 'Rejected';
+          } else if (indent.workflow_stage === 'QMS Init' && indent.status === 'Pending QMS Verification') {
+            displayStatus = 'Pending QMS Approval';
+          } else if (['Admin', 'Accountant', 'Completed'].includes(indent.workflow_stage)) {
+            displayStatus = 'QMS Approved';
+          }
+
+          return {
+            id: indent.indent_number,
+            indentId: indent.indent_id,
+            date: formatDate(indent.request_date),
+            material: materialName,
+            details,
+            requestedBy: indent.requested_by_name || 'Purchase Department',
+            urgency: toUrgencyLabel(indent.priority),
+            status: displayStatus,
+          };
+        });
+
+      setIndents(storeRequestIndents);
     } catch (err) {
-      console.error('Failed to fetch admin approvals:', err);
-      setError('Failed to load approvals');
+      console.error('Failed to fetch store request approvals:', err);
+      setError('Failed to load store request approvals');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchIndents();
+    fetchStoreRequestIndents();
   }, []);
 
   const tabCounts = useMemo(() => {
-    const pending = indents.filter((i) => i.status === 'Pending Admin Approval').length;
-    const approved = indents.filter((i) => i.status === 'Admin Approved').length;
+    const pending = indents.filter((i) => i.status === 'Pending QMS Approval').length;
+    const approved = indents.filter((i) => i.status === 'QMS Approved').length;
     const rejected = indents.filter((i) => i.status === 'Rejected').length;
     return { pending, approved, rejected };
   }, [indents]);
@@ -98,7 +96,7 @@ const QMSIndentApprovals = () => {
             indent.material,
             indent.details,
             indent.requestedBy,
-            indent.status
+            indent.status,
           ]
             .filter(Boolean)
             .join(' ')
@@ -107,10 +105,10 @@ const QMSIndentApprovals = () => {
         });
 
     if (activeTab === 'pending') {
-      return searched.filter((i) => i.status === 'Pending Admin Approval');
+      return searched.filter((i) => i.status === 'Pending QMS Approval');
     }
     if (activeTab === 'approved') {
-      return searched.filter((i) => i.status === 'Admin Approved');
+      return searched.filter((i) => i.status === 'QMS Approved');
     }
     if (activeTab === 'rejected') {
       return searched.filter((i) => i.status === 'Rejected');
@@ -119,20 +117,37 @@ const QMSIndentApprovals = () => {
     return searched;
   }, [indents, searchQuery, activeTab]);
 
+  const totalPages = Math.ceil(filteredIndents.length / itemsPerPage);
+
+  const paginatedIndents = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredIndents.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredIndents, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
   const handleViewIndent = (indent) => {
     if (!indent?.indentId) return;
     navigate('/admin-purchase-indents', {
       state: {
         indentId: indent.indentId,
-        isViewMode: true
-      }
+        isViewMode: true,
+      },
     });
   };
 
   const handleApprove = async (indentId) => {
     try {
-      await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by Admin' });
-      fetchIndents();
+      await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by QMS' });
+      fetchStoreRequestIndents();
     } catch (err) {
       console.error('Approve failed:', err);
       alert('Failed to approve indent');
@@ -141,8 +156,8 @@ const QMSIndentApprovals = () => {
 
   const handleReject = async (indentId) => {
     try {
-      await purchaseIndentService.updateIndentStatus(indentId, { status: 'Rejected', comments: 'Rejected by Admin' });
-      fetchIndents();
+      await purchaseIndentService.updateIndentStatus(indentId, { status: 'Rejected', comments: 'Rejected by QMS' });
+      fetchStoreRequestIndents();
     } catch (err) {
       console.error('Reject failed:', err);
       alert('Failed to reject indent');
@@ -150,45 +165,36 @@ const QMSIndentApprovals = () => {
   };
 
   return (
-    <div className="qms-container">
-      {/* Header */}
+    <div className="qms-container store-request-approval">
       <header className="qms-header">
         <div className="qms-header-content">
-          <h1 className="qms-title">QMS Indent Approvals</h1>
+          <h1 className="qms-title">Store Request Approvals</h1>
         </div>
       </header>
 
       {error && (
-        <div style={{ padding: '12px 16px', margin: '16px 0', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
+        <div className="sra-error">
           <strong>Error:</strong> {error}
         </div>
       )}
 
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading approvals...
-        </div>
-      )}
-
-      {/* Main Content */}
       <main className="qms-main">
         <div className="qms-card">
-          {/* Tabs and Search */}
           <div className="qms-top-bar">
             <div className="qms-tabs">
-              <button 
+              <button
                 className={`qms-tab ${activeTab === 'pending' ? 'active' : ''}`}
                 onClick={() => setActiveTab('pending')}
               >
                 Pending Review ({tabCounts.pending})
               </button>
-              <button 
+              <button
                 className={`qms-tab ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
                 Approved History
               </button>
-              <button 
+              <button
                 className={`qms-tab ${activeTab === 'rejected' ? 'active' : ''}`}
                 onClick={() => setActiveTab('rejected')}
               >
@@ -197,12 +203,12 @@ const QMSIndentApprovals = () => {
             </div>
             <div className="qms-search-wrapper">
               <svg className="qms-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
               </svg>
-              <input 
-                type="text" 
-                className="qms-search" 
+              <input
+                type="text"
+                className="qms-search"
                 placeholder="Search indents, material, or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -210,7 +216,6 @@ const QMSIndentApprovals = () => {
             </div>
           </div>
 
-          {/* Table Header */}
           <div className="qms-table-header">
             <div>Indent ID</div>
             <div>Date</div>
@@ -218,12 +223,17 @@ const QMSIndentApprovals = () => {
             <div>Requested By</div>
             <div>Urgency</div>
             <div>Status</div>
-            <div>View</div>
+            <div>Actions</div>
           </div>
 
-          {/* Table Body */}
           <div className="qms-table-body">
-            {filteredIndents.map((indent) => (
+            {loading && (
+              <div className="sra-info-state">
+                Loading...
+              </div>
+            )}
+
+            {paginatedIndents.map((indent) => (
               <div key={indent.id} className="qms-table-row">
                 <div className="qms-indent-id">{indent.id}</div>
                 <div className="qms-date">{indent.date}</div>
@@ -233,7 +243,7 @@ const QMSIndentApprovals = () => {
                 </div>
                 <div className="qms-requester">
                   <div className="qms-avatar">
-                    <span className="qms-avatar-text">Q</span>
+                    <span className="qms-avatar-text">P</span>
                   </div>
                   <span className="qms-requester-name">{indent.requestedBy}</span>
                 </div>
@@ -246,15 +256,12 @@ const QMSIndentApprovals = () => {
                   <div className="qms-status-dot"></div>
                   <span className="qms-status-text">{indent.status}</span>
                 </div>
-                <div>
-                  <button 
-                    className="qms-view-btn"
-                    onClick={() => handleViewIndent(indent)}
-                  >
+                <div className="sra-actions-cell">
+                  <button className="qms-view-btn" onClick={() => handleViewIndent(indent)}>
                     View
                   </button>
-                  {indent.status === 'Pending Admin Approval' && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  {indent.status === 'Pending QMS Approval' && (
+                    <div className="sra-actions-group">
                       <button className="qms-view-btn" onClick={() => handleApprove(indent.indentId)}>Approve</button>
                       <button className="qms-view-btn" onClick={() => handleReject(indent.indentId)}>Reject</button>
                     </div>
@@ -264,20 +271,32 @@ const QMSIndentApprovals = () => {
             ))}
 
             {!loading && filteredIndents.length === 0 && (
-              <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
+              <div className="sra-info-state">
                 No indents found.
               </div>
             )}
           </div>
 
-          {/* Footer */}
           <div className="qms-footer">
             <span className="qms-footer-info">
-              Showing {filteredIndents.length} of {indents.length} indents
+              Showing {filteredIndents.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}
+              -{Math.min(currentPage * itemsPerPage, filteredIndents.length)} of {filteredIndents.length} indents
             </span>
             <div className="qms-pagination">
-              <button className="qms-pagination-btn" disabled>Previous</button>
-              <button className="qms-pagination-btn" disabled>Next</button>
+              <button
+                className="qms-pagination-btn"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || filteredIndents.length === 0}
+              >
+                Previous
+              </button>
+              <button
+                className="qms-pagination-btn"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>
@@ -286,4 +305,4 @@ const QMSIndentApprovals = () => {
   );
 };
 
-export default QMSIndentApprovals;
+export default StoreRequestApproval;

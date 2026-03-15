@@ -478,14 +478,6 @@ const VerifyPurchaseIndents = () => {
           <table className="vpi-table">
             <thead>
               <tr>
-                <th style={{width: '4%'}}>
-                  <input 
-                    type="checkbox" 
-                    onChange={handleSelectAll}
-                    checked={selectedIndents.length === paginatedIndents.length && paginatedIndents.length > 0}
-                    className="vpi-checkbox"
-                  />
-                </th>
                 <th style={{width: '14%'}}>Indent ID</th>
                 <th style={{width: '12%'}}>Requested By</th>
                 <th style={{width: '8%'}}>Department</th>
@@ -500,24 +492,14 @@ const VerifyPurchaseIndents = () => {
             <tbody>
               {loading && Array.from({ length: pageSize }).map((_, i) => (
                 <tr key={`skel-${i}`}>
-                  {Array.from({ length: 10 }).map((__, j) => (
+                  {Array.from({ length: 9 }).map((__, j) => (
                     <td key={j}><div className="vpi-skeleton-cell" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && paginatedIndents.length > 0 ? (
                 paginatedIndents.map((item, index) => (
-                  <tr key={index} className={selectedIndents.includes(item.id) ? 'selected-row' : ''}>
-                    {/* Checkbox */}
-                    <td>
-                      <input 
-                        type="checkbox"
-                        checked={selectedIndents.includes(item.id)}
-                        onChange={() => handleSelectIndent(item.id)}
-                        className="vpi-checkbox"
-                      />
-                    </td>
-
+                  <tr key={index}>
                     {/* Indent ID */}
                     <td>
                       <div className="vpi-id-text">{item.id}</div>
@@ -572,7 +554,7 @@ const VerifyPurchaseIndents = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10" className="vpi-no-data">
+                  <td colSpan="9" className="vpi-no-data">
                     No indents found matching your criteria.
                   </td>
                 </tr>

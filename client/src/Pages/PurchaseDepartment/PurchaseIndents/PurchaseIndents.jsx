@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronDown, Eye, Calendar, FileText, X, Package, User, MapPin, Clock, Plus } from 'lucide-react';
-import './QMSIndents.css';
+import './PurchaseIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 
-const QMSIndents = () => {
+const PurchaseIndents = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -12,7 +12,7 @@ const QMSIndents = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedIndent, setSelectedIndent] = useState(null);
-  const itemsPerPage = 5;
+  const itemsPerPage = 6;
 
   const [indents, setIndents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +32,10 @@ const QMSIndents = () => {
         return {
           id: indent.indent_number,
           date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          requiredDate: indent.required_by_date 
+            ? new Date(indent.required_by_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+            : '-',
+          rawRequiredDate: indent.required_by_date, // Pass raw date for editing/viewing
           material: first?.material_description || 'Materials',
           category: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'Customer Order' : 'Store Request'),
           priority: String(indent.priority || 'NORMAL').toUpperCase(),
@@ -107,65 +111,65 @@ const QMSIndents = () => {
 
   return (
     <div className="qi-container">
-      <div className="qi-content">
+        <div className="qi-header">
+          <h1 className="qi-title">Purchase Indents</h1>
+        </div>
+
+        {/* Toolbar - Search and Filters OUTSIDE the card */}
+        <div className="qi-toolbar-external">
+            <div className="qi-search">
+              <Search size={16} className="qi-search-icon" />
+              <input
+                type="text"
+                placeholder="Search indent ID or item..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
+          
+            <div className="qi-filters">
+              <div className="qi-filter-dropdown">
+                <select 
+                  value={statusFilter}
+                  onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                >
+                  <option value="all">Status: All</option>
+                  <option value="pending">Pending</option>
+                  <option value="verified">Verified</option>
+                  <option value="processed">Processed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <ChevronDown size={14} className="qi-dropdown-icon" />
+              </div>
+              <div className="qi-filter-dropdown">
+                <Calendar size={14} className="qi-calendar-icon" />
+                <select 
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                >
+                  <option value="this-month">This Month</option>
+                  <option value="last-month">Last Month</option>
+                  <option value="last-3-months">Last 3 Months</option>
+                  <option value="all-time">All Time</option>
+                </select>
+                <ChevronDown size={14} className="qi-dropdown-icon" />
+              </div>
+              <button
+                className="qi-create-btn"
+                onClick={() => navigate('/create-purchase-indent')}
+              >
+                <Plus size={14} />
+                Create Indent
+              </button>
+            </div>
+        </div>
+        
+        <div className="qi-content">
         {error && (
           <div style={{ padding: '12px 16px', marginBottom: '16px', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>
             <strong>Error:</strong> {error}
           </div>
         )}
-
-        {loading && (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-            Loading indents...
-          </div>
-        )}
-        {/* Header with Search and Filters */}
-        <div className="qi-toolbar">
-          <div className="qi-search">
-            <Search size={16} className="qi-search-icon" />
-            <input
-              type="text"
-              placeholder="Search indent ID or item..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            />
-          </div>
-          <div className="qi-filters">
-            <div className="qi-filter-dropdown">
-              <select 
-                value={statusFilter}
-                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="all">Status: All</option>
-                <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
-                <option value="processed">Processed</option>
-                <option value="rejected">Rejected</option>
-              </select>
-              <ChevronDown size={14} className="qi-dropdown-icon" />
-            </div>
-            <div className="qi-filter-dropdown">
-              <Calendar size={14} className="qi-calendar-icon" />
-              <select 
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              >
-                <option value="this-month">This Month</option>
-                <option value="last-month">Last Month</option>
-                <option value="last-3-months">Last 3 Months</option>
-                <option value="all-time">All Time</option>
-              </select>
-              <ChevronDown size={14} className="qi-dropdown-icon" />
-            </div>
-            <button
-              className="qi-create-btn"
-              onClick={() => navigate('/create-purchase-indent')}
-            >
-              <Plus size={14} />
-              Create Indent
-            </button>
-          </div>
-        </div>
 
         {/* Table */}
         <div className="qi-table-container">
@@ -173,8 +177,8 @@ const QMSIndents = () => {
             <thead>
               <tr>
                 <th>Indent ID</th>
-                <th>Date</th>
                 <th>Requested Material</th>
+                <th>Required Date</th>
                 <th>Priority</th>
                 <th>Status</th>
                 <th>Origin</th>
@@ -185,11 +189,19 @@ const QMSIndents = () => {
               {paginatedIndents.length > 0 ? (
                 paginatedIndents.map((indent) => (
                   <tr key={indent.id}>
-                    <td className="qi-td-id">{indent.id}</td>
-                    <td className="qi-td-date">{indent.date}</td>
+                    <td className="qi-td-id">
+                      <div>{indent.id}</div>
+                      <div className="qi-td-date-sub">{indent.date}</div>
+                    </td>
                     <td className="qi-td-material">
                       <div className="qi-material-name">{indent.material}</div>
                       <div className="qi-material-category">{indent.category}</div>
+                    </td>
+                    <td className="qi-td-req-date">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#334155' }}>
+                        <Calendar size={14} className="qi-date-icon" />
+                        {indent.requiredDate}
+                      </div>
                     </td>
                     <td className="qi-td-priority">
                       <span className={`qi-priority-badge ${getPriorityClass(indent.priority)}`}>
@@ -198,7 +210,7 @@ const QMSIndents = () => {
                     </td>
                     <td className="qi-td-status">
                       <span className={`qi-status-badge ${getStatusClass(indent.status)}`}>
-                        <span className="qi-status-icon">⊙</span>
+                        <span className="qi-status-icon">●</span>
                         {indent.status}
                       </span>
                     </td>
@@ -250,6 +262,7 @@ const QMSIndents = () => {
           </div>
         </div>
       </div>
+
 
       {/* View Details Modal */}
       {showDetailModal && selectedIndent && (
@@ -328,26 +341,32 @@ const QMSIndents = () => {
                 </div>
               </div>
 
-              <div className="qi-detail-section">
+              <div className="qi-detail-section qi-detail-block">
                 <span className="qi-detail-label">Remarks</span>
                 <p className="qi-detail-remarks">{selectedIndent.remarks || '—'}</p>
               </div>
 
               {selectedIndent.status === 'Processed' && selectedIndent.poNumber && (
-                <div className="qi-detail-section qi-po-info">
+                <div className="qi-detail-section qi-po-info qi-detail-block">
                   <span className="qi-detail-label">Purchase Order</span>
                   <span className="qi-detail-value qi-po-number">{selectedIndent.poNumber}</span>
                 </div>
               )}
 
               {selectedIndent.status === 'Rejected' && selectedIndent.rejectionReason && (
-                <div className="qi-detail-section qi-rejection-info">
+                <div className="qi-detail-section qi-rejection-info qi-detail-block">
                   <span className="qi-detail-label">Rejection Reason</span>
                   <p className="qi-detail-remarks">{selectedIndent.rejectionReason}</p>
                 </div>
               )}
             </div>
             <div className="qi-modal-footer">
+              <button 
+                className="qi-btn-secondary"
+                onClick={() => navigate('/create-purchase-indent', { state: { indentData: selectedIndent, readOnly: true } })}
+              >
+                View Full Indent
+              </button>
               <button className="qi-btn-danger" onClick={() => setShowDetailModal(false)}>
                 Close
               </button>
@@ -364,4 +383,4 @@ const QMSIndents = () => {
   );
 };
 
-export default QMSIndents;
+export default PurchaseIndents;

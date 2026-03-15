@@ -402,7 +402,7 @@ const updateIndentStatus = async (req, res) => {
 
     // Get current indent
     const [indents] = await db.query(
-      'SELECT status, workflow_stage FROM purchase_indents WHERE indent_id = ?',
+      'SELECT status, workflow_stage, customer_order_id FROM purchase_indents WHERE indent_id = ?',
       [id]
     );
 
@@ -552,6 +552,7 @@ const sendToNextStage = async (req, res) => {
     }
 
     const currentStage = indents[0].workflow_stage;
+    const isPurchaseDeptIndent = indents[0].customer_order_id == null;
     let newStatus, newStage;
 
     // Build update fields dynamically
@@ -561,9 +562,15 @@ const sendToNextStage = async (req, res) => {
     // Determine next stage based on current stage and user role
     switch (currentStage) {
       case 'QMS Init':
-        // QMS submits initial form -> goes to Store Officer
-        newStatus = 'Pending Store Review';
-        newStage = 'Store Officer';
+        if (isPurchaseDeptIndent) {
+          // Purchase Department workflow: QMS approval -> Admin approval
+          newStatus = 'Pending Admin Approval';
+          newStage = 'Admin';
+        } else {
+          // Customer-order workflow: QMS submits initial form -> Store Officer
+          newStatus = 'Pending Store Review';
+          newStage = 'Store Officer';
+        }
         break;
       case 'Store Officer':
         // Store Officer fills PO details -> goes back to QMS for verification

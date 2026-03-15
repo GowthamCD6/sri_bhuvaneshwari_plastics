@@ -205,7 +205,7 @@ const updateRequest = async (req, res) => {
 
     const [result] = await db.query(
       `UPDATE store_requests SET ${updates.join(', ')} WHERE request_id = ? OR request_number = ?`,
-      [...values, id]
+      [...values, id, id]
     );
 
     if (result.affectedRows === 0) {
