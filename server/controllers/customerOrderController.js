@@ -243,12 +243,34 @@ const createOrder = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, comments } = req.body;
+    const { status, deliveryStatus, comments } = req.body;
     const userId = req.user.userId;
+    const normalizedDeliveryStatus = deliveryStatus ? String(deliveryStatus).trim() : undefined;
+
+    if (!status && !normalizedDeliveryStatus) {
+      return res.status(400).json({
+        success: false,
+        message: 'Provide status and/or deliveryStatus to update'
+      });
+    }
+
+    if (normalizedDeliveryStatus && !['Open', 'Delivered'].includes(normalizedDeliveryStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid deliveryStatus. Allowed values: Open, Delivered'
+      });
+    }
+
+    if (normalizedDeliveryStatus && String(req.user?.roleName || '').trim().toLowerCase() !== 'qms') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only QMS can update delivery status'
+      });
+    }
 
     // Get current order
     const [orders] = await db.query(
-      'SELECT status FROM customer_orders WHERE order_id = ?',
+      'SELECT status, delivery_status FROM customer_orders WHERE order_id = ?',
       [id]
     );
 
@@ -260,20 +282,57 @@ const updateOrderStatus = async (req, res) => {
     }
 
     const oldStatus = orders[0].status;
+    const oldDeliveryStatus = orders[0].delivery_status || 'Open';
+
+    const updateFields = [];
+    const updateParams = [];
+
+    if (status) {
+      updateFields.push('status = ?');
+      updateParams.push(status);
+    }
+
+    if (normalizedDeliveryStatus) {
+      updateFields.push('delivery_status = ?');
+      updateParams.push(normalizedDeliveryStatus);
+      updateFields.push('delivered_at = ?');
+      updateParams.push(normalizedDeliveryStatus === 'Delivered' ? new Date() : null);
+    }
+
+    updateFields.push('updated_at = NOW()');
+    updateParams.push(id);
 
     // Update order status
     await db.query(
-      'UPDATE customer_orders SET status = ?, updated_at = NOW() WHERE order_id = ?',
-      [status, id]
+      `UPDATE customer_orders SET ${updateFields.join(', ')} WHERE order_id = ?`,
+      updateParams
     );
 
-    // Log status change
-    await db.query(
-      `INSERT INTO order_status_history 
-        (order_id, changed_by, old_status, new_status, comments)
-      VALUES (?, ?, ?, ?, ?)`,
-      [id, userId, oldStatus, status, comments || null]
-    );
+    // Log verification status change
+    if (status && status !== oldStatus) {
+      await db.query(
+        `INSERT INTO order_status_history 
+          (order_id, changed_by, old_status, new_status, comments)
+        VALUES (?, ?, ?, ?, ?)`,
+        [id, userId, oldStatus, status, comments || null]
+      );
+    }
+
+    // Log delivery status change in the same history table (tagged values)
+    if (normalizedDeliveryStatus && normalizedDeliveryStatus !== oldDeliveryStatus) {
+      await db.query(
+        `INSERT INTO order_status_history 
+          (order_id, changed_by, old_status, new_status, comments)
+        VALUES (?, ?, ?, ?, ?)`,
+        [
+          id,
+          userId,
+          `Delivery:${oldDeliveryStatus}`,
+          `Delivery:${normalizedDeliveryStatus}`,
+          comments || (normalizedDeliveryStatus === 'Delivered' ? 'Order marked as delivered' : 'Order reopened')
+        ]
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -281,6 +340,14 @@ const updateOrderStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Update order status error:', error);
+
+    if (error?.code === 'ER_BAD_FIELD_ERROR' && String(error.message || '').includes('delivery_status')) {
+      return res.status(500).json({
+        success: false,
+        message: 'Database missing delivery_status column. Run migration: server/database/add_customer_order_delivery_status.sql'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to update order status'

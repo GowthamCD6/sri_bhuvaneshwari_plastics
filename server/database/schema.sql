@@ -135,6 +135,8 @@ CREATE TABLE IF NOT EXISTS customer_orders (
   indent_date DATE NOT NULL,
   created_by INT NOT NULL,
   status ENUM('Draft', 'Pending Store Review', 'Store Verified', 'Pending Admin Approval', 'Admin Approved', 'Rejected') DEFAULT 'Draft',
+  delivery_status ENUM('Open', 'Delivered') DEFAULT 'Open',
+  delivered_at TIMESTAMP NULL,
   priority ENUM('Standard', 'High', 'Urgent') DEFAULT 'Standard',
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -144,6 +146,7 @@ CREATE TABLE IF NOT EXISTS customer_orders (
   INDEX idx_indent_id (indent_id),
   INDEX idx_customer (customer_id),
   INDEX idx_status (status),
+  INDEX idx_delivery_status (delivery_status),
   INDEX idx_created_by (created_by),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

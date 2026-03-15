@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User, Upload, FileText, Eye } from 'lucide-react';
+import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User, Upload, FileText, Eye, Trash2 } from 'lucide-react';
 import './PurchaseIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
@@ -134,6 +134,86 @@ const NewPurchaseIndent = () => {
   const [modalState, setModalState] = useState({ show: false, title: '', message: '', type: 'info' });
   const fileInputRef = useRef(null);
   const currentIndentId = passedIndentId || createdIndentId;
+
+  const isDeleteAllowed = ['QMS', 'Admin'].includes(user?.roleName);
+
+  const sanitizeFileName = (value) => {
+    return String(value || 'purchase-indent').replace(/[^a-zA-Z0-9-_]/g, '-');
+  };
+
+  const downloadIndentSnapshot = (savedIndentId, savedIndentNumber) => {
+    const snapshot = {
+      indentId: savedIndentId || null,
+      indentNumber: savedIndentNumber || formData.indentNumber || null,
+      department: formData.department,
+      requestedBy: formData.requestedBy,
+      priority: formData.priority,
+      indentDate: formData.indentDate,
+      requiredByDate: formData.requiredByDate,
+      status: formData.status,
+      workflowStage: formData.workflowStage,
+      poNumber: formData.poNumber,
+      poReference: formData.poReference,
+      orderQuantity: formData.orderQuantity,
+      rmCost: formData.rmCost,
+      rmRate: formData.rmRate,
+      piecesPerKg: formData.piecesPerKg,
+      rmPercentage: formData.rmPercentage,
+      poFilePath: formData.poFilePath,
+      materials: materials.map((m) => ({
+        description: m.description,
+        preferredSupplier: m.preferredSupplier,
+        requiredQuantity: m.requiredQuantity,
+        requiredDate: m.requiredDate,
+        onHand: m.onHand,
+        order: m.order,
+        uom: m.uom
+      })),
+      exportedAt: new Date().toISOString()
+    };
+
+    const fileBase = sanitizeFileName(savedIndentNumber || formData.indentNumber || 'purchase-indent');
+    const fileName = `${fileBase}-draft.json`;
+    const fileContent = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([fileContent], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteIndent = async () => {
+    if (!currentIndentId || !isDeleteAllowed) return;
+
+    const confirmed = window.confirm('Delete this purchase indent permanently? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      await purchaseIndentService.deleteIndent(currentIndentId);
+      showModal('Deleted', 'Purchase indent deleted successfully.', 'success');
+
+      setTimeout(() => {
+        if (user?.roleName === 'QMS') {
+          navigate('/customer-orders');
+        } else if (user?.roleName === 'Admin') {
+          navigate('/admin-purchase-indents');
+        } else {
+          navigate(-1);
+        }
+      }, 800);
+    } catch (deleteError) {
+      console.error('Delete indent error:', deleteError);
+      showModal('Delete Failed', deleteError.message || 'Failed to delete purchase indent.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Auto-generate indent number on component mount if not editing existing
   useEffect(() => {
@@ -841,6 +921,10 @@ const NewPurchaseIndent = () => {
             'error'
           );
         } else {
+          if (action !== 'submit') {
+            downloadIndentSnapshot(savedIndentId, savedIndentNumber);
+          }
+
           showModal('Success', 
             action === 'submit' 
               ? (user?.roleName === 'StoreOfficer' ? 'Sent to QMS for verification!' : 'Purchase indent submitted successfully!')
@@ -1576,6 +1660,17 @@ const NewPurchaseIndent = () => {
                 <Send size={16} />
                 {user?.roleName === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
               </button>
+              {currentIndentId && isDeleteAllowed && (
+                <button
+                  onClick={handleDeleteIndent}
+                  className="pi-btn pi-btn-outline"
+                  disabled={loading}
+                  style={{ color: '#b91c1c', borderColor: '#fecaca' }}
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -367,6 +367,13 @@
   color: var(--text-light);
 }
 
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
 .action-link {
   font-size: 14px;
   font-weight: 700;
@@ -384,6 +391,21 @@
   text-decoration: underline;
 }
 
+.action-btn {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #f8fbff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  text-decoration: none;
+}
+
 /* Order details modal (dedicated classes to avoid conflicts) */
 .order-details-overlay {
   position: fixed;
@@ -398,13 +420,13 @@
 
 .order-details-modal {
   width: 100%;
-  max-width: 900px;
+  max-width: 760px;
   background: var(--white);
   border-radius: 14px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 82vh;
   overflow: hidden;
 }
 
@@ -454,7 +476,7 @@
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -575,6 +597,17 @@
   border-color: #cbd5e1;
 }
 
+.status-btn-delivered {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.status-btn-delivered:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
 @media (max-width: 900px) {
   .details-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -636,6 +669,16 @@
 .badge-approved {
   background-color: #d1fae5;
   color: #059669;
+}
+
+.badge-delivery-open {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-delivery-delivered {
+  background-color: #dcfce7;
+  color: #15803d;
 }
 
 /* Priority Badge Styles */
