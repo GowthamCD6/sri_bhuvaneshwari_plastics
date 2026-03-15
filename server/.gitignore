@@ -1,10 +1,12 @@
 ./node_modules
 /dist
-/.env
 /.vscode
 /uploads/po-files/*
 
-
+# Env files
+.env
+.env.*
+!.env.example
 
 # Logs
 logs

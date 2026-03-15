@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Eye, ChevronLeft, ChevronRight, FileText, X, Package, Calendar, MapPin, AlertCircle } from 'lucide-react';
 import './StoreRequests.css';
 import { storeRequestService } from '../../../services/apiService';
 
 const StoreRequests = () => {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRequests, setSelectedRequests] = useState([]);
@@ -17,10 +19,45 @@ const StoreRequests = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const normalizePriority = (priority) => {
+    const normalized = String(priority || '').trim().toLowerCase();
+    if (normalized === 'critical') return 'Critical';
+    if (['urgent', 'high'].includes(normalized)) return 'Urgent';
+    if (['normal', 'standard', 'low'].includes(normalized)) return 'Normal';
+    return 'Normal';
+  };
+
+  const parseDateParts = (value) => {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return {
+        year: Number(match[1]),
+        month: Number(match[2]),
+        day: Number(match[3])
+      };
+    }
+
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate()
+    };
+  };
+
+  const toDateInputValue = (value) => {
+    const parts = parseDateParts(value);
+    if (!parts) return '';
+    return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+  };
+
   const formatDate = (value) => {
     if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
+    const parts = parseDateParts(value);
+    if (!parts) return value;
+    const date = new Date(parts.year, parts.month - 1, parts.day);
     return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
@@ -30,7 +67,9 @@ const StoreRequests = () => {
       setError(null);
       const response = await storeRequestService.getAllRequests();
       const data = response.data || [];
-      const mapped = data.map((req) => ({
+      const mapped = data.map((req) => {
+        const priority = normalizePriority(req.priority);
+        return {
         id: req.request_number,
         requestId: req.request_id,
         material: req.material_name,
@@ -40,12 +79,16 @@ const StoreRequests = () => {
         reason: req.reason || '-',
         location: req.storage_location ? `Loc: ${req.storage_location}` : '',
         requestDate: formatDate(req.request_date),
-        priority: req.priority || 'Normal',
+        requestDateRaw: toDateInputValue(req.request_date),
+        neededDate: formatDate(req.needed_by_date),
+        neededDateRaw: toDateInputValue(req.needed_by_date),
+        priority,
         status: (req.status || 'Pending').toLowerCase(),
         requestedBy: req.requested_by_name || 'Store Officer',
         department: req.dept_name || '- ',
         indentId: req.indent_id
-      }));
+        };
+      });
       setRequests(mapped);
     } catch (err) {
       console.error('Failed to fetch store requests:', err);
@@ -57,6 +100,15 @@ const StoreRequests = () => {
 
   useEffect(() => {
     fetchRequests();
+
+    const intervalId = setInterval(fetchRequests, 30000);
+    const onWindowFocus = () => fetchRequests();
+    window.addEventListener('focus', onWindowFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', onWindowFocus);
+    };
   }, []);
 
   const filters = [
@@ -76,7 +128,7 @@ const StoreRequests = () => {
     } else if (activeFilter === 'processed') {
       result = result.filter(r => r.status === 'processed');
     } else if (activeFilter === 'critical') {
-      result = result.filter(r => r.priority === 'Critical');
+      result = result.filter(r => ['Critical', 'Urgent'].includes(normalizePriority(r.priority)));
     }
 
     // Apply search
@@ -123,20 +175,14 @@ const StoreRequests = () => {
 
   const confirmCreateIndent = () => {
     if (selectedRequest) {
-      const newIndentId = `IND-2024-${String(Math.floor(Math.random() * 900) + 100)}`;
-      storeRequestService.updateRequest(selectedRequest.requestId || selectedRequest.id, {
-        status: 'Processed',
-        indentId: newIndentId
-      })
-        .then(() => fetchRequests())
-        .catch((err) => {
-          console.error('Failed to update store request:', err);
-          alert('Failed to create indent');
-        })
-        .finally(() => {
-          setShowIndentModal(false);
-          setSelectedRequest(null);
-        });
+      const requestToIndent = selectedRequest;
+      setShowIndentModal(false);
+      setSelectedRequest(null);
+      navigate('/request-indent', {
+        state: {
+          storeRequest: requestToIndent
+        }
+      });
     }
   };
 
@@ -146,9 +192,9 @@ const StoreRequests = () => {
   };
 
   const getPriorityClass = (priority) => {
-    switch (priority) {
+    switch (normalizePriority(priority)) {
       case 'Critical': return 'priority-critical';
-      case 'High': return 'priority-high';
+      case 'Urgent': return 'priority-urgent';
       case 'Normal': return 'priority-normal';
       default: return 'priority-normal';
     }

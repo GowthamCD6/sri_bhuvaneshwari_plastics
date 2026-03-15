@@ -157,21 +157,21 @@ const LowStockAlerts = () => {
     }
   };
 
-  // Handle restock - navigate to stock adjustment page
+  // Handle restock - open Material Request with prefill context
   const handleRestock = (material) => {
-    navigate('/store-officer/stock-adjustment', {
+    navigate('/material-request', {
       state: {
-        material: {
-          id: material.code,
-          name: material.name,
-          stock: material.currentStock.toString(),
-          unit: material.unit.toLowerCase(),
-          minStock: material.minRequired.toString(),
-          maxStock: material.maxStock.toString(),
+        restockMaterial: {
+          materialCode: material.code,
+          materialName: material.name,
+          category: material.category,
+          currentStock: material.currentStock,
+          minRequired: material.minRequired,
+          maxStock: material.maxStock,
+          status: material.status,
+          unit: material.unit,
           supplier: material.supplier,
-          warehouseLocation: material.warehouseLocation,
-          type: material.category,
-          status: material.status
+          warehouseLocation: material.warehouseLocation
         }
       }
     });

@@ -86,8 +86,15 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
   };
 
-  // Get menu items for the user's role, with fallback to qms if role not found
-  const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
+  const normalizeRole = (role) => {
+    const normalized = String(role || '').toLowerCase().trim();
+    if (normalized === 'store') return 'storeofficer';
+    if (normalized === 'purchase') return 'purchasedepartment';
+    return normalized;
+  };
+
+  // Get menu items for the user's role; unknown roles get no menu entries.
+  const menuItems = roleMenus[normalizeRole(userRole)] || [];
 
   return (
     <div className="sidebar"> 

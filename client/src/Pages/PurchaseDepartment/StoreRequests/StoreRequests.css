@@ -271,6 +271,11 @@
   color: #ea580c;
 }
 
+.priority-urgent {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
 .priority-normal {
   background: #f0fdf4;
   color: #16a34a;

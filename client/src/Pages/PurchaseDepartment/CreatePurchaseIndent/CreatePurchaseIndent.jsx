@@ -14,12 +14,6 @@ const getTodayDate = () => {
   return `${y}-${m}-${day}`;
 };
 
-const generateIndentNumber = () => {
-  const year = new Date().getFullYear();
-  const rand = String(Math.floor(100 + Math.random() * 900));
-  return `IND-${year}-${rand}`;
-};
-
 const UNITS = ['Kg', 'Ltr', 'Pcs', 'Mtr', 'Box', 'Nos'];
 
 // ─── empty material row factory ──────────────────────────────────────────────
@@ -185,7 +179,7 @@ const CreatePurchaseIndent = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
 
-  const [indentNumber] = useState(generateIndentNumber);
+  const [indentNumber, setIndentNumber] = useState('');
   const [formData, setFormData] = useState({
     department: 'QMS',
     requestedDate: getTodayDate(),
@@ -197,6 +191,42 @@ const CreatePurchaseIndent = () => {
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', message }
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadNextIndentNumber = async () => {
+      try {
+        const response = await purchaseIndentService.getPurchaseDeptIndents();
+        const indents = response?.data || [];
+        const currentYear = new Date().getFullYear();
+        const sequenceNumbers = indents
+          .map((indent) => String(indent.indent_number || '').match(/^IND-(\d{4})-(\d+)$/i))
+          .filter(Boolean)
+          .filter((match) => Number(match[1]) === currentYear)
+          .map((match) => Number(match[2]))
+          .filter((value) => Number.isFinite(value));
+
+        const nextSequence = (sequenceNumbers.length ? Math.max(...sequenceNumbers) : 0) + 1;
+        const nextIndentNumber = `IND-${currentYear}-${String(nextSequence).padStart(3, '0')}`;
+
+        if (isActive) {
+          setIndentNumber(nextIndentNumber);
+        }
+      } catch (err) {
+        console.error('Failed to load next indent number:', err);
+        if (isActive) {
+          setIndentNumber(`IND-${new Date().getFullYear()}-001`);
+        }
+      }
+    };
+
+    loadNextIndentNumber();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   // Fetch materials for the search dropdown
   useEffect(() => {
@@ -326,7 +356,7 @@ const CreatePurchaseIndent = () => {
       <div className="cpi-card">
         <div className="cpi-card-header">
           <h2 className="cpi-section-title">General Information</h2>
-          <span className="cpi-indent-num">Indent # {indentNumber}</span>
+          <span className="cpi-indent-num">Indent # {indentNumber || 'Will be generated on submit'}</span>
         </div>
 
         <div className="cpi-form-grid">

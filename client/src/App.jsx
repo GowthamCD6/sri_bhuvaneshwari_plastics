@@ -32,7 +32,7 @@ function AppContent() {
   }, [isAuthenticated, location.pathname, navigate]);
 
   // Get user role for sidebar
-  const userRole = user?.roleName?.toLowerCase() || 'qms';
+  const userRole = user?.roleName?.toLowerCase() || '';
 
   return (
     <>

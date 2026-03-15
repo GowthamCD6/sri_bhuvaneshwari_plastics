@@ -1,5 +1,12 @@
 const jwt = require('jsonwebtoken');
 
+const normalizeRoleName = (roleName) => {
+  const normalized = String(roleName || '').trim().toLowerCase();
+  if (normalized === 'store') return 'storeofficer';
+  if (normalized === 'purchase') return 'purchasedepartment';
+  return normalized;
+};
+
 /**
  * Verify JWT Token Middleware
  */
@@ -16,13 +23,7 @@ const verifyToken = (req, res, next) => {
       ? authHeader.substring(7) 
       : req.cookies?.jwt_token;
 
-    console.log('=== AUTH DEBUG ===');
-    console.log('Auth header:', authHeader);
-    console.log('Cookie token exists:', !!req.cookies?.jwt_token);
-    console.log('Token being verified (first 20 chars):', token ? token.substring(0, 20) + '...' : 'none');
-
     if (!token) {
-      console.log('No token found in header or cookie');
       return res.status(401).json({
         success: false,
         message: 'Access denied. No token provided.'
@@ -32,7 +33,6 @@ const verifyToken = (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
-    console.log('Token verified successfully for user:', decoded.userId);
     next();
 
   } catch (error) {
@@ -74,7 +74,10 @@ const requireRole = (...allowedRoles) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.roleName)) {
+    const normalizedAllowedRoles = allowedRoles.map(normalizeRoleName);
+    const userRole = normalizeRoleName(req.user.roleName);
+
+    if (!normalizedAllowedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Insufficient permissions.'
