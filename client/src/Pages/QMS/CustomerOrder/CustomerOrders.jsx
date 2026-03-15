@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import './CustomerOrders.css';
 import NewOrderModal from './Add-New-Customer/NewOrderModal';
 import { customerOrderService, purchaseIndentService } from '../../../services/apiService';
-import useAuthStore from '../../../store/authStore';
 
 const STORAGE_KEY = 'sbp_customer_orders_v1';
 
@@ -102,8 +101,6 @@ const CustomerOrders = () => {
   const PAGE_SIZE = 5;
 
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const currentUser = { name: user?.username || 'QMS', role: user?.roleName || 'QMS' };
 
   // Fetch orders from API
   useEffect(() => {
@@ -245,15 +242,13 @@ const CustomerOrders = () => {
     const open = orders.filter(o => isOpenStatus(o)).length;
     const delivered = orders.filter(o => getDeliveryStatus(o).toLowerCase() === 'delivered').length;
     const urgent = orders.filter(o => String(o.priority || '').toLowerCase() === 'urgent').length;
-    const mine = orders.filter(o => Number(o.created_by) === Number(user?.userId)).length;
     return [
       { id: 'all', label: 'All', count: all },
       { id: 'open', label: 'Status: Open', count: open },
       { id: 'delivered', label: 'Delivered', count: delivered },
       { id: 'urgent', label: 'Priority: Urgent', count: urgent },
-      { id: 'mine', label: 'My Orders', count: mine },
     ];
-  }, [orders, user?.userId]);
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -276,9 +271,6 @@ const CustomerOrders = () => {
     }
     if (activeTab === 'urgent') {
       list = list.filter(o => String(o.priority || '').toLowerCase() === 'urgent');
-    }
-    if (activeTab === 'mine') {
-      list = list.filter(o => Number(o.created_by) === Number(user?.userId));
     }
 
     if (term) {
@@ -311,7 +303,7 @@ const CustomerOrders = () => {
     }
 
     return list;
-  }, [orders, activeTab, searchTerm, user?.userId]);
+  }, [orders, activeTab, searchTerm]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -474,7 +466,7 @@ const CustomerOrders = () => {
                   const status = order.status || order.indentStatus;
                   const deliveryStatus = getDeliveryStatus(order);
                   const priority = order.priority || 'Standard';
-                  const createdBy = order.created_by || order.createdBy || '-';
+                  const createdBy = order.created_by_name || order.createdByName || order.created_by || order.createdBy || '-';
                   const createdAt = order.created_at || order.createdAt;
                   const dateDisplay = createdAt 
                     ? new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })

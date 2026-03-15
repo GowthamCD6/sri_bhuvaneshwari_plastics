@@ -1,5 +1,9 @@
 const db = require('../config/db');
 
+const isQmsRole = (roleName) => {
+  return String(roleName || '').trim().toLowerCase().includes('qms');
+};
+
 /**
  * Get all customer orders with filters
  */
@@ -261,11 +265,36 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    if (normalizedDeliveryStatus && String(req.user?.roleName || '').trim().toLowerCase() !== 'qms') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only QMS can update delivery status'
-      });
+    if (normalizedDeliveryStatus) {
+      let canUpdateDeliveryStatus = isQmsRole(req.user?.roleName) || isQmsRole(req.user?.role);
+
+      // Fallback to DB role lookup when token role payload is missing or stale.
+      if (!canUpdateDeliveryStatus && req.user?.userId) {
+        const [roleRows] = await db.query(
+          `SELECT r.role_name
+           FROM users u
+           LEFT JOIN roles r ON u.role_id = r.role_id
+           WHERE u.user_id = ?
+           LIMIT 1`,
+          [req.user.userId]
+        );
+        canUpdateDeliveryStatus = isQmsRole(roleRows?.[0]?.role_name);
+      }
+
+      if (!canUpdateDeliveryStatus && req.user?.roleId) {
+        const [roleRowsById] = await db.query(
+          'SELECT role_name FROM roles WHERE role_id = ? LIMIT 1',
+          [req.user.roleId]
+        );
+        canUpdateDeliveryStatus = isQmsRole(roleRowsById?.[0]?.role_name);
+      }
+
+      if (!canUpdateDeliveryStatus) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only QMS can update delivery status'
+        });
+      }
     }
 
     // Get current order
