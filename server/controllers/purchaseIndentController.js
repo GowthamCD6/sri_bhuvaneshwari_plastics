@@ -862,14 +862,15 @@ const downloadPOFile = async (req, res) => {
       });
     }
 
-    // Download the file
-    res.download(filePath, (err) => {
+    // Render inline in browser when supported (PDF/images), instead of forced download.
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
+    return res.sendFile(filePath, (err) => {
       if (err) {
-        console.error('Download error:', err);
+        console.error('Inline file view error:', err);
         if (!res.headersSent) {
           res.status(500).json({
             success: false,
-            message: 'Failed to download file'
+            message: 'Failed to open file'
           });
         }
       }

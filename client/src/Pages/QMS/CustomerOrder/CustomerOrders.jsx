@@ -3,7 +3,7 @@ import { Eye, Plus, Search, List, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './CustomerOrders.css';
 import NewOrderModal from './Add-New-Customer/NewOrderModal';
-import { customerOrderService } from '../../../services/apiService';
+import { customerOrderService, purchaseIndentService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
 const STORAGE_KEY = 'sbp_customer_orders_v1';
@@ -137,7 +137,45 @@ const CustomerOrders = () => {
   };
 
   // Handle View button - navigate to purchase indent with order data
-  const handleViewOrder = (order) => {
+  const handleViewOrder = async (order) => {
+    const linkedPurchaseIndentId = order.purchase_indent_id || order.purchaseIndentId || null;
+
+    if (linkedPurchaseIndentId) {
+      navigate('/qms-purchase-indents', {
+        state: {
+          indentId: linkedPurchaseIndentId,
+          fromCustomerOrder: false,
+        }
+      });
+      return;
+    }
+
+    // Fallback for older records where direct linkage may be missing.
+    try {
+      const indentsResponse = await purchaseIndentService.getAllIndents({});
+      const allIndents = Array.isArray(indentsResponse?.data)
+        ? indentsResponse.data
+        : (Array.isArray(indentsResponse?.data?.indents) ? indentsResponse.data.indents : []);
+
+      const matchedIndent = allIndents.find((indent) => {
+        const sameOrderId = Number(indent.customer_order_id) === Number(order.order_id);
+        const sameOrderIndentNumber = String(indent.customer_order_indent_id || '') === String(order.indent_id || '');
+        return sameOrderId || sameOrderIndentNumber;
+      });
+
+      if (matchedIndent?.indent_id) {
+        navigate('/qms-purchase-indents', {
+          state: {
+            indentId: matchedIndent.indent_id,
+            fromCustomerOrder: false,
+          }
+        });
+        return;
+      }
+    } catch (lookupError) {
+      console.error('Could not resolve linked purchase indent from order list:', lookupError);
+    }
+
     navigate('/qms-purchase-indents', {
       state: {
         fromCustomerOrder: true,
@@ -378,6 +416,7 @@ const CustomerOrders = () => {
                 pagination.pageItems.map((order) => {
                   const itemsSummary = buildItemsSummary(order);
                   const indentId = order.indent_id || order.indentId || order.id;
+                  const linkedPurchaseIndent = order.purchase_indent_number || (order.purchase_indent_id ? `PI Record #${order.purchase_indent_id}` : null);
                   const customerName = order.customer_name || order.customerName;
                   const customerPhone = order.customer_phone || order.customerPhone;
                   const customerEmail = order.customer_email || order.customerEmail;
@@ -396,6 +435,7 @@ const CustomerOrders = () => {
                       <td>
                         <div className="text-main">{indentId}</div>
                         <div className="text-sub">{dateDisplay}</div>
+                        {linkedPurchaseIndent && <div className="text-sub">{linkedPurchaseIndent}</div>}
                       </td>
 
                       {/* Customer Details */}

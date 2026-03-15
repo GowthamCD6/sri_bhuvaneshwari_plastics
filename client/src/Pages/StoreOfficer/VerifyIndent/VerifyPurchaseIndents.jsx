@@ -356,8 +356,8 @@ const VerifyPurchaseIndents = () => {
 
   // Action handlers
   const handleViewIndent = (indent) => {
-    // Navigate to unified purchase indent page with indent ID
-    navigate('/qms-purchase-indents', { 
+    // Open the shared purchase-indent detail screen through the Store Officer route.
+    navigate('/purchase-indents', { 
       state: { 
         indentId: indent.indentId
       } 

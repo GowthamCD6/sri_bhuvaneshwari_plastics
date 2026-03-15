@@ -167,8 +167,9 @@ const removeUserData = () => {
  * Base fetch wrapper with JWT support (ready for future integration)
  */
 const fetchWithAuth = async (url, options = {}) => {
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   };
 
@@ -542,21 +543,12 @@ export const purchaseIndentService = {
   uploadPOFile: async (indentId, file) => {
     const formData = new FormData();
     formData.append('poFile', file);
-    
-    // Use credentials: 'include' to send auth cookie automatically
-    // Don't set Authorization header or Content-Type header for multipart/form-data
-    const response = await fetch(`${API_BASE_URL}/purchase-indents/${indentId}/upload-po`, {
+
+    return await fetchWithAuth(`/purchase-indents/${indentId}/upload-po`, {
       method: 'POST',
       body: formData,
-      credentials: 'include'
+      headers: {}
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to upload file');
-    }
-
-    return await response.json();
   },
 
   /**

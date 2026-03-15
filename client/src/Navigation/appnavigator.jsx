@@ -26,16 +26,9 @@ import StoreRequestApproval from '../Pages/Admin/StoreRequestApproval/StoreReque
 
 // ===== PURCHASE DEPARTMENT ROLE PAGES =====
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
-<<<<<<< HEAD
-import Suppliers from '../Pages/PurchaseDepartment/Suppliers/Suppliers';
-import QMSIndents from '../Pages/PurchaseDepartment/QMSIndents/QMSIndents';
-import CreatePurchaseIndent from '../Pages/PurchaseDepartment/CreatePurchaseIndent/CreatePurchaseIndent';
-import RequestIndent from '../Pages/PurchaseDepartment/RequestIndent/RequestIndent';
-=======
 import SupplierManagement from '../Pages/PurchaseDepartment/SupplierManagement/SupplierManagement';
 import PurchaseIndents from '../Pages/PurchaseDepartment/PurchaseIndents/PurchaseIndents';
 import CreateIndent from '../Pages/PurchaseDepartment/CreateIndent/CreateIndent';
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
 import PurchaseDashboard from '../Pages/PurchaseDepartment/Dashboard/PurchaseDashboard';
 
 const normalizeRole = (role) => {
@@ -92,17 +85,10 @@ const AppNavigator = () => {
       <Route path="/dashboard" element={<Navigate to={getDefaultRoute()} replace />} />
 
       {/* ===== QMS ROLE ROUTES ===== */}
-<<<<<<< HEAD
-      <Route path="/customer-orders" element={protectRoute(<CustomerOrders />, ['qms'])} />
-      <Route path="/qms-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['qms'])} />
-      <Route path="/verify-store-indents" element={protectRoute(<VerifyStoreIndents />, ['qms'])} />
-      <Route path="/sent-to-admin" element={protectRoute(<SentToAdmin />, ['qms'])} />
-=======
       <Route path="/customer-orders" element={<CustomerOrders />} />
       <Route path="/qms-purchase-indents" element={<QMSPurchaseIndents />} />
       <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
       <Route path="/verify-purchase-dept-indents" element={<VerifyPurchaseDeptIndents />} />
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
 
       {/* ===== STORE OFFICER ROLE ROUTES ===== */}
       <Route path="/purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['qms', 'storeofficer', 'admin', 'accountant'])} />
@@ -114,21 +100,6 @@ const AppNavigator = () => {
       <Route path="/material-request" element={protectRoute(<MaterialRequest />, ['storeofficer'])} />
 
       {/* ===== ADMIN ROLE ROUTES ===== */}
-<<<<<<< HEAD
-      <Route path="/admin-dashboard" element={protectRoute(<AdminDashboard />, ['admin'])} />
-      <Route path="/user-management" element={protectRoute(<UserManagement />, ['admin'])} />
-      <Route path="/qms-approval" element={protectRoute(<QMSApproval />, ['admin'])} />
-      <Route path="/admin-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['admin'])} />
-
-      {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
-      <Route path="/purchase-dashboard" element={protectRoute(<PurchaseDashboard />, ['purchasedepartment'])} />
-      <Route path="/overview" element={protectRoute(<Navigate to="/purchase-dashboard" replace />, ['purchasedepartment'])} />
-      <Route path="/store-requests" element={protectRoute(<StoreRequests />, ['purchasedepartment'])} />
-      <Route path="/suppliers" element={protectRoute(<Suppliers />, ['purchasedepartment'])} />
-      <Route path="/qms-indents" element={protectRoute(<QMSIndents />, ['purchasedepartment'])} />
-      <Route path="/create-purchase-indent" element={protectRoute(<CreatePurchaseIndent />, ['purchasedepartment'])} />
-      <Route path="/request-indent" element={protectRoute(<RequestIndent />, ['purchasedepartment'])} />
-=======
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/user-management" element={<UserManagement />} />
       <Route path="/customer-order" element={<CustomerOrder />} />
@@ -142,7 +113,6 @@ const AppNavigator = () => {
       <Route path="/suppliers" element={<SupplierManagement />} />
       <Route path="/qms-indents" element={<PurchaseIndents />} />
       <Route path="/create-purchase-indent" element={<CreateIndent />} />
->>>>>>> 066811541142b9c82cecbcea0b356337ef8aba88
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['accountant'])} />
