@@ -1,5 +1,29 @@
 const db = require('../config/db');
 
+const normalizeSpecifications = (specifications) => {
+  if (specifications == null) {
+    return null;
+  }
+
+  if (typeof specifications !== 'object' || Array.isArray(specifications)) {
+    return specifications;
+  }
+
+  const normalizedSpecifications = { ...specifications };
+
+  if (typeof normalizedSpecifications.color === 'string') {
+    const trimmedColor = normalizedSpecifications.color.trim();
+
+    if (trimmedColor) {
+      normalizedSpecifications.color = trimmedColor;
+    } else {
+      delete normalizedSpecifications.color;
+    }
+  }
+
+  return Object.keys(normalizedSpecifications).length > 0 ? normalizedSpecifications : null;
+};
+
 /**
  * Get all materials
  */
@@ -94,7 +118,8 @@ const createMaterial = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Material with this code already exists' });
     }
 
-    const specsJson = specifications ? JSON.stringify(specifications) : null;
+    const normalizedSpecifications = normalizeSpecifications(specifications);
+    const specsJson = normalizedSpecifications == null ? null : JSON.stringify(normalizedSpecifications);
     const initialStock = Number(openingStock) || 0;
 
     // Base fields — always present in every DB setup
@@ -192,7 +217,8 @@ const updateMaterial = async (req, res) => {
     if (req.body[camelField] !== undefined) {
       updates.push(`${field} = ?`);
       if (field === 'specifications') {
-        values.push(JSON.stringify(req.body[camelField]));
+          const normalizedSpecifications = normalizeSpecifications(req.body[camelField]);
+          values.push(normalizedSpecifications == null ? null : JSON.stringify(normalizedSpecifications));
       } else {
         values.push(req.body[camelField]);
       }
