@@ -234,8 +234,8 @@ const InventoryDashboard = () => {
                 <th>MATERIAL</th>
                 <th>CATEGORY</th>
                 <th>STOCK LEVEL</th>
-                <th>MIN. REQUIRED</th>
                 <th>UNIT</th>
+                <th>MIN. REQUIRED</th>
                 <th>STATUS</th>
                 <th style={{ textAlign: 'center' }}>ACTIONS</th>
               </tr>
