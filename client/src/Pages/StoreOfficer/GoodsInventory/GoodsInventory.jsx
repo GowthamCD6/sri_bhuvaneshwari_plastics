@@ -28,12 +28,15 @@ const MaterialManager = () => {
     materialId: '',
     name: '',
     supplier: '',
+    color: '',
     stock: '',
     unit: 'kg',
     minStock: '',
     maxStock: '',
     type: '',
-    warehouseLocation: ''
+    warehouseLocation: '',
+    remarks: '',
+    specifications: {}
   });
 
   // Unit options
@@ -53,6 +56,35 @@ const MaterialManager = () => {
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const parseSpecifications = (specifications) => {
+    if (!specifications) return {};
+    if (typeof specifications === 'object' && !Array.isArray(specifications)) {
+      return specifications;
+    }
+
+    try {
+      const parsed = JSON.parse(specifications);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const buildMaterialSpecifications = (specifications, color) => {
+    const nextSpecifications = specifications && typeof specifications === 'object' && !Array.isArray(specifications)
+      ? { ...specifications }
+      : {};
+    const trimmedColor = color.trim();
+
+    if (trimmedColor) {
+      nextSpecifications.color = trimmedColor;
+    } else {
+      delete nextSpecifications.color;
+    }
+
+    return Object.keys(nextSpecifications).length > 0 ? nextSpecifications : null;
   };
 
   const mapStatus = (stock, reorder) => {
@@ -79,6 +111,7 @@ const MaterialManager = () => {
         const stock = Number(item.current_stock || 0);
         const reorder = Number(item.reorder_level || item.reorder_point || 0);
         const statusMeta = mapStatus(stock, reorder);
+        const specifications = parseSpecifications(item.specifications);
 
         return {
           id: item.material_code,
@@ -95,7 +128,9 @@ const MaterialManager = () => {
           maxStock: item.max_stock_level || 0,
           reorderLevel: reorder || 0,
           warehouseLocation: item.warehouse_location || '-',
-          remarks: item.description || ''
+          remarks: item.description || '',
+          color: typeof specifications.color === 'string' ? specifications.color : '',
+          specifications
         };
       });
 
@@ -249,12 +284,15 @@ const MaterialManager = () => {
       materialId: '',
       name: '',
       supplier: '',
+      color: '',
       stock: '',
       unit: 'kg',
       minStock: '',
       maxStock: '',
       type: activeCategory,
-      warehouseLocation: ''
+      warehouseLocation: '',
+      remarks: '',
+      specifications: {}
     });
     setModalStatus(null);
     setShowAddMaterialModal(true);
@@ -270,6 +308,8 @@ const MaterialManager = () => {
     setSubmitting(true);
     setModalStatus(null);
     try {
+      const specifications = buildMaterialSpecifications(materialForm.specifications, materialForm.color);
+
       await materialService.createMaterial({
         materialCode: materialForm.id,
         materialName: materialForm.name,
@@ -280,6 +320,7 @@ const MaterialManager = () => {
         maxStockLevel: materialForm.maxStock || null,
         reorderLevel: materialForm.minStock || 0,
         description: materialForm.remarks || '',
+        specifications,
         preferredSupplier: materialForm.supplier || null,
         warehouseLocation: materialForm.warehouseLocation || null,
         openingStock: materialForm.stock || 0
@@ -332,12 +373,15 @@ const MaterialManager = () => {
         materialId: selectedMaterial.materialId,
         name: selectedMaterial.name,
         supplier: (selectedMaterial.supplier === '-' ? '' : selectedMaterial.supplier) || '',
+        color: selectedMaterial.color || '',
         stock: selectedMaterial.stock,
         unit: selectedMaterial.unit,
         minStock: selectedMaterial.minStock || '',
         maxStock: selectedMaterial.maxStock || '',
         type: selectedMaterial.type,
-        warehouseLocation: (selectedMaterial.warehouseLocation === '-' ? '' : selectedMaterial.warehouseLocation) || ''
+        warehouseLocation: (selectedMaterial.warehouseLocation === '-' ? '' : selectedMaterial.warehouseLocation) || '',
+        remarks: selectedMaterial.remarks || '',
+        specifications: selectedMaterial.specifications || {}
       });
       setEditModalStatus(null);
       setShowEditMaterialModal(true);
@@ -358,6 +402,8 @@ const MaterialManager = () => {
     setEditSubmitting(true);
     setEditModalStatus(null);
     try {
+      const specifications = buildMaterialSpecifications(materialForm.specifications, materialForm.color);
+
       await materialService.updateMaterial(materialForm.materialId, {
         materialName: materialForm.name,
         materialType: materialForm.type || activeCategory,
@@ -367,6 +413,7 @@ const MaterialManager = () => {
         maxStockLevel: materialForm.maxStock,
         reorderLevel: materialForm.minStock,
         description: materialForm.remarks,
+        specifications,
         preferredSupplier: materialForm.supplier,
         warehouseLocation: materialForm.warehouseLocation
       });
@@ -641,6 +688,16 @@ const MaterialManager = () => {
                 </div>
               </div>
 
+              <div className="mm-form-group">
+                <label className="mm-label">Color</label>
+                <input
+                  type="text"
+                  className="mm-input"
+                  value={selectedMaterial.color || 'Not specified'}
+                  readOnly
+                />
+              </div>
+
             </div>
 
             {/* Footer Actions */}
@@ -836,6 +893,17 @@ const MaterialManager = () => {
                 </div>
               </div>
 
+              <div className="mm-form-group">
+                <label className="mm-label">Color</label>
+                <input
+                  type="text"
+                  className="mm-input"
+                  value={materialForm.color}
+                  onChange={(e) => handleMaterialFormChange('color', e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+
               {/* Current Stock & Unit */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
@@ -988,6 +1056,17 @@ const MaterialManager = () => {
                     <ChevronDown size={16} className="mm-select-icon" />
                   </div>
                 </div>
+              </div>
+
+              <div className="mm-form-group">
+                <label className="mm-label">Color</label>
+                <input
+                  type="text"
+                  className="mm-input"
+                  value={materialForm.color}
+                  onChange={(e) => handleMaterialFormChange('color', e.target.value)}
+                  placeholder="Optional"
+                />
               </div>
 
               {/* Current Stock & Unit */}
