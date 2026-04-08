@@ -157,14 +157,12 @@ const MaterialManager = () => {
     fetchInventory();
   }, []);
 
-  // Auto-open Add Material modal when navigated from Inventory screen
   useEffect(() => {
     if (location.state?.openAddMaterial) {
       handleAddMaterial();
-      // Clear navigation state so it doesn't re-trigger on re-renders
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
