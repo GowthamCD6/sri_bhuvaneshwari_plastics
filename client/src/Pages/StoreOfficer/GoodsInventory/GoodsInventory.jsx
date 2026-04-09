@@ -1004,7 +1004,6 @@ const MaterialManager = () => {
                   {editModalStatus.type === 'success' ? '✓ ' : '✕ '}{editModalStatus.message}
                 </div>
               )}
-              {/* Material Code & Name */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Material Code</label>
@@ -1028,7 +1027,6 @@ const MaterialManager = () => {
                 </div>
               </div>
 
-              {/* Supplier & Type */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Supplier</label>
@@ -1067,7 +1065,6 @@ const MaterialManager = () => {
                 />
               </div>
 
-              {/* Current Stock & Unit */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Current Stock</label>
@@ -1096,7 +1093,6 @@ const MaterialManager = () => {
                 </div>
               </div>
 
-              {/* Min & Max Stock */}
               <div className="mm-form-row">
                 <div className="mm-form-group half">
                   <label className="mm-label">Minimum Stock Level</label>
