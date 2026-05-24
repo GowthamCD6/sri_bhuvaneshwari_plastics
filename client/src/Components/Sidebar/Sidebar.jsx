@@ -24,6 +24,7 @@ import {
   User,
   LogOut,
   ClipboardList,
+  Calculator,
 } from "lucide-react";
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
@@ -80,7 +81,6 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Verify Store Indents",
         icon: CheckCircle,
       },
-      { path: "/sent-to-admin", label: "Sent to Admin", icon: Send },
     ],
     storeofficer: [
       { label: "Overview", section: true },
@@ -102,6 +102,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Stock Adjustment",
         icon: SlidersHorizontal,
       },
+       { path: "/formula-calculator", label: "Formula Calculator", icon: Calculator },
       { label: "Procurement", section: true },
       { path: "/verify-indents", label: "Verify Indents", icon: CheckCircle },
       { path: "/purchase-indents", label: "Purchase Indents", icon: FileText },
@@ -110,7 +111,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Material Request",
         icon: ShoppingCart,
       },
-    ],
+    ],     
     purchasedepartment: [
       { label: "Overview", section: true },
       {

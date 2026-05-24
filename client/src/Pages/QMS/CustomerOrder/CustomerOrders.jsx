@@ -354,12 +354,7 @@ const CustomerOrders = () => {
         </div>
       )}
 
-      {/* Loading Display */}
-      {loading && (
-        <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-          Loading orders...
-        </div>
-      )}
+
 
       {/* Top Header */}
       <div className="header-row">
