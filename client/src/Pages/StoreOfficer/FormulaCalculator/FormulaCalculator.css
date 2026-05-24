@@ -80,13 +80,7 @@
 }
 
 .formula-stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 5px;
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
+  display: none !important;
 }
 
 .formula-stat-card::after {
@@ -105,10 +99,7 @@
 .formula-stat-card:nth-child(3) { animation-delay: 0.14s; }
 .formula-stat-card:nth-child(4) { animation-delay: 0.2s; }
 
-.formula-stat-card:nth-child(1)::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-.formula-stat-card:nth-child(2)::before { background: linear-gradient(90deg, #06b6d4, #14b8a6); }
-.formula-stat-card:nth-child(3)::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
-.formula-stat-card:nth-child(4)::before { background: linear-gradient(90deg, #10b981, #34d399); }
+/* Top color strips removed by design */
 
 .formula-stat-card:nth-child(1)::after { background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 72%); }
 .formula-stat-card:nth-child(2)::after { background: radial-gradient(circle, rgba(20, 184, 166, 0.16) 0%, rgba(20, 184, 166, 0) 72%); }
@@ -194,15 +185,7 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
 }
 
-.card-surface::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
-}
+.card-surface::before { display: none !important; }
 
 .card-surface::after {
   content: '';
