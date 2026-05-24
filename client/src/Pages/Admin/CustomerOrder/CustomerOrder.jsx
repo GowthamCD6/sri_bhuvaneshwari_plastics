@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CustomerOrder.css';
 import { purchaseIndentService } from '../../../services/apiService';
+import { downloadSingleIndentPdf } from '../../../services/indentPdfService';
 
 const CustomerOrderApprovals = () => {
   const navigate = useNavigate();
@@ -11,6 +12,77 @@ const CustomerOrderApprovals = () => {
   const [indents, setIndents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloadingIndentId, setDownloadingIndentId] = useState(null);
+
+  const getLifecycleStatus = (status) => (status && status.startsWith('Pending') ? 'Open' : 'Closed');
+
+  const escapeCsvValue = (value) => {
+    const text = value == null ? '' : String(value);
+    const escaped = text.replace(/"/g, '""');
+    return `"${escaped}"`;
+  };
+
+  const downloadCsv = (headers, rows, fileName) => {
+    const csvRows = [headers, ...rows].map((row) => row.map(escapeCsvValue).join(','));
+    const csvContent = `data:text/csv;charset=utf-8,${csvRows.join('\n')}`;
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportRowsToCsv = (rows, mode) => {
+    if (rows.length === 0) return;
+
+    const headers = ['Indent ID', 'Date', 'Material', 'Details', 'Requested By', 'Urgency', 'Workflow Status', 'Open/Closed'];
+    const csvRows = rows.map((indent) => [
+      indent.id,
+      indent.date,
+      indent.material,
+      indent.details,
+      indent.requestedBy,
+      indent.urgency,
+      indent.status,
+      indent.lifecycleStatus,
+    ]);
+
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsv(headers, csvRows, `admin_customer_orders_${mode}_${activeTab}_${today}.csv`);
+  };
+
+  const exportCustomerOrderData = () => {
+    exportRowsToCsv(filteredIndents, 'visible');
+  };
+
+  const exportAllCustomerOrderData = () => {
+    exportRowsToCsv(indents, 'all');
+  };
+
+  const exportSingleIndent = async (indent) => {
+    if (!indent?.indentId) return;
+    if (downloadingIndentId === indent.indentId) return;
+
+    try {
+      setDownloadingIndentId(indent.indentId);
+      const response = await purchaseIndentService.getIndentById(indent.indentId);
+      const detail = response?.data;
+
+      downloadSingleIndentPdf({
+        indentSummary: indent,
+        indentDetail: detail,
+        sourceLabel: 'Customer Order',
+      });
+    } catch (err) {
+      console.error('Failed to export indent details:', err);
+      alert('Failed to download selected purchase indent PDF');
+    } finally {
+      setDownloadingIndentId(null);
+    }
+  };
 
   const fetchIndents = async () => {
     try {
@@ -65,7 +137,8 @@ const CustomerOrderApprovals = () => {
           requestedBy: indent.requested_by_name || 'QMS Officer',
           urgency: indent.priority === 'High' ? 'High' : indent.priority === 'Urgent' ? 'Critical' : 'Normal',
           status: displayStatus,
-          workflowStage: indent.workflow_stage
+          workflowStage: indent.workflow_stage,
+          lifecycleStatus: getLifecycleStatus(displayStatus)
         };
       });
       setIndents(mapped);
@@ -189,18 +262,38 @@ const CustomerOrderApprovals = () => {
                 Rejected
               </button>
             </div>
-            <div className="qms-search-wrapper">
-              <svg className="qms-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="m21 21-4.35-4.35"/>
-              </svg>
-              <input 
-                type="text" 
-                className="qms-search" 
-                placeholder="Search indents, material, or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="qms-top-actions">
+              <div className="qms-search-wrapper">
+                <svg className="qms-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input 
+                  type="text" 
+                  className="qms-search" 
+                  placeholder="Search indents, material, or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="qms-export-actions">
+                <button
+                  className="qms-export-btn"
+                  onClick={exportCustomerOrderData}
+                  disabled={filteredIndents.length === 0}
+                  title="Export currently visible customer order rows"
+                >
+                  Export Visible CSV
+                </button>
+                <button
+                  className="qms-export-btn qms-export-btn-all"
+                  onClick={exportAllCustomerOrderData}
+                  disabled={indents.length === 0}
+                  title="Export all customer order rows"
+                >
+                  Export All CSV
+                </button>
+              </div>
             </div>
           </div>
 
@@ -238,7 +331,10 @@ const CustomerOrderApprovals = () => {
                 </div>
                 <div className="qms-status">
                   <div className="qms-status-dot"></div>
-                  <span className="qms-status-text">{indent.status}</span>
+                  <div className="qms-status-stack">
+                    <span className="qms-status-text">{indent.status}</span>
+                    <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
+                  </div>
                 </div>
                 <div>
                   <button 
@@ -247,8 +343,18 @@ const CustomerOrderApprovals = () => {
                   >
                     View
                   </button>
+                  <div className="qms-inline-actions">
+                    <button
+                      className="qms-row-export-btn"
+                      disabled={downloadingIndentId === indent.indentId}
+                      onClick={() => exportSingleIndent(indent)}
+                      title="Download this purchase indent as PDF"
+                    >
+                      {downloadingIndentId === indent.indentId ? 'Downloading...' : 'Download PDF'}
+                    </button>
+                  </div>
                   {indent.status === 'Pending Admin Approval' && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <div className="qms-inline-actions">
                       <button className="qms-view-btn" onClick={() => handleApprove(indent.indentId)}>Approve</button>
                       <button className="qms-view-btn" onClick={() => handleReject(indent.indentId)}>Reject</button>
                     </div>
