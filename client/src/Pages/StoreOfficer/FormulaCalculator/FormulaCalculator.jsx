@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Plus, Factory, Weight, Droplets, BadgeIndianRupee } from 'lucide-react';
+import { Plus, Factory, Weight, Droplets, BadgeIndianRupee, ChevronLeft, ChevronRight, X, Trash2, Edit, FileText, Search } from 'lucide-react';
 import formulaCalculatorService from '../../../services/formulaCalculatorService';
 import './FormulaCalculator.css';
+// import { MdOutlineAutoDelete } from "react-icons/md";
+
 
 const toNumber = (value) => {
   const parsed = Number.parseFloat(String(value ?? '').replace(/,/g, ''));
@@ -151,6 +153,7 @@ const FormulaCalculator = () => {
   const [isClosingAddModal, setIsClosingAddModal] = useState(false);
   const [rowTooltip, setRowTooltip] = useState({ visible: false, text: '', x: 0, y: 0 });
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionMessage, setActionMessage] = useState(null);
@@ -739,27 +742,41 @@ const FormulaCalculator = () => {
     );
   }, [calculatedRows]);
 
-  // Pagination logic  
-  const totalPages = Math.max(1, Math.ceil(calculatedRows.length / rowsPerPage));
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedRows = calculatedRows.slice(startIndex, endIndex);
+  // Apply search filter before pagination
+  const filteredRows = useMemo(() => {
+    const q = String(searchQuery || '').trim().toLowerCase();
+    if (!q) return calculatedRows;
+    return calculatedRows.filter((r) => {
+      return (
+        String(r.partName || '').toLowerCase().includes(q) ||
+        String(r.rawMaterial || '').toLowerCase().includes(q) ||
+        String(r.cavity || '').toLowerCase().includes(q) ||
+        String(r.ratePerPiece || '').toLowerCase().includes(q)
+      );
+    });
+  }, [calculatedRows, searchQuery]);
 
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / rowsPerPage));
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
 
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const endIndex = startIndex + rowsPerPage;
+  const paginatedRows = filteredRows.slice(startIndex, endIndex);
+
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage((p) => p + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage((p) => p - 1);
     }
   };
 
@@ -920,6 +937,18 @@ const FormulaCalculator = () => {
             <h2>Planning rows</h2>
            
           </div>
+          <div className="formula-actions">
+            <div className="formula-search-wrapper">
+              <div className="formula-search-icon"><Search size={16} /></div>
+              <input
+                type="text"
+                placeholder="Search parts or material"
+                className="formula-search-input"
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
+          </div>
           <button
             type="button"
             className="formula-add-btn"
@@ -991,27 +1020,36 @@ const FormulaCalculator = () => {
           )}
         </div>
 
-        {/* Pagination Controls */}
-        <div className="pagination-controls">
-          <button
-            className="pagination-btn"
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-          >
-            ← Previous
-          </button>
-
+        {/* Pagination Controls - shared pagination-bar UI */}
+        <div className="pagination-bar">
           <span className="pagination-info">
-            Page {currentPage} of {totalPages} ({calculatedRows.length} total rows)
+            Showing {filteredRows.length > 0 ? startIndex + 1 : 0}-{Math.min(currentPage * rowsPerPage, filteredRows.length)} of {filteredRows.length} entries
           </span>
 
-          <button
-            className="pagination-btn"
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-          >
-            Next →
-          </button>
+          <div className="pagination-controls">
+            <button
+              className="page-btn"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft size={14} /> Previous
+            </button>
+
+            <div className="page-numbers">
+              <button className="page-btn" disabled>
+                {currentPage}
+              </button>
+              <span className="page-indicator">of {totalPages}</span>
+            </div>
+
+            <button
+              className="page-btn"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next <ChevronRight size={14} />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -1026,7 +1064,7 @@ const FormulaCalculator = () => {
             <div className="modal-header">
               <h2>Add New Row</h2>
               <button className="modal-close" onClick={handleCloseModal}>
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -1187,7 +1225,7 @@ const FormulaCalculator = () => {
             <div className="modal-header">
               <h2>Edit Row</h2>
               <button className="modal-close" onClick={handleCloseEditModal}>
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -1328,7 +1366,7 @@ const FormulaCalculator = () => {
             <div className="modal-header">
               <h2 className="formula-breakdown-title">Formula Breakdown</h2>
               <button className="modal-close" onClick={handleCloseFormulasModal}>
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -1379,7 +1417,7 @@ const FormulaCalculator = () => {
                 className="details-close"
                 onClick={handleCloseDetailsPanel}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -1427,13 +1465,13 @@ const FormulaCalculator = () => {
 
             <div className="details-footer">
               <button className="btn-details-delete" onClick={handleDeleteSelectedRow} disabled={isDeletingRow}>
-                {isDeletingRow ? 'Deleting...' : '🗑️ Delete'}
+                {isDeletingRow ? 'Deleting...' : (<><Trash2 size={14} />&nbsp;Delete</>)}
               </button>
               <button className="btn-details-edit" onClick={handleEditButtonClick}>
-                ✎ Edit
+                <Edit size={14} />&nbsp;Edit
               </button>
               <button className="btn-details-primary" onClick={handleShowFormulas}>
-                ↗ Show Formulas
+                <FileText size={14} />&nbsp;Formulae
               </button>
             </div>
           </div>

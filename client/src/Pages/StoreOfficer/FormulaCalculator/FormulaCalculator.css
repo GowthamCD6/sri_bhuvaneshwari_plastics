@@ -57,18 +57,18 @@
 }
 
 .formula-stat-card {
-  padding: 22px;
-  border-radius: 18px;
-  background: linear-gradient(155deg, #ffffff 0%, #f8fbff 54%, #eef5ff 100%);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08), 0 3px 10px rgba(148, 163, 184, 0.12);
+  padding: 15px;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  height: 100%;
-  min-height: 166px;
+  height: 150px;
+  width: 300px;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background 0.3s ease;
   animation: cardFadeUp 0.45s ease both;
 }
@@ -83,16 +83,7 @@
   display: none !important;
 }
 
-.formula-stat-card::after {
-  content: '';
-  position: absolute;
-  inset: -40% -50% auto auto;
-  width: 170px;
-  height: 170px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.14) 0%, rgba(59, 130, 246, 0) 70%);
-  pointer-events: none;
-}
+.formula-stat-card::after { display: none !important; }
 
 .formula-stat-card:nth-child(1) { animation-delay: 0.02s; }
 .formula-stat-card:nth-child(2) { animation-delay: 0.08s; }
@@ -126,14 +117,14 @@
 }
 
 .formula-stat-head svg {
-  flex-shrink: 0;
+ 
   opacity: 0.72;
-  color: #5e7090;
-  width: 19px;
-  height: 19px;
+  color: #f190099d;
+  width: 40px;
+  height: 40px;
   padding: 7px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgb(238, 238, 233);
   border: 1px solid rgba(148, 163, 184, 0.18);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
@@ -177,9 +168,9 @@
 .card-surface {
   padding: 12px 14px;
   border-radius: 12px;
-  background: linear-gradient(155deg, #ffffff 0%, #f8fbff 54%, #eef5ff 100%);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
   position: relative;
   overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
@@ -187,16 +178,7 @@
 
 .card-surface::before { display: none !important; }
 
-.card-surface::after {
-  content: '';
-  position: absolute;
-  inset: -30% -40% auto auto;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.10) 0%, rgba(59, 130, 246, 0) 70%);
-  pointer-events: none;
-}
+.card-surface::after { display: none !important; }
 
 .card-surface:hover {
   transform: translateY(-3px);
@@ -227,6 +209,34 @@
   font-size: 18px;
   font-weight: 700;
   color: #0f172a;
+}
+
+.formula-actions { display:flex; align-items:center; gap:12px }
+.formula-search-wrapper { position: relative }
+.formula-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color:#94a3b8 }
+.formula-search-input {
+  padding: 8px 12px 8px 36px;
+  border: 1px solid rgba(203,213,225,0.7);
+  border-radius: 8px;
+  width: 260px;
+  outline: none;
+  font-size: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.formula-search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59,130,246,0.08) }
+
+.page-indicator {
+  font-size: 13px;
+  color: #64748b;
+  padding: 0 8px;
+}
+
+/* Current page number visual (blue background) */
+.page-numbers .page-btn[disabled] {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  border-color: rgba(37,99,235,0.9);
+  box-shadow: 0 6px 14px rgba(59,130,246,0.16);
 }
 
 .formula-add-btn {
@@ -397,6 +407,46 @@
   color: rgba(191, 219, 254, 0.95);
   margin-bottom: 4px;
 }
+
+/* Align Formula Calculator table UI with StoreOfficer dashboard table styles
+   (keeps functionality unchanged; only adjusts visuals to the shared design) */
+.formula-table-wrap {
+  overflow-x: auto;
+}
+
+.formula-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  table-layout: auto;
+}
+
+.formula-table thead th {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #64748b;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 24px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: #f8fafc;
+}
+
+.formula-table td {
+  color: #334155;
+  vertical-align: middle;
+  border-bottom: 1px solid #f8fafc;
+  padding: 11px 10px 11px 0;
+}
+
+.formula-table tr:last-child td { border-bottom: none; }
+.formula-table tr:hover td { background: #f8fafc; }
+
+/* small helper used in other table UIs */
+.blue-text { color: #2563eb; font-weight: 700; }
+
 
 .row-tooltip strong {
   display: block;
@@ -1141,7 +1191,9 @@
 .btn-details-delete {
   background: linear-gradient(180deg, #fff5f5 0%, #fee2e2 100%);
   color: #dc2626;
-  border: 1.5px solid #ef4444;
+  height: 40px;
+  font-weight: bold;
+  border: 1px solid #ef4444;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 4px 10px rgba(239, 68, 68, 0.12);
 }
 
@@ -1319,6 +1371,17 @@
   font-family: 'Courier New', monospace;
   text-align: right;
 }
+.page-btn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+
+    color: var(--text-medium);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
 @media (max-width: 900px) {
   .formula-breakdown-title {
@@ -1352,7 +1415,7 @@
   }
 
   .formula-stat-card {
-    min-height: 152px;
+    min-height: 50px;
   }
 
   .formula-list {
@@ -1363,7 +1426,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-
 @media (max-width: 640px) {
   .formula-breakdown-modal {
     width: min(96vw, 560px);
@@ -1433,15 +1495,13 @@
 }
 
 .btn-details-primary {
-  background: linear-gradient(180deg, #4f8ff8 0%, #2563eb 100%);
-  color: white;
+ 
+  color: rgb(86, 80, 80);
   border: 1.5px solid #2563eb;
   box-shadow: inset 0 1px 0 rgba(191, 219, 254, 0.35), 0 6px 14px rgba(37, 99, 235, 0.3);
 }
 
 .btn-details-primary:hover {
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.38);
   transform: translateY(-2px);
 }
 
