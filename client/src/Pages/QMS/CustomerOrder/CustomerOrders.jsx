@@ -431,7 +431,6 @@ const CustomerOrders = () => {
                 <th>Indent ID / Date</th>
                 <th>Customer Details</th>
                 <th>Components Requested</th>
-                <th>Items</th>
                 <th>Status / Priority</th>
                 <th>Action</th>
               </tr>
@@ -439,7 +438,7 @@ const CustomerOrders = () => {
             <tbody>
               {pagination.total === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     <div className="empty-state">
                       <div className="empty-title">No orders found</div>
                       <div className="empty-subtitle">Try changing filters or search keywords.</div>
@@ -490,10 +489,6 @@ const CustomerOrders = () => {
                         {itemsSummary.subtitle ? <div className="text-sub">{itemsSummary.subtitle}</div> : null}
                       </td>
 
-                      {/* Items Count */}
-                      <td>
-                        <div className="text-main">{itemsCount}</div>
-                      </td>
 
                       {/* Status + Priority */}
                       <td>
