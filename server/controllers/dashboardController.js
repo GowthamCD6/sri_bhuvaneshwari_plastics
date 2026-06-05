@@ -88,16 +88,33 @@ const getPurchaseDashboard = async (req, res) => {
 
 const getQMSDashboard = async (req, res) => {
   try {
+    // Get total orders count
     const [[orders]] = await db.query('SELECT COUNT(*) as count FROM customer_orders');
+    
+    // Get pending store review count
     const [[pendingStore]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE status = 'Pending Store Review'");
+    
+    // Get pending admin approval count
     const [[pendingAdmin]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE status = 'Pending Admin Approval'");
+    
+    // Get urgent/high priority orders count
+    const [[urgentOrders]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE priority IN ('urgent', 'high', 'Urgent', 'High')");
+    
+    // Get completed orders count
+    const [[completedOrders]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE status IN ('Completed', 'completed', 'Approved')");
+    
+    // Get orders created today
+    const [[todayOrders]] = await db.query("SELECT COUNT(*) as count FROM customer_orders WHERE DATE(created_at) = CURDATE()");
 
     res.status(200).json({
       success: true,
       data: {
-        orders: orders.count,
-        pendingStore: pendingStore.count,
-        pendingAdmin: pendingAdmin.count
+        orders: orders.count || 0,
+        pendingStore: pendingStore.count || 0,
+        pendingAdmin: pendingAdmin.count || 0,
+        urgentOrders: urgentOrders.count || 0,
+        completedOrders: completedOrders.count || 0,
+        todayOrders: todayOrders.count || 0
       }
     });
   } catch (error) {
