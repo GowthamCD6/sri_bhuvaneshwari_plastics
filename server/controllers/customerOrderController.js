@@ -197,9 +197,16 @@ const createOrder = async (req, res) => {
     for (const item of items) {
       await db.query(
         `INSERT INTO customer_order_items 
-          (order_id, component_name, quantity, required_by_date, notes)
-        VALUES (?, ?, ?, ?, ?)`,
-        [orderId, item.component, item.quantity, item.required_by_date, item.notes || null]
+          (order_id, component_name, raw_material, quantity, required_by_date, notes)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          orderId,
+          item.component,
+          item.rawMaterial || item.raw_material || null,
+          item.quantity,
+          item.required_by_date,
+          item.notes || null
+        ]
       );
     }
 

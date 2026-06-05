@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './NewOrderModal.css';
+import formulaCalculatorService from '../../../../services/formulaCalculatorService';
 
 // Inline SVGs for pixel-perfect icons without external libraries
 const Icons = {
@@ -55,6 +56,10 @@ const getTodayDate = () => {
   return today.toISOString().split('T')[0];
 };
 
+const normalizeText = (value) => String(value ?? '').trim().toLowerCase();
+
+const uniqueStrings = (values) => [...new Set(values.filter(Boolean))];
+
 const NewOrderModal = ({ onClose, onSubmit }) => {
   // Form state for customer info and indent details
   const [formData, setFormData] = useState({
@@ -67,8 +72,11 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
   // Items state - array of items for the order
   const [items, setItems] = useState([
-    { id: 1, component: '', quantity: '', unit: 'kg', requiredByDate: '' }
+    { id: 1, component: '', rawMaterial: '', quantity: '', unit: 'kg', requiredByDate: '' }
   ]);
+
+  const [formulaRows, setFormulaRows] = useState([]);
+  const [formulaRowsLoading, setFormulaRowsLoading] = useState(true);
 
   // Error state
   const [errors, setErrors] = useState({});
@@ -76,6 +84,53 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
   
   // Loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadFormulaRows = async () => {
+      try {
+        const data = await formulaCalculatorService.getDefaultCalculator();
+        if (!isActive) return;
+
+        setFormulaRows(Array.isArray(data?.rows) ? data.rows : []);
+      } catch (error) {
+        console.error('Failed to load formula rows:', error);
+        if (isActive) {
+          setFormulaRows([]);
+        }
+      } finally {
+        if (isActive) {
+          setFormulaRowsLoading(false);
+        }
+      }
+    };
+
+    loadFormulaRows();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const getRawMaterialOptions = (componentName) => {
+    const normalizedComponent = normalizeText(componentName);
+    if (!normalizedComponent) return [];
+
+    const exactMatches = formulaRows.filter(
+      (row) => normalizeText(row.part_name) === normalizedComponent
+    );
+
+    const candidateRows = exactMatches.length > 0
+      ? exactMatches
+      : formulaRows.filter(
+          (row) =>
+            normalizeText(row.part_name).includes(normalizedComponent) ||
+            normalizedComponent.includes(normalizeText(row.part_name))
+        );
+
+    return uniqueStrings(candidateRows.map((row) => String(row.raw_material || '').trim()));
+  };
 
   // Handle input change for main form fields
   const handleChange = (e) => {
@@ -112,7 +167,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
   // Add new item
   const addItem = () => {
     const newId = Math.max(...items.map(item => item.id)) + 1;
-    setItems(prev => [...prev, { id: newId, component: '', quantity: '', unit: 'kg', requiredByDate: '' }]);
+    setItems(prev => [...prev, { id: newId, component: '', rawMaterial: '', quantity: '', unit: 'kg', requiredByDate: '' }]);
   };
 
   // Remove item
@@ -166,6 +221,9 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
       if (!item.component.trim()) {
         newItemErrors[`${item.id}_component`] = 'Component is required';
       }
+      if (!item.rawMaterial.trim()) {
+        newItemErrors[`${item.id}_rawMaterial`] = 'Raw material is required';
+      }
       if (!item.quantity || item.quantity <= 0) {
         newItemErrors[`${item.id}_quantity`] = 'Enter a valid quantity';
       }
@@ -199,6 +257,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
       priority: 'Standard',
       items: items.map(item => ({
         component: item.component,
+        rawMaterial: item.rawMaterial,
         quantity: parseInt(item.quantity),
         unit: item.unit,
         required_by_date: item.requiredByDate
@@ -378,10 +437,50 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                             className={`form-input has-icon ${itemErrors[`${item.id}_component`] ? 'input-error' : ''}`}
                             placeholder="e.g. 500ml PET Bottle Preform" 
                             value={item.component}
-                            onChange={(e) => handleItemChange(item.id, 'component', e.target.value)}
+                            onChange={(e) => {
+                              handleItemChange(item.id, 'component', e.target.value);
+                              handleItemChange(item.id, 'rawMaterial', '');
+                            }}
                           />
                         </div>
                         {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
+                      </div>
+
+                      {/* Raw Material Requested */}
+                      <div className="form-group">
+                        <label className="input-label">Raw Material Requested <span className="required">*</span></label>
+                        <div className="input-wrapper">
+                          <div className="input-icon"><Icons.Package /></div>
+                          {getRawMaterialOptions(item.component).length > 0 ? (
+                            <select
+                              className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
+                              value={item.rawMaterial}
+                              onChange={(e) => handleItemChange(item.id, 'rawMaterial', e.target.value)}
+                              disabled={formulaRowsLoading}
+                            >
+                              <option value="">Select raw material</option>
+                              {getRawMaterialOptions(item.component).map((rawMaterial) => (
+                                <option key={rawMaterial} value={rawMaterial}>
+                                  {rawMaterial}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
+                              placeholder={formulaRowsLoading ? 'Loading raw materials...' : 'Enter raw material'}
+                              value={item.rawMaterial}
+                              onChange={(e) => handleItemChange(item.id, 'rawMaterial', e.target.value)}
+                            />
+                          )}
+                        </div>
+                        {itemErrors[`${item.id}_rawMaterial`] && <span className="error-message">{itemErrors[`${item.id}_rawMaterial`]}</span>}
+                        {!formulaRowsLoading && item.component.trim() && getRawMaterialOptions(item.component).length === 0 && (
+                          <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0 }}>
+                            No formula mapping found for this component. Enter the raw material manually.
+                          </span>
+                        )}
                       </div>
 
                       {/* Quantity, Unit & Date Row */}

@@ -327,11 +327,12 @@ const createIndent = async (req, res) => {
       console.log('Inserting material:', material.description);
       await db.query(
         `INSERT INTO purchase_indent_materials 
-          (indent_id, material_description, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           indentId,
           material.description || material.material_description,
+          material.rawMaterial || material.raw_material || null,
           material.quantity,
           material.unit || material.unit_of_measurement,
           material.currentStock || material.current_stock || 0,
@@ -491,11 +492,12 @@ const updateIndentStatus = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             material.description,
+            material.rawMaterial || material.raw_material || null,
             material.quantity || material.requiredQuantity,
             material.unit || material.uom || 'kg',
             material.currentStock || material.onHand || '0',
@@ -671,11 +673,12 @@ const sendToNextStage = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             material.description,
+            material.rawMaterial || material.raw_material || null,
             material.quantity || material.requiredQuantity,
             material.unit || material.uom || 'kg',
             material.currentStock || material.onHand || '0',
@@ -928,11 +931,12 @@ const createPurchaseDeptIndent = async (req, res) => {
     for (const m of materials) {
       await db.query(
         `INSERT INTO purchase_indent_materials
-          (indent_id, material_description, quantity, unit_of_measurement, current_stock, specifications)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, specifications)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           indentId,
           m.description.trim(),
+          m.rawMaterial || m.raw_material || null,
           parseFloat(m.quantity),
           m.unit || 'Kg',
           parseFloat(m.currentStock) || 0,

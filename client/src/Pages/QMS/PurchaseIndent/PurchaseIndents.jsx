@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User, Upload, FileText, Eye, Trash2 } from 'lucide-react';
 import './PurchaseIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
+import formulaCalculatorService from '../../../services/formulaCalculatorService';
 import useAuthStore from '../../../store/authStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -16,6 +17,50 @@ const resolveIndentArray = (response) => {
   if (Array.isArray(response?.data)) return response.data;
   if (Array.isArray(response?.data?.indents)) return response.data.indents;
   return [];
+};
+
+const normalizeText = (value) => String(value ?? '').trim().toLowerCase();
+
+const resolveFormulaRow = (rows, componentName, rawMaterialName = '') => {
+  const normalizedComponent = normalizeText(componentName);
+  if (!normalizedComponent) return null;
+
+  const normalizedRawMaterial = normalizeText(rawMaterialName);
+  const rowsForComponent = rows.filter((row) => normalizeText(row.part_name) === normalizedComponent);
+
+  if (rowsForComponent.length === 0) return null;
+
+  if (normalizedRawMaterial) {
+    const exactRawMaterialMatch = rowsForComponent.find(
+      (row) => normalizeText(row.raw_material) === normalizedRawMaterial
+    );
+
+    if (exactRawMaterialMatch) return exactRawMaterialMatch;
+  }
+
+  return rowsForComponent[0];
+};
+
+const buildFormulaFields = (rows, componentName, rawMaterialName = '') => {
+  const formulaRow = resolveFormulaRow(rows, componentName, rawMaterialName);
+
+  return {
+    rawMaterial: formulaRow?.raw_material || rawMaterialName || '',
+    formulaRawMaterial: formulaRow?.raw_material || rawMaterialName || '',
+    formulaRmCost: formulaRow?.raw_material_cost_per_component != null
+      ? String(formulaRow.raw_material_cost_per_component)
+      : '',
+    formulaRmRate: formulaRow?.rate_per_kg != null
+      ? String(formulaRow.rate_per_kg)
+      : '',
+    formulaPiecesPerKg: formulaRow?.pieces_per_kg != null
+      ? String(formulaRow.pieces_per_kg)
+      : '',
+    formulaRmPercentage: formulaRow?.rm_percentage != null
+      ? String(formulaRow.rm_percentage)
+      : '',
+    formulaMatched: Boolean(formulaRow),
+  };
 };
 
 const NewPurchaseIndent = () => {
@@ -97,6 +142,8 @@ const NewPurchaseIndent = () => {
 
   // State declarations - NO DUMMY DATA
   const [materials, setMaterials] = useState([]);
+  const [formulaRows, setFormulaRows] = useState([]);
+  const [formulaRowsLoaded, setFormulaRowsLoaded] = useState(false);
   const [createdIndentId, setCreatedIndentId] = useState(passedIndentId || null);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const [formData, setFormData] = useState({
@@ -162,6 +209,7 @@ const NewPurchaseIndent = () => {
       poFilePath: formData.poFilePath,
       materials: materials.map((m) => ({
         description: m.description,
+        rawMaterial: m.rawMaterial,
         preferredSupplier: m.preferredSupplier,
         requiredQuantity: m.requiredQuantity,
         requiredDate: m.requiredDate,
@@ -241,6 +289,34 @@ const NewPurchaseIndent = () => {
     console.log('Passed indent ID:', passedIndentId);
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadFormulaRows = async () => {
+      try {
+        const data = await formulaCalculatorService.getDefaultCalculator();
+        if (!isActive) return;
+
+        setFormulaRows(Array.isArray(data?.rows) ? data.rows : []);
+      } catch (error) {
+        console.error('Failed to load formula rows:', error);
+        if (isActive) {
+          setFormulaRows([]);
+        }
+      } finally {
+        if (isActive) {
+          setFormulaRowsLoaded(true);
+        }
+      }
+    };
+
+    loadFormulaRows();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   // Debug: Track formData.poFilePath changes
   useEffect(() => {
     console.log('=== FORM DATA PO FILE PATH CHANGED ===');
@@ -256,6 +332,8 @@ const NewPurchaseIndent = () => {
 
   // Pre-fill form if coming from customer order (ONLY for new indents, not when viewing existing)
   useEffect(() => {
+    if (!formulaRowsLoaded) return;
+
     // CRITICAL: Only run if explicitly coming from customer order AND no indent ID exists
     // This prevents overwriting materials when viewing existing indents
     if (fromCustomerOrder && orderData && !passedIndentId && !createdIndentId && !indentDataLoaded) {
@@ -297,27 +375,53 @@ const NewPurchaseIndent = () => {
 
       // Pre-fill materials from order items ONLY for new indents
       if (orderData.orderItems && orderData.orderItems.length > 0) {
-        const orderMaterials = orderData.orderItems.map((item, idx) => ({
-          id: Date.now() + idx,
-          description: item.component_name || item.component || '',
-          preferredSupplier: item.preferred_supplier || '',
-          requiredQuantity: item.quantity || '',
-          requiredDate: item.required_by_date || item.required_date || '',
-          onHand: '0',
-          order: item.quantity || '',
-          status: 'pending',
-          uom: item.unit || item.uom || 'kg',
-          isEditing: false
-        }));
+        const orderMaterials = orderData.orderItems.map((item, idx) => {
+          const formulaFields = buildFormulaFields(
+            formulaRows,
+            item.component_name || item.component || '',
+            item.raw_material || item.rawMaterial || ''
+          );
+
+          return {
+            id: Date.now() + idx,
+            description: item.component_name || item.component || '',
+            rawMaterial: formulaFields.rawMaterial,
+            preferredSupplier: item.preferred_supplier || '',
+            requiredQuantity: item.quantity || '',
+            requiredDate: item.required_by_date || item.required_date || '',
+            onHand: '0',
+            order: item.quantity || '',
+            status: 'pending',
+            uom: item.unit || item.uom || 'kg',
+            isEditing: false,
+            formulaRawMaterial: formulaFields.formulaRawMaterial,
+            formulaRmCost: formulaFields.formulaRmCost,
+            formulaRmRate: formulaFields.formulaRmRate,
+            formulaPiecesPerKg: formulaFields.formulaPiecesPerKg,
+            formulaRmPercentage: formulaFields.formulaRmPercentage,
+            formulaMatched: formulaFields.formulaMatched,
+          };
+        });
         console.log('Setting materials from customer order (NEW indent only):', orderMaterials);
         setMaterials(orderMaterials);
+
+        const firstFormulaRow = orderMaterials.find((material) => material.formulaMatched);
+        if (firstFormulaRow) {
+          setFormData((prev) => ({
+            ...prev,
+            rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
+            rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
+            piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
+            rmPercentage: prev.rmPercentage || firstFormulaRow.formulaRmPercentage || '',
+          }));
+        }
       } else {
         console.log('No order items to set as materials');
       }
     } else if (passedIndentId || createdIndentId) {
       console.log('⚠️ SKIPPING customer order data - viewing existing indent ID:', passedIndentId || createdIndentId);
     }
-  }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded]);
+  }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded, formulaRowsLoaded, formulaRows]);
 
   // Dynamic workflow steps based on current workflow stage
   const workflowSteps = [
@@ -387,7 +491,7 @@ const NewPurchaseIndent = () => {
   // Fetch existing indent if indentId is provided
   useEffect(() => {
     const fetchIndent = async () => {
-      if (!passedIndentId) return;
+      if (!passedIndentId || !formulaRowsLoaded) return;
 
       try {
         setLoading(true);
@@ -446,22 +550,48 @@ const NewPurchaseIndent = () => {
 
           console.log('Materials from indent:', indent.materials);
           if (indent.materials && indent.materials.length > 0) {
-            const mappedMaterials = indent.materials.map(m => ({
-              id: m.indent_material_id,
-              description: m.material_description,
-              preferredSupplier: m.preferred_supplier || '',
-              requiredQuantity: m.quantity,
-              requiredDate: toDateInputValue(indent.required_by_date) || '',
-              onHand: m.current_stock || '0',
-              order: m.required_stock || '',
-              status: 'pending',
-              uom: m.unit_of_measurement || 'kg',
-              isEditing: false
-            }));
+            const mappedMaterials = indent.materials.map(m => {
+              const formulaFields = buildFormulaFields(
+                formulaRows,
+                m.material_description,
+                m.raw_material || ''
+              );
+
+              return {
+                id: m.indent_material_id,
+                description: m.material_description,
+                rawMaterial: formulaFields.rawMaterial,
+                preferredSupplier: m.preferred_supplier || '',
+                requiredQuantity: m.quantity,
+                requiredDate: toDateInputValue(indent.required_by_date) || '',
+                onHand: m.current_stock || '0',
+                order: m.required_stock || '',
+                status: 'pending',
+                uom: m.unit_of_measurement || 'kg',
+                isEditing: false,
+                formulaRawMaterial: formulaFields.formulaRawMaterial,
+                formulaRmCost: formulaFields.formulaRmCost,
+                formulaRmRate: formulaFields.formulaRmRate,
+                formulaPiecesPerKg: formulaFields.formulaPiecesPerKg,
+                formulaRmPercentage: formulaFields.formulaRmPercentage,
+                formulaMatched: formulaFields.formulaMatched,
+              };
+            });
             console.log('✅ FETCH INDENT: Setting', mappedMaterials.length, 'materials');
             console.log('Material descriptions:', mappedMaterials.map(m => m.description));
             console.log('Full materials data:', mappedMaterials);
             setMaterials(mappedMaterials);
+
+            const firstFormulaRow = mappedMaterials.find((material) => material.formulaMatched);
+            if (firstFormulaRow) {
+              setFormData((prev) => ({
+                ...prev,
+                rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
+                rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
+                piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
+                rmPercentage: prev.rmPercentage || firstFormulaRow.formulaRmPercentage || '',
+              }));
+            }
             setIndentDataLoaded(true);
           } else {
             console.log('⚠️ No materials found in indent or materials array is empty');
@@ -479,7 +609,7 @@ const NewPurchaseIndent = () => {
     };
 
     fetchIndent();
-  }, [passedIndentId]);
+  }, [passedIndentId, formulaRowsLoaded, formulaRows]);
 
   // Clear validation errors when user starts typing
   const clearFieldError = (fieldName) => {
@@ -497,6 +627,7 @@ const NewPurchaseIndent = () => {
     const newMaterial = {
       id: Date.now(),
       description: '',
+      rawMaterial: '',
       preferredSupplier: '',
       requiredQuantity: '',
       requiredDate: '',
@@ -504,10 +635,18 @@ const NewPurchaseIndent = () => {
       order: '',
       status: 'pending',
       uom: 'kg',
-      isEditing: true
+      formulaRawMaterial: '',
+      formulaRmCost: '',
+      formulaRmRate: '',
+      formulaPiecesPerKg: '',
+      formulaRmPercentage: '',
+      formulaMatched: false,
+      isEditing: true,
+      isNew: true
     };
     setMaterials([...materials, newMaterial]);
-    setIsEditingMaterial(newMaterial.id);    clearFieldError('materials');
+    setIsEditingMaterial(newMaterial.id);
+    clearFieldError('materials');
     };
 
   // Handle remove material
@@ -515,27 +654,63 @@ const NewPurchaseIndent = () => {
     setMaterials(materials.filter(m => m.id !== id));
   };
 
+  // Handle cancel edit
+  const handleCancelMaterial = (id) => {
+    setMaterials(prevMaterials => prevMaterials.flatMap(material => {
+      if (material.id !== id) return [material];
+
+      if (material.isNew) {
+        return [];
+      }
+
+      const { originalMaterial, isNew, ...restoredMaterial } = material;
+      return [{
+        ...(originalMaterial || restoredMaterial),
+        isEditing: false,
+        isNew: false
+      }];
+    }));
+    setIsEditingMaterial(null);
+  };
+
   // Handle edit material
   const handleEditMaterial = (id) => {
     setIsEditingMaterial(id);
     setMaterials(prevMaterials => prevMaterials.map(m => 
-      m.id === id ? { ...m, isEditing: true } : m
+      m.id === id ? { ...m, originalMaterial: { ...m }, isEditing: true } : m
     ));
   };
 
   // Handle save material edits
   const handleSaveMaterial = (id, updatedFields) => {
     setMaterials(prevMaterials => prevMaterials.map(m => 
-      m.id === id ? { ...m, ...updatedFields, isEditing: false } : m
+      m.id === id ? { ...m, ...updatedFields, isEditing: false, isNew: false, originalMaterial: undefined } : m
     ));
     setIsEditingMaterial(null);
   };
 
   // Handle material field change
   const handleMaterialChange = (id, field, value) => {
-    setMaterials(prevMaterials => prevMaterials.map(m => 
-      m.id === id ? { ...m, [field]: value } : m
-    ));
+    setMaterials(prevMaterials => prevMaterials.map((material) => {
+      if (material.id !== id) return material;
+
+      const updatedMaterial = { ...material, [field]: value };
+
+      if (field === 'description' || field === 'rawMaterial') {
+        const formulaFields = buildFormulaFields(
+          formulaRows,
+          field === 'description' ? value : updatedMaterial.description,
+          field === 'rawMaterial' ? value : updatedMaterial.rawMaterial
+        );
+
+        return {
+          ...updatedMaterial,
+          ...formulaFields,
+        };
+      }
+
+      return updatedMaterial;
+    }));
   };
 
   // Calculate total order quantity
@@ -656,6 +831,7 @@ const NewPurchaseIndent = () => {
         rmPercentage: formData.rmPercentage || null,
         materials: materials.map(m => ({
           description: m.description,
+          rawMaterial: m.rawMaterial || null,
           quantity: m.requiredQuantity,
           unit: m.uom || 'kg',
           currentStock: m.onHand || '0',
@@ -711,6 +887,7 @@ const NewPurchaseIndent = () => {
             rmPercentage: formData.rmPercentage || null,
             materials: materials.map(m => ({
               description: m.description,
+              rawMaterial: m.rawMaterial || null,
               quantity: m.requiredQuantity,
               unit: m.uom || 'kg',
               currentStock: m.onHand || '0',
@@ -736,6 +913,7 @@ const NewPurchaseIndent = () => {
             rmPercentage: formData.rmPercentage || null,
             materials: materials.map(m => ({
               description: m.description,
+              rawMaterial: m.rawMaterial || null,
               quantity: m.requiredQuantity,
               unit: m.uom || 'kg',
               currentStock: m.onHand || '0',
@@ -778,6 +956,7 @@ const NewPurchaseIndent = () => {
                   rmPercentage: formData.rmPercentage || null,
                   materials: materials.map(m => ({
                     description: m.description,
+                    rawMaterial: m.rawMaterial || null,
                     quantity: m.requiredQuantity,
                     unit: m.uom || 'kg',
                     currentStock: m.onHand || '0',
@@ -894,6 +1073,7 @@ const NewPurchaseIndent = () => {
                 const mappedMaterials = indent.materials.map(m => ({
                   id: m.indent_material_id,
                   description: m.material_description,
+                  rawMaterial: m.raw_material || '',
                   preferredSupplier: m.preferred_supplier || '',
                   requiredQuantity: m.quantity,
                   requiredDate: toDateInputValue(indent.required_by_date) || '',
@@ -901,6 +1081,12 @@ const NewPurchaseIndent = () => {
                   order: m.required_stock || '',
                   status: 'pending',
                   uom: m.unit_of_measurement || 'kg',
+                  formulaRawMaterial: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRawMaterial,
+                  formulaRmCost: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRmCost,
+                  formulaRmRate: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRmRate,
+                  formulaPiecesPerKg: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaPiecesPerKg,
+                  formulaRmPercentage: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRmPercentage,
+                  formulaMatched: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaMatched,
                   isEditing: false
                 }));
                 console.log('✅ Refresh: Setting', mappedMaterials.length, 'materials:', mappedMaterials.map(m => m.description));
@@ -962,8 +1148,9 @@ const NewPurchaseIndent = () => {
 
   // Filter materials based on search
   const filteredMaterials = materials.filter(material => 
-    material.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    material.preferredSupplier.toLowerCase().includes(searchQuery.toLowerCase())
+    String(material.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(material.rawMaterial || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(material.preferredSupplier || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Group materials by supplier
@@ -998,6 +1185,23 @@ const NewPurchaseIndent = () => {
               />
             </div>
             <div className="pi-material-column">
+              <div className="pi-material-label">Raw material</div>
+              <input
+                type="text"
+                value={material.rawMaterial}
+                onChange={(e) => handleMaterialChange(material.id, 'rawMaterial', e.target.value)}
+                className="pi-input"
+                placeholder="Enter raw material"
+                readOnly={isViewMode}
+              />
+              {(material.formulaRmCost || material.formulaRmRate) && (
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  Formula: {material.formulaRmCost ? `RM cost/component ${material.formulaRmCost}` : 'RM cost not mapped'}
+                  {material.formulaRmRate ? ` • RM rate/kg ${material.formulaRmRate}` : ''}
+                </div>
+              )}
+            </div>
+            <div className="pi-material-column">
               <div className="pi-material-label">Preferred supplier</div>
               <input
                 type="text"
@@ -1022,34 +1226,42 @@ const NewPurchaseIndent = () => {
             <div className="pi-material-column">
               <div className="pi-material-label">Stock & order</div>
               <div className="pi-material-stock-edit">
-                <input
-                  type="text"
-                  value={material.onHand}
-                  onChange={(e) => handleMaterialChange(material.id, 'onHand', e.target.value)}
-                  className="pi-input-small"
-                  placeholder="On hand"
-                />
+                <label className="pi-stock-field">
+                  <span className="pi-stock-field-label">On hand</span>
+                  <input
+                    type="text"
+                    value={material.onHand}
+                    onChange={(e) => handleMaterialChange(material.id, 'onHand', e.target.value)}
+                    className="pi-input-small"
+                    placeholder="0"
+                  />
+                </label>
                 <span className="pi-material-bullet">•</span>
-                <input
-                  type="text"
-                  value={material.order}
-                  onChange={(e) => handleMaterialChange(material.id, 'order', e.target.value)}
-                  className="pi-input-small"
-                  placeholder="Order"
-                />
+                <label className="pi-stock-field">
+                  <span className="pi-stock-field-label">Order qty</span>
+                  <input
+                    type="text"
+                    value={material.order}
+                    onChange={(e) => handleMaterialChange(material.id, 'order', e.target.value)}
+                    className="pi-input-small"
+                    placeholder="0"
+                  />
+                </label>
               </div>
             </div>
           </div>
           <div className="pi-material-actions">
             <button 
               onClick={() => handleSaveMaterial(material.id, material)}
+              type="button"
               className="pi-btn pi-btn-primary"
             >
               <Check size={14} />
               Save
             </button>
             <button 
-              onClick={() => handleRemoveMaterial(material.id)}
+              onClick={() => handleCancelMaterial(material.id)}
+              type="button"
               className="pi-btn pi-btn-outline"
             >
               <X size={14} />
@@ -1068,6 +1280,22 @@ const NewPurchaseIndent = () => {
           <div className="pi-material-column">
             <div className="pi-material-label">Material description</div>
             <div className="pi-material-value">{material.description}</div>
+          </div>
+          <div className="pi-material-column">
+            <div className="pi-material-label">Raw material</div>
+            <div className="pi-material-value-normal">
+              <div style={{ fontSize: '14px', fontWeight: '500', color: '#1e293b' }}>
+                {material.rawMaterial || 'Not selected'}
+              </div>
+              {(material.formulaRmCost || material.formulaRmRate || material.formulaPiecesPerKg || material.formulaRmPercentage) && (
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
+                  {material.formulaRmCost && <div>RM cost / component: {material.formulaRmCost}</div>}
+                  {material.formulaRmRate && <div>RM rate / kg: {material.formulaRmRate}</div>}
+                  {material.formulaPiecesPerKg && <div>Pieces / kg: {material.formulaPiecesPerKg}</div>}
+                  {material.formulaRmPercentage && <div>RM%: {material.formulaRmPercentage}</div>}
+                </div>
+              )}
+            </div>
           </div>
           <div className="pi-material-column">
             <div className="pi-material-label">Preferred supplier</div>
@@ -1095,13 +1323,13 @@ const NewPurchaseIndent = () => {
                   </div>
                   <div className="pi-stock-separator">·</div>
                   <div className="pi-stock-item">
-                    <span className="pi-stock-label">Order:</span>
+                    <span className="pi-stock-label">Order qty:</span>
                     <span className="pi-stock-value">{material.order} {material.uom}</span>
                   </div>
                 </div>
               ) : (
                 <div className="pi-stock-item">
-                  <span className="pi-stock-label">Order:</span>
+                  <span className="pi-stock-label">Order qty:</span>
                   <span className="pi-stock-value">{material.order} {material.uom}</span>
                 </div>
               )}
@@ -1111,12 +1339,14 @@ const NewPurchaseIndent = () => {
         <div className="pi-material-actions">
           <button 
             onClick={() => handleEditMaterial(material.id)}
+            type="button"
             className="pi-btn pi-btn-action"
           >
             Edit
           </button>
           <button 
             onClick={() => handleRemoveMaterial(material.id)}
+            type="button"
             className="pi-btn pi-btn-action"
           >
             <X size={14} />
