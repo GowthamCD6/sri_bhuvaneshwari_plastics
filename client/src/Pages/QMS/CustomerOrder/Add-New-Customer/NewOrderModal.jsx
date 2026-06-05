@@ -72,7 +72,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
   // Items state - array of items for the order
   const [items, setItems] = useState([
-    { id: 1, component: '', rawMaterial: '', quantity: '', unit: 'kg', requiredByDate: '' }
+    { id: 1, component: '', rawMaterial: '', quantity: '', unit: 'pcs', requiredByDate: '' }
   ]);
 
   const [formulaRows, setFormulaRows] = useState([]);
@@ -167,7 +167,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
   // Add new item
   const addItem = () => {
     const newId = Math.max(...items.map(item => item.id)) + 1;
-    setItems(prev => [...prev, { id: newId, component: '', rawMaterial: '', quantity: '', unit: 'kg', requiredByDate: '' }]);
+    setItems(prev => [...prev, { id: newId, component: '', rawMaterial: '', quantity: '', unit: 'pcs', requiredByDate: '' }]);
   };
 
   // Remove item
@@ -501,18 +501,13 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                           <label className="input-label">Unit <span className="required">*</span></label>
                           <div className="input-wrapper">
                             <div className="input-icon"><Icons.Package /></div>
-                            <select
+                            <input
+                              type="text"
                               className="form-input has-icon"
-                              value={item.unit}
-                              onChange={(e) => handleItemChange(item.id, 'unit', e.target.value)}
-                            >
-                              <option value="kg">Kilograms (kg)</option>
-                              <option value="g">Grams (g)</option>
-                              <option value="pcs">Pieces (pcs)</option>
-                              <option value="box">Box</option>
-                              <option value="ltr">Liters (ltr)</option>
-                              <option value="m">Meters (m)</option>
-                            </select>
+                              value="Pieces (pcs)"
+                              readOnly
+                              aria-label="Unit is fixed to pieces"
+                            />
                           </div>
                         </div>
                         <div className="form-group" style={{flex: '1'}}>

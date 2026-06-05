@@ -41,6 +41,19 @@ const getCreatedAt = (order) => {
   return parseCreatedOnDate(order?.date);
 };
 
+const formatDisplayDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const getDeliveryStatus = (order) => {
   return String(order?.delivery_status || order?.deliveryStatus || 'Open');
 };
@@ -462,9 +475,9 @@ const CustomerOrders = () => {
                   const priority = order.priority || 'Standard';
                   const createdBy = order.created_by_name || order.createdByName || order.created_by || order.createdBy || '-';
                   const createdAt = order.created_at || order.createdAt;
-                  const dateDisplay = createdAt 
-                    ? new Date(createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                    : (order.date || '-');
+                  const dateDisplay = createdAt
+                    ? formatDisplayDate(createdAt)
+                    : formatDisplayDate(order.date);
                   const itemsCount = order.items_count || order.items || (Array.isArray(order.orderItems) ? order.orderItems.length : 0);
 
                   return (
@@ -617,7 +630,7 @@ const CustomerOrders = () => {
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Indent Date</div>
-                  <div className="detail-value">{selectedOrder.indent_date || selectedOrder.indentDate || '-'}</div>
+                  <div className="detail-value">{formatDisplayDate(selectedOrder.indent_date || selectedOrder.indentDate)}</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Status</div>
@@ -633,7 +646,7 @@ const CustomerOrders = () => {
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Delivered At</div>
-                  <div className="detail-value">{selectedOrder.delivered_at ? new Date(selectedOrder.delivered_at).toLocaleString('en-GB') : '-'}</div>
+                  <div className="detail-value">{selectedOrder.delivered_at ? formatDisplayDate(selectedOrder.delivered_at) : '-'}</div>
                 </div>
                 <div className="detail-card">
                   <div className="detail-label">Priority</div>
@@ -666,10 +679,43 @@ const CustomerOrders = () => {
                       <div key={idx} className="details-table-row">
                         <div className="details-strong">{it.component_name || it.component || '-'}</div>
                         <div>{it.quantity ?? '-'}</div>
-                        <div>{it.required_by_date || it.requiredByDate || '-'}</div>
+                        <div>{formatDisplayDate(it.required_by_date || it.requiredByDate)}</div>
                         <div>
                           <span className="details-chip">{it.status || 'Requested'}</span>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <div className="detail-section-title">Raw Materials / PO Reference</div>
+                <div className="detail-section-content">
+                  <div className="details-grid details-grid-compact">
+                    <div className="detail-card">
+                      <div className="detail-label">PO Reference</div>
+                      <div className="detail-value">
+                        {selectedOrder.purchase_indent_number || selectedOrder.purchaseIndentNumber || selectedOrder.po_reference || selectedOrder.poReference || '-'}
+                      </div>
+                    </div>
+                    <div className="detail-card">
+                      <div className="detail-label">Order Date</div>
+                      <div className="detail-value">{formatDisplayDate(selectedOrder.indent_date || selectedOrder.indentDate)}</div>
+                    </div>
+                  </div>
+
+                  <div className="details-table details-table-raw">
+                    <div className="details-table-head">
+                      <div>Component</div>
+                      <div>Raw Material</div>
+                      <div>Required By</div>
+                    </div>
+                    {(Array.isArray(selectedOrder.orderItems) ? selectedOrder.orderItems : []).map((it, idx) => (
+                      <div key={`raw-${idx}`} className="details-table-row">
+                        <div className="details-strong">{it.component_name || it.component || '-'}</div>
+                        <div>{it.raw_material || it.rawMaterial || '-'}</div>
+                        <div>{formatDisplayDate(it.required_by_date || it.requiredByDate)}</div>
                       </div>
                     ))}
                   </div>

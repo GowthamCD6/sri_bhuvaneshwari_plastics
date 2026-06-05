@@ -63,6 +63,25 @@ const buildFormulaFields = (rows, componentName, rawMaterialName = '') => {
   };
 };
 
+const formatPercentage = (value) => {
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return value || '';
+  return (numericValue * 100).toFixed(2).replace(/\.00$/, '');
+};
+
+const getCustomerOrderQuantity = (orderItems = []) => {
+  const total = orderItems.reduce((sum, item) => {
+    const quantity = Number(item?.quantity);
+    return sum + (Number.isFinite(quantity) ? quantity : 0);
+  }, 0);
+
+  if (!Number.isFinite(total) || total <= 0) {
+    return '';
+  }
+
+  return Number.isInteger(total) ? String(total) : String(Number(total.toFixed(2)));
+};
+
 const NewPurchaseIndent = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -361,6 +380,8 @@ const NewPurchaseIndent = () => {
       console.log('- requiredByDate:', earliestRequiredDate);
       console.log('- requestedBy:', orderData.customerName);
 
+      const orderQuantity = getCustomerOrderQuantity(orderData.orderItems || []);
+
       setFormData(prev => ({
         ...prev,
         department: 'stores',
@@ -370,6 +391,7 @@ const NewPurchaseIndent = () => {
         requestedBy: orderData.customerName || '',
         indentDate: toDateInputValue(orderData.indentDate) || prev.indentDate,
         requiredByDate: toDateInputValue(earliestRequiredDate) || prev.requiredByDate,
+        orderQuantity: orderQuantity || prev.orderQuantity,
         justification: `Purchase indent for customer order ${orderData.indentId || orderData.orderId}`,
       }));
 
@@ -412,7 +434,7 @@ const NewPurchaseIndent = () => {
             rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
             rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
             piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
-            rmPercentage: prev.rmPercentage || firstFormulaRow.formulaRmPercentage || '',
+            rmPercentage: prev.rmPercentage || formatPercentage(firstFormulaRow.formulaRmPercentage) || '',
           }));
         }
       } else {
@@ -589,7 +611,7 @@ const NewPurchaseIndent = () => {
                 rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
                 rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
                 piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
-                rmPercentage: prev.rmPercentage || firstFormulaRow.formulaRmPercentage || '',
+                rmPercentage: prev.rmPercentage || formatPercentage(firstFormulaRow.formulaRmPercentage) || '',
               }));
             }
             setIndentDataLoaded(true);
@@ -1194,12 +1216,6 @@ const NewPurchaseIndent = () => {
                 placeholder="Enter raw material"
                 readOnly={isViewMode}
               />
-              {(material.formulaRmCost || material.formulaRmRate) && (
-                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
-                  Formula: {material.formulaRmCost ? `RM cost/component ${material.formulaRmCost}` : 'RM cost not mapped'}
-                  {material.formulaRmRate ? ` • RM rate/kg ${material.formulaRmRate}` : ''}
-                </div>
-              )}
             </div>
             <div className="pi-material-column">
               <div className="pi-material-label">Preferred supplier</div>
@@ -1287,14 +1303,6 @@ const NewPurchaseIndent = () => {
               <div style={{ fontSize: '14px', fontWeight: '500', color: '#1e293b' }}>
                 {material.rawMaterial || 'Not selected'}
               </div>
-              {(material.formulaRmCost || material.formulaRmRate || material.formulaPiecesPerKg || material.formulaRmPercentage) && (
-                <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>
-                  {material.formulaRmCost && <div>RM cost / component: {material.formulaRmCost}</div>}
-                  {material.formulaRmRate && <div>RM rate / kg: {material.formulaRmRate}</div>}
-                  {material.formulaPiecesPerKg && <div>Pieces / kg: {material.formulaPiecesPerKg}</div>}
-                  {material.formulaRmPercentage && <div>RM%: {material.formulaRmPercentage}</div>}
-                </div>
-              )}
             </div>
           </div>
           <div className="pi-material-column">
@@ -1778,6 +1786,7 @@ const NewPurchaseIndent = () => {
                   value={formData.orderQuantity}
                   onChange={(e) => setFormData({...formData, orderQuantity: e.target.value})}
                   className="pi-input"
+                  readOnly={fromCustomerOrder && !passedIndentId && !createdIndentId}
                 />
               </div>
             </div>
