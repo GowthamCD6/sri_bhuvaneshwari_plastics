@@ -62,7 +62,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
     ],
     qms: [
       { label: "Overview", section: true },
-      { path: "/customer-orders", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/qms-dashboard", label: "Dashboard", icon: LayoutDashboard },
       { label: "Order Management", section: true },
       {
         path: "/customer-orders",

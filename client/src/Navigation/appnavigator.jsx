@@ -5,6 +5,7 @@ import useAuthStore from '../store/authStore';
 import Dashboard from '../Pages/StoreOfficer/Dashboard/Dashboard';
 
 // ===== QMS ROLE PAGES =====
+import QMSDashboard from '../Pages/QMS/QMSDashboard/QMSDashboard';
 import QMSPurchaseIndents from '../Pages/QMS/PurchaseIndent/PurchaseIndents';
 import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
@@ -56,7 +57,7 @@ const AppNavigator = () => {
       case 'admin':
         return '/admin-dashboard';
       case 'qms':
-        return '/customer-orders';
+        return '/qms-dashboard';
       case 'storeofficer':
       case 'store':
         return '/store-dashboard';
@@ -86,6 +87,7 @@ const AppNavigator = () => {
       <Route path="/dashboard" element={<Navigate to={getDefaultRoute()} replace />} />
 
       {/* ===== QMS ROLE ROUTES ===== */}
+      <Route path="/qms-dashboard" element={<QMSDashboard />} />
       <Route path="/customer-orders" element={<CustomerOrders />} />
       <Route path="/qms-purchase-indents" element={<QMSPurchaseIndents />} />
       <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
