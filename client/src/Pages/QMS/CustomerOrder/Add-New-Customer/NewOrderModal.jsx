@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './NewOrderModal.css';
 import formulaCalculatorService from '../../../../services/formulaCalculatorService';
 
@@ -113,23 +113,25 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
     };
   }, []);
 
-  const getRawMaterialOptions = (componentName) => {
+  const componentOptions = useMemo(() => {
+    return uniqueStrings(
+      formulaRows.map((row) => String(row.part_name || '').trim())
+    ).sort((left, right) => left.localeCompare(right));
+  }, [formulaRows]);
+
+  const getComponentRows = (componentName) => {
     const normalizedComponent = normalizeText(componentName);
     if (!normalizedComponent) return [];
 
-    const exactMatches = formulaRows.filter(
+    return formulaRows.filter(
       (row) => normalizeText(row.part_name) === normalizedComponent
     );
+  };
 
-    const candidateRows = exactMatches.length > 0
-      ? exactMatches
-      : formulaRows.filter(
-          (row) =>
-            normalizeText(row.part_name).includes(normalizedComponent) ||
-            normalizedComponent.includes(normalizeText(row.part_name))
-        );
-
-    return uniqueStrings(candidateRows.map((row) => String(row.raw_material || '').trim()));
+  const getRawMaterialOptions = (componentName) => {
+    return uniqueStrings(
+      getComponentRows(componentName).map((row) => String(row.raw_material || '').trim())
+    );
   };
 
   // Handle input change for main form fields
@@ -218,10 +220,15 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
     // Validate each item
     items.forEach(item => {
+      const matchingRows = getComponentRows(item.component);
+
       if (!item.component.trim()) {
         newItemErrors[`${item.id}_component`] = 'Component is required';
+      } else if (matchingRows.length === 0) {
+        newItemErrors[`${item.id}_component`] = 'Item not in database';
       }
-      if (!item.rawMaterial.trim()) {
+
+      if (matchingRows.length > 0 && !item.rawMaterial.trim()) {
         newItemErrors[`${item.id}_rawMaterial`] = 'Raw material is required';
       }
       if (!item.quantity || item.quantity <= 0) {
@@ -411,122 +418,147 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
                 {/* Items List */}
                 <div className="items-list">
-                  {items.map((item, index) => (
-                    <div key={item.id} className="item-card">
-                      <div className="item-header">
-                        <span className="item-number">Item {index + 1}</span>
-                        {items.length > 1 && (
-                          <button 
-                            type="button" 
-                            className="btn-remove-item" 
-                            onClick={() => removeItem(item.id)}
-                            title="Remove item"
-                          >
-                            <Icons.Trash />
-                          </button>
-                        )}
-                      </div>
+                  {items.map((item, index) => {
+                    const componentRows = getComponentRows(item.component);
+                    const rawMaterialOptions = getRawMaterialOptions(item.component);
+                    const hasComponent = item.component.trim().length > 0;
+                    const isKnownComponent = componentRows.length > 0;
+                    const isUnknownComponent = hasComponent && !formulaRowsLoading && !isKnownComponent;
 
-                      {/* Component Requested */}
-                      <div className="form-group">
-                        <label className="input-label">Component Requested <span className="required">*</span></label>
-                        <div className="input-wrapper">
-                          <div className="input-icon"><Icons.Box /></div>
-                          <input 
-                            type="text" 
-                            className={`form-input has-icon ${itemErrors[`${item.id}_component`] ? 'input-error' : ''}`}
-                            placeholder="e.g. 500ml PET Bottle Preform" 
-                            value={item.component}
-                            onChange={(e) => {
-                              handleItemChange(item.id, 'component', e.target.value);
-                              handleItemChange(item.id, 'rawMaterial', '');
-                            }}
-                          />
-                        </div>
-                        {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
-                      </div>
-
-                      {/* Raw Material Requested */}
-                      <div className="form-group">
-                        <label className="input-label">Raw Material Requested <span className="required">*</span></label>
-                        <div className="input-wrapper">
-                          <div className="input-icon"><Icons.Package /></div>
-                          {getRawMaterialOptions(item.component).length > 0 ? (
-                            <select
-                              className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
-                              value={item.rawMaterial}
-                              onChange={(e) => handleItemChange(item.id, 'rawMaterial', e.target.value)}
-                              disabled={formulaRowsLoading}
+                    return (
+                      <div key={item.id} className="item-card">
+                        <div className="item-header">
+                          <span className="item-number">Item {index + 1}</span>
+                          {items.length > 1 && (
+                            <button 
+                              type="button" 
+                              className="btn-remove-item" 
+                              onClick={() => removeItem(item.id)}
+                              title="Remove item"
                             >
-                              <option value="">Select raw material</option>
-                              {getRawMaterialOptions(item.component).map((rawMaterial) => (
-                                <option key={rawMaterial} value={rawMaterial}>
-                                  {rawMaterial}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
-                              placeholder={formulaRowsLoading ? 'Loading raw materials...' : 'Enter raw material'}
-                              value={item.rawMaterial}
-                              onChange={(e) => handleItemChange(item.id, 'rawMaterial', e.target.value)}
-                            />
+                              <Icons.Trash />
+                            </button>
                           )}
                         </div>
-                        {itemErrors[`${item.id}_rawMaterial`] && <span className="error-message">{itemErrors[`${item.id}_rawMaterial`]}</span>}
-                        {!formulaRowsLoading && item.component.trim() && getRawMaterialOptions(item.component).length === 0 && (
-                          <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0 }}>
-                            No formula mapping found for this component. Enter the raw material manually.
-                          </span>
-                        )}
-                      </div>
 
-                      {/* Quantity, Unit & Date Row */}
-                      <div className="form-row">
-                        <div className="form-group" style={{flex: '0 0 30%'}}>
-                          <label className="input-label">Quantity <span className="required">*</span></label>
-                          <input 
-                            type="number" 
-                            className={`form-input ${itemErrors[`${item.id}_quantity`] ? 'input-error' : ''}`}
-                            placeholder="0" 
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
-                          />
-                          {itemErrors[`${item.id}_quantity`] && <span className="error-message">{itemErrors[`${item.id}_quantity`]}</span>}
+                        {/* Component Requested */}
+                        <div className="form-group">
+                          <label className="input-label">Component Requested <span className="required">*</span></label>
+                          <div className="input-wrapper">
+                            <div className="input-icon"><Icons.Box /></div>
+                            <input 
+                              type="text" 
+                              className={`form-input has-icon ${itemErrors[`${item.id}_component`] ? 'input-error' : ''}`}
+                              placeholder="e.g. 500ml PET Bottle Preform" 
+                              value={item.component}
+                              list="component-options"
+                              onChange={(e) => {
+                                handleItemChange(item.id, 'component', e.target.value);
+                                handleItemChange(item.id, 'rawMaterial', '');
+                              }}
+                            />
+                          </div>
+                          {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
+                          {!itemErrors[`${item.id}_component`] && isUnknownComponent && (
+                            <span className="error-message">Item not in database</span>
+                          )}
                         </div>
-                        <div className="form-group" style={{flex: '0 0 30%'}}>
-                          <label className="input-label">Unit <span className="required">*</span></label>
+
+                        {/* Raw Material Requested */}
+                        <div className="form-group">
+                          <label className="input-label">Raw Material Requested <span className="required">*</span></label>
                           <div className="input-wrapper">
                             <div className="input-icon"><Icons.Package /></div>
-                            <input
-                              type="text"
-                              className="form-input has-icon"
-                              value="Pieces (pcs)"
-                              readOnly
-                              aria-label="Unit is fixed to pieces"
-                            />
+                            {formulaRowsLoading ? (
+                              <input
+                                type="text"
+                                className="form-input has-icon"
+                                placeholder="Loading raw materials..."
+                                value=""
+                                disabled
+                              />
+                            ) : isKnownComponent && rawMaterialOptions.length > 0 ? (
+                              <select
+                                className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
+                                value={item.rawMaterial}
+                                onChange={(e) => handleItemChange(item.id, 'rawMaterial', e.target.value)}
+                              >
+                                <option value="">Select raw material</option>
+                                {rawMaterialOptions.map((rawMaterial) => (
+                                  <option key={rawMaterial} value={rawMaterial}>
+                                    {rawMaterial}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                className={`form-input has-icon ${itemErrors[`${item.id}_rawMaterial`] ? 'input-error' : ''}`}
+                                placeholder={hasComponent ? (isKnownComponent ? 'No raw materials mapped' : 'Item not in database') : 'Enter component first'}
+                                value=""
+                                readOnly
+                                disabled
+                              />
+                            )}
                           </div>
+                          {itemErrors[`${item.id}_rawMaterial`] && <span className="error-message">{itemErrors[`${item.id}_rawMaterial`]}</span>}
+                          {!formulaRowsLoading && hasComponent && !isKnownComponent && (
+                            <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0 }}>
+                              No raw materials for that component.
+                            </span>
+                          )}
                         </div>
-                        <div className="form-group" style={{flex: '1'}}>
-                          <label className="input-label">Required By Date <span className="required">*</span></label>
-                          <div className="input-wrapper">
-                            <div className="input-icon"><Icons.Calendar /></div>
+
+                        {/* Quantity, Unit & Date Row */}
+                        <div className="form-row">
+                          <div className="form-group" style={{flex: '0 0 30%'}}>
+                            <label className="input-label">Quantity <span className="required">*</span></label>
                             <input 
-                              type="date" 
-                              className={`form-input has-icon ${itemErrors[`${item.id}_requiredByDate`] ? 'input-error' : ''}`}
-                              value={item.requiredByDate}
-                              onChange={(e) => handleItemChange(item.id, 'requiredByDate', e.target.value)}
+                              type="number" 
+                              className={`form-input ${itemErrors[`${item.id}_quantity`] ? 'input-error' : ''}`}
+                              placeholder="0" 
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(item.id, 'quantity', e.target.value)}
                             />
+                            {itemErrors[`${item.id}_quantity`] && <span className="error-message">{itemErrors[`${item.id}_quantity`]}</span>}
                           </div>
-                          {itemErrors[`${item.id}_requiredByDate`] && <span className="error-message">{itemErrors[`${item.id}_requiredByDate`]}</span>}
+                          <div className="form-group" style={{flex: '0 0 30%'}}>
+                            <label className="input-label">Unit <span className="required">*</span></label>
+                            <div className="input-wrapper">
+                              <div className="input-icon"><Icons.Package /></div>
+                              <input
+                                type="text"
+                                className="form-input has-icon"
+                                value="Pieces (pcs)"
+                                readOnly
+                                aria-label="Unit is fixed to pieces"
+                              />
+                            </div>
+                          </div>
+                          <div className="form-group" style={{flex: '1'}}>
+                            <label className="input-label">Required By Date <span className="required">*</span></label>
+                            <div className="input-wrapper">
+                              <div className="input-icon"><Icons.Calendar /></div>
+                              <input 
+                                type="date" 
+                                className={`form-input has-icon ${itemErrors[`${item.id}_requiredByDate`] ? 'input-error' : ''}`}
+                                value={item.requiredByDate}
+                                onChange={(e) => handleItemChange(item.id, 'requiredByDate', e.target.value)}
+                              />
+                            </div>
+                            {itemErrors[`${item.id}_requiredByDate`] && <span className="error-message">{itemErrors[`${item.id}_requiredByDate`]}</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+                <datalist id="component-options">
+                  {componentOptions.map((componentName) => (
+                    <option key={componentName} value={componentName} />
+                  ))}
+                </datalist>
               </div>
 
             </div>

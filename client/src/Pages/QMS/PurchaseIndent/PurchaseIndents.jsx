@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Calendar, X, Plus, Search, ExternalLink, Save, Send, Filter, Check, GitBranch, User, Upload, FileText, Eye, Trash2 } from 'lucide-react';
 import './PurchaseIndents.css';
-import { purchaseIndentService } from '../../../services/apiService';
+import { purchaseIndentService, materialService } from '../../../services/apiService';
 import formulaCalculatorService from '../../../services/formulaCalculatorService';
 import useAuthStore from '../../../store/authStore';
 
@@ -39,6 +39,49 @@ const resolveFormulaRow = (rows, componentName, rawMaterialName = '') => {
   }
 
   return rowsForComponent[0];
+};
+
+const resolveMaterialRecord = (materials, componentName, rawMaterialName = '') => {
+  const normalizedRawMaterial = normalizeText(rawMaterialName);
+  if (normalizedRawMaterial) {
+    const exactRawMaterialMatch = materials.find((material) => {
+      const materialName = normalizeText(material.material_name || material.materialName || material.description);
+      const materialCode = normalizeText(material.material_code || material.materialCode);
+      return materialName === normalizedRawMaterial || materialCode === normalizedRawMaterial;
+    });
+
+    if (exactRawMaterialMatch) {
+      return exactRawMaterialMatch;
+    }
+  }
+
+  const normalizedComponent = normalizeText(componentName);
+  if (!normalizedComponent) return null;
+
+  return materials.find((material) => {
+    const materialName = normalizeText(material.material_name || material.materialName || material.description);
+    const materialCode = normalizeText(material.material_code || material.materialCode);
+    return materialName === normalizedComponent || materialCode === normalizedComponent;
+  }) || null;
+};
+
+const resolveStockFields = (materialRecord) => {
+  if (!materialRecord) {
+    return {
+      currentStock: '0',
+      orderQuantity: '',
+      stockMatched: false,
+    };
+  }
+
+  const currentStock = materialRecord.current_stock ?? materialRecord.stock_quantity ?? materialRecord.available_stock ?? 0;
+  const reorderQuantity = materialRecord.reorder_quantity ?? materialRecord.reorder_level ?? materialRecord.min_stock_level ?? '';
+
+  return {
+    currentStock: String(currentStock),
+    orderQuantity: reorderQuantity === '' || reorderQuantity == null ? '' : String(reorderQuantity),
+    stockMatched: true,
+  };
 };
 
 const buildFormulaFields = (rows, componentName, rawMaterialName = '') => {
@@ -163,6 +206,8 @@ const NewPurchaseIndent = () => {
   const [materials, setMaterials] = useState([]);
   const [formulaRows, setFormulaRows] = useState([]);
   const [formulaRowsLoaded, setFormulaRowsLoaded] = useState(false);
+  const [materialCatalog, setMaterialCatalog] = useState([]);
+  const [materialCatalogLoaded, setMaterialCatalogLoaded] = useState(false);
   const [createdIndentId, setCreatedIndentId] = useState(passedIndentId || null);
   const [showWorkflow, setShowWorkflow] = useState(false);
   const [formData, setFormData] = useState({
@@ -336,6 +381,40 @@ const NewPurchaseIndent = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let isActive = true;
+
+    const loadMaterialCatalog = async () => {
+      try {
+        const response = await materialService.getAllMaterials();
+        if (!isActive) return;
+
+        const list = Array.isArray(response?.materials)
+          ? response.materials
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
+
+        setMaterialCatalog(list);
+      } catch (error) {
+        console.error('Failed to load materials catalog:', error);
+        if (isActive) {
+          setMaterialCatalog([]);
+        }
+      } finally {
+        if (isActive) {
+          setMaterialCatalogLoaded(true);
+        }
+      }
+    };
+
+    loadMaterialCatalog();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   // Debug: Track formData.poFilePath changes
   useEffect(() => {
     console.log('=== FORM DATA PO FILE PATH CHANGED ===');
@@ -352,6 +431,7 @@ const NewPurchaseIndent = () => {
   // Pre-fill form if coming from customer order (ONLY for new indents, not when viewing existing)
   useEffect(() => {
     if (!formulaRowsLoaded) return;
+    if (!materialCatalogLoaded) return;
 
     // CRITICAL: Only run if explicitly coming from customer order AND no indent ID exists
     // This prevents overwriting materials when viewing existing indents
@@ -403,6 +483,12 @@ const NewPurchaseIndent = () => {
             item.component_name || item.component || '',
             item.raw_material || item.rawMaterial || ''
           );
+          const materialRecord = resolveMaterialRecord(
+            materialCatalog,
+            item.component_name || item.component || '',
+            formulaFields.formulaRawMaterial || formulaFields.rawMaterial || ''
+          );
+          const stockFields = resolveStockFields(materialRecord);
 
           return {
             id: Date.now() + idx,
@@ -411,8 +497,8 @@ const NewPurchaseIndent = () => {
             preferredSupplier: item.preferred_supplier || '',
             requiredQuantity: item.quantity || '',
             requiredDate: item.required_by_date || item.required_date || '',
-            onHand: '0',
-            order: item.quantity || '',
+            onHand: stockFields.currentStock,
+            order: stockFields.orderQuantity,
             status: 'pending',
             uom: item.unit || item.uom || 'kg',
             isEditing: false,
@@ -422,6 +508,7 @@ const NewPurchaseIndent = () => {
             formulaPiecesPerKg: formulaFields.formulaPiecesPerKg,
             formulaRmPercentage: formulaFields.formulaRmPercentage,
             formulaMatched: formulaFields.formulaMatched,
+            stockMatched: stockFields.stockMatched,
           };
         });
         console.log('Setting materials from customer order (NEW indent only):', orderMaterials);
@@ -443,7 +530,7 @@ const NewPurchaseIndent = () => {
     } else if (passedIndentId || createdIndentId) {
       console.log('⚠️ SKIPPING customer order data - viewing existing indent ID:', passedIndentId || createdIndentId);
     }
-  }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded, formulaRowsLoaded, formulaRows]);
+  }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded, formulaRowsLoaded, materialCatalogLoaded, formulaRows, materialCatalog]);
 
   // Dynamic workflow steps based on current workflow stage
   const workflowSteps = [
@@ -513,7 +600,7 @@ const NewPurchaseIndent = () => {
   // Fetch existing indent if indentId is provided
   useEffect(() => {
     const fetchIndent = async () => {
-      if (!passedIndentId || !formulaRowsLoaded) return;
+      if (!passedIndentId || !formulaRowsLoaded || !materialCatalogLoaded) return;
 
       try {
         setLoading(true);
@@ -578,6 +665,12 @@ const NewPurchaseIndent = () => {
                 m.material_description,
                 m.raw_material || ''
               );
+              const materialRecord = resolveMaterialRecord(
+                materialCatalog,
+                m.material_description,
+                formulaFields.formulaRawMaterial || formulaFields.rawMaterial || m.raw_material || ''
+              );
+              const stockFields = resolveStockFields(materialRecord);
 
               return {
                 id: m.indent_material_id,
@@ -586,8 +679,8 @@ const NewPurchaseIndent = () => {
                 preferredSupplier: m.preferred_supplier || '',
                 requiredQuantity: m.quantity,
                 requiredDate: toDateInputValue(indent.required_by_date) || '',
-                onHand: m.current_stock || '0',
-                order: m.required_stock || '',
+                onHand: stockFields.currentStock,
+                order: stockFields.orderQuantity,
                 status: 'pending',
                 uom: m.unit_of_measurement || 'kg',
                 isEditing: false,
@@ -597,6 +690,7 @@ const NewPurchaseIndent = () => {
                 formulaPiecesPerKg: formulaFields.formulaPiecesPerKg,
                 formulaRmPercentage: formulaFields.formulaRmPercentage,
                 formulaMatched: formulaFields.formulaMatched,
+                stockMatched: stockFields.stockMatched,
               };
             });
             console.log('✅ FETCH INDENT: Setting', mappedMaterials.length, 'materials');
@@ -631,7 +725,7 @@ const NewPurchaseIndent = () => {
     };
 
     fetchIndent();
-  }, [passedIndentId, formulaRowsLoaded, formulaRows]);
+  }, [passedIndentId, formulaRowsLoaded, materialCatalogLoaded, formulaRows, materialCatalog]);
 
   // Clear validation errors when user starts typing
   const clearFieldError = (fieldName) => {
@@ -724,10 +818,26 @@ const NewPurchaseIndent = () => {
           field === 'description' ? value : updatedMaterial.description,
           field === 'rawMaterial' ? value : updatedMaterial.rawMaterial
         );
+        const materialRecord = resolveMaterialRecord(
+          materialCatalog,
+          field === 'description' ? value : updatedMaterial.description,
+          field === 'rawMaterial' ? value : updatedMaterial.rawMaterial
+        );
+        const stockFields = resolveStockFields(materialRecord);
 
         return {
           ...updatedMaterial,
           ...formulaFields,
+          onHand: stockFields.currentStock,
+          order: stockFields.orderQuantity,
+          stockMatched: stockFields.stockMatched,
+        };
+      }
+
+      if (field === 'onHand' || field === 'order') {
+        return {
+          ...updatedMaterial,
+          stockMatched: false,
         };
       }
 
@@ -1099,8 +1209,8 @@ const NewPurchaseIndent = () => {
                   preferredSupplier: m.preferred_supplier || '',
                   requiredQuantity: m.quantity,
                   requiredDate: toDateInputValue(indent.required_by_date) || '',
-                  onHand: m.current_stock || '0',
-                  order: m.required_stock || '',
+                  onHand: String(m.current_stock ?? m.stock_quantity ?? '0'),
+                  order: String(m.required_stock ?? ''),
                   status: 'pending',
                   uom: m.unit_of_measurement || 'kg',
                   formulaRawMaterial: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRawMaterial,
@@ -1109,6 +1219,7 @@ const NewPurchaseIndent = () => {
                   formulaPiecesPerKg: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaPiecesPerKg,
                   formulaRmPercentage: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaRmPercentage,
                   formulaMatched: buildFormulaFields(formulaRows, m.material_description, m.raw_material || '').formulaMatched,
+                  stockMatched: true,
                   isEditing: false
                 }));
                 console.log('✅ Refresh: Setting', mappedMaterials.length, 'materials:', mappedMaterials.map(m => m.description));
