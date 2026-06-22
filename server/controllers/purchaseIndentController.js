@@ -327,8 +327,8 @@ const createIndent = async (req, res) => {
       console.log('Inserting material:', material.description);
       await db.query(
         `INSERT INTO purchase_indent_materials 
-          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           indentId,
           material.description || material.material_description,
@@ -339,7 +339,14 @@ const createIndent = async (req, res) => {
           material.requiredStock || material.required_stock || 0,
           material.preferredSupplier || material.preferred_supplier,
           material.estimatedCost || material.estimated_cost || null,
-          material.specifications || null
+          material.specifications || null,
+          material.customerPart || material.customer_part || null,
+          material.poNumber || material.po_number || null,
+          material.poReference || material.po_reference || null,
+          material.rmCost || material.rm_cost || null,
+          material.rmRate || material.rm_rate || null,
+          material.piecesPerKg || material.pieces_per_kg || null,
+          material.rmPercentage || material.rm_percentage || null
         ]
       );
     }
@@ -492,8 +499,8 @@ const updateIndentStatus = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             material.description,
@@ -502,7 +509,14 @@ const updateIndentStatus = async (req, res) => {
             material.unit || material.uom || 'kg',
             material.currentStock || material.onHand || '0',
             material.requiredStock || material.order || material.quantity,
-            material.preferredSupplier || ''
+            material.preferredSupplier || '',
+            material.customerPart || material.customer_part || null,
+            material.poNumber || material.po_number || null,
+            material.poReference || material.po_reference || null,
+            material.rmCost || material.rm_cost || null,
+            material.rmRate || material.rm_rate || null,
+            material.piecesPerKg || material.pieces_per_kg || null,
+            material.rmPercentage || material.rm_percentage || null
           ]
         );
       }
@@ -673,8 +687,8 @@ const sendToNextStage = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
             material.description,
@@ -683,7 +697,14 @@ const sendToNextStage = async (req, res) => {
             material.unit || material.uom || 'kg',
             material.currentStock || material.onHand || '0',
             material.requiredStock || material.order || material.quantity,
-            material.preferredSupplier || ''
+            material.preferredSupplier || '',
+            material.customerPart || material.customer_part || null,
+            material.poNumber || material.po_number || null,
+            material.poReference || material.po_reference || null,
+            material.rmCost || material.rm_cost || null,
+            material.rmRate || material.rm_rate || null,
+            material.piecesPerKg || material.pieces_per_kg || null,
+            material.rmPercentage || material.rm_percentage || null
           ]
         );
       }

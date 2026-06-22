@@ -509,21 +509,17 @@ const NewPurchaseIndent = () => {
             formulaRmPercentage: formulaFields.formulaRmPercentage,
             formulaMatched: formulaFields.formulaMatched,
             stockMatched: stockFields.stockMatched,
+            customerPart: orderData.indentId || orderData.orderId || item.component_name || item.description || '',
+            poNumber: '',
+            poReference: '',
+            rmCost: formulaFields.formulaRmCost || '',
+            rmRate: formulaFields.formulaRmRate || '',
+            piecesPerKg: formulaFields.formulaPiecesPerKg || '',
+            rmPercentage: formulaFields.formulaRmPercentage ? formatPercentage(formulaFields.formulaRmPercentage) : '',
           };
         });
         console.log('Setting materials from customer order (NEW indent only):', orderMaterials);
         setMaterials(orderMaterials);
-
-        const firstFormulaRow = orderMaterials.find((material) => material.formulaMatched);
-        if (firstFormulaRow) {
-          setFormData((prev) => ({
-            ...prev,
-            rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
-            rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
-            piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
-            rmPercentage: prev.rmPercentage || formatPercentage(firstFormulaRow.formulaRmPercentage) || '',
-          }));
-        }
       } else {
         console.log('No order items to set as materials');
       }
@@ -691,23 +687,19 @@ const NewPurchaseIndent = () => {
                 formulaRmPercentage: formulaFields.formulaRmPercentage,
                 formulaMatched: formulaFields.formulaMatched,
                 stockMatched: stockFields.stockMatched,
+                customerPart: m.customer_part || m.material_description || '',
+                poNumber: m.po_number || '',
+                poReference: m.po_reference || '',
+                rmCost: m.rm_cost || formulaFields.formulaRmCost || '',
+                rmRate: m.rm_rate || formulaFields.formulaRmRate || '',
+                piecesPerKg: m.pieces_per_kg || formulaFields.formulaPiecesPerKg || '',
+                rmPercentage: m.rm_percentage || (formulaFields.formulaRmPercentage ? formatPercentage(formulaFields.formulaRmPercentage) : '') || '',
               };
             });
             console.log('✅ FETCH INDENT: Setting', mappedMaterials.length, 'materials');
             console.log('Material descriptions:', mappedMaterials.map(m => m.description));
             console.log('Full materials data:', mappedMaterials);
             setMaterials(mappedMaterials);
-
-            const firstFormulaRow = mappedMaterials.find((material) => material.formulaMatched);
-            if (firstFormulaRow) {
-              setFormData((prev) => ({
-                ...prev,
-                rmCost: prev.rmCost || firstFormulaRow.formulaRmCost || '',
-                rmRate: prev.rmRate || firstFormulaRow.formulaRmRate || '',
-                piecesPerKg: prev.piecesPerKg || firstFormulaRow.formulaPiecesPerKg || '',
-                rmPercentage: prev.rmPercentage || formatPercentage(firstFormulaRow.formulaRmPercentage) || '',
-              }));
-            }
             setIndentDataLoaded(true);
           } else {
             console.log('⚠️ No materials found in indent or materials array is empty');
@@ -757,6 +749,13 @@ const NewPurchaseIndent = () => {
       formulaPiecesPerKg: '',
       formulaRmPercentage: '',
       formulaMatched: false,
+      customerPart: '',
+      poNumber: '',
+      poReference: '',
+      rmCost: '',
+      rmRate: '',
+      piecesPerKg: '',
+      rmPercentage: '',
       isEditing: true,
       isNew: true
     };
@@ -812,10 +811,10 @@ const NewPurchaseIndent = () => {
 
       const updatedMaterial = { ...material, [field]: value };
 
-      if (field === 'description' || field === 'rawMaterial') {
+      if (field === 'description' || field === 'rawMaterial' || field === 'customerPart') {
         const formulaFields = buildFormulaFields(
           formulaRows,
-          field === 'description' ? value : updatedMaterial.description,
+          field === 'customerPart' ? value : (updatedMaterial.customerPart || updatedMaterial.description),
           field === 'rawMaterial' ? value : updatedMaterial.rawMaterial
         );
         const materialRecord = resolveMaterialRecord(
@@ -831,7 +830,23 @@ const NewPurchaseIndent = () => {
           onHand: stockFields.currentStock,
           order: stockFields.orderQuantity,
           stockMatched: stockFields.stockMatched,
+          rmCost: formulaFields.formulaRmCost || updatedMaterial.rmCost,
+          rmRate: formulaFields.formulaRmRate || updatedMaterial.rmRate,
+          piecesPerKg: formulaFields.formulaPiecesPerKg || updatedMaterial.piecesPerKg,
+          rmPercentage: formulaFields.formulaRmPercentage ? formatPercentage(formulaFields.formulaRmPercentage) : updatedMaterial.rmPercentage,
         };
+      }
+
+      if (field === 'rmRate' || field === 'piecesPerKg' || field === 'rmPercentage') {
+        const rate = parseFloat(field === 'rmRate' ? value : updatedMaterial.rmRate);
+        const pieces = parseFloat(field === 'piecesPerKg' ? value : updatedMaterial.piecesPerKg);
+        const rmPercent = parseFloat(field === 'rmPercentage' ? value : updatedMaterial.rmPercentage);
+        
+        if (!isNaN(rate) && !isNaN(pieces) && pieces > 0) {
+          const percentVal = !isNaN(rmPercent) ? rmPercent : 100;
+          updatedMaterial.rmCost = ((rate / pieces) * (percentVal / 100)).toFixed(2);
+        }
+        return updatedMaterial;
       }
 
       if (field === 'onHand' || field === 'order') {
@@ -970,7 +985,14 @@ const NewPurchaseIndent = () => {
           requiredStock: m.order || m.requiredQuantity,
           preferredSupplier: m.preferredSupplier || '',
           estimatedCost: null,
-          specifications: null
+          specifications: null,
+          customerPart: m.customerPart || null,
+          poNumber: m.poNumber || null,
+          poReference: m.poReference || null,
+          rmCost: m.rmCost || null,
+          rmRate: m.rmRate || null,
+          piecesPerKg: m.piecesPerKg || null,
+          rmPercentage: m.rmPercentage || null
         }))
       };
 
@@ -1024,7 +1046,14 @@ const NewPurchaseIndent = () => {
               unit: m.uom || 'kg',
               currentStock: m.onHand || '0',
               requiredStock: m.order || m.requiredQuantity,
-              preferredSupplier: m.preferredSupplier || ''
+              preferredSupplier: m.preferredSupplier || '',
+              customerPart: m.customerPart || null,
+              poNumber: m.poNumber || null,
+              poReference: m.poReference || null,
+              rmCost: m.rmCost || null,
+              rmRate: m.rmRate || null,
+              piecesPerKg: m.piecesPerKg || null,
+              rmPercentage: m.rmPercentage || null
             })),
             comments: user?.roleName === 'StoreOfficer' 
               ? 'PO details filled by Store Officer' 
@@ -1050,7 +1079,14 @@ const NewPurchaseIndent = () => {
               unit: m.uom || 'kg',
               currentStock: m.onHand || '0',
               requiredStock: m.order || m.requiredQuantity,
-              preferredSupplier: m.preferredSupplier || ''
+              preferredSupplier: m.preferredSupplier || '',
+              customerPart: m.customerPart || null,
+              poNumber: m.poNumber || null,
+              poReference: m.poReference || null,
+              rmCost: m.rmCost || null,
+              rmRate: m.rmRate || null,
+              piecesPerKg: m.piecesPerKg || null,
+              rmPercentage: m.rmPercentage || null
             }))
           });
         }
@@ -1093,7 +1129,14 @@ const NewPurchaseIndent = () => {
                     unit: m.uom || 'kg',
                     currentStock: m.onHand || '0',
                     requiredStock: m.order || m.requiredQuantity,
-                    preferredSupplier: m.preferredSupplier || ''
+                    preferredSupplier: m.preferredSupplier || '',
+                    customerPart: m.customerPart || null,
+                    poNumber: m.poNumber || null,
+                    poReference: m.poReference || null,
+                    rmCost: m.rmCost || null,
+                    rmRate: m.rmRate || null,
+                    piecesPerKg: m.piecesPerKg || null,
+                    rmPercentage: m.rmPercentage || null
                   })),
                   comments: 'Resubmitted application'
                 });
@@ -1110,11 +1153,19 @@ const NewPurchaseIndent = () => {
                   rmPercentage: formData.rmPercentage || null,
                   materials: materials.map(m => ({
                     description: m.description,
+                    rawMaterial: m.rawMaterial || null,
                     quantity: m.requiredQuantity,
                     unit: m.uom || 'kg',
                     currentStock: m.onHand || '0',
                     requiredStock: m.order || m.requiredQuantity,
-                    preferredSupplier: m.preferredSupplier || ''
+                    preferredSupplier: m.preferredSupplier || '',
+                    customerPart: m.customerPart || null,
+                    poNumber: m.poNumber || null,
+                    poReference: m.poReference || null,
+                    rmCost: m.rmCost || null,
+                    rmRate: m.rmRate || null,
+                    piecesPerKg: m.piecesPerKg || null,
+                    rmPercentage: m.rmPercentage || null
                   }))
                 });
               }
@@ -1376,6 +1427,8 @@ const NewPurchaseIndent = () => {
                 </label>
               </div>
             </div>
+            
+
           </div>
           <div className="pi-material-actions">
             <button 
@@ -1454,6 +1507,8 @@ const NewPurchaseIndent = () => {
               )}
             </div>
           </div>
+
+
         </div>
         <div className="pi-material-actions">
           <button 
@@ -1872,122 +1927,105 @@ const NewPurchaseIndent = () => {
               </p>
             )}
 
-            <div className="pi-form-grid-2">
-              {/* Customer Part */}
-              <div className="pi-form-field">
-                <label className="pi-label">Customer part</label>
-                <div className="pi-input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="Search and select part"
-                    value={formData.customerPart}
-                    onChange={(e) => setFormData({...formData, customerPart: e.target.value})}
-                    className="pi-input pi-input-with-icon"
-                  />
-                  <Search size={16} className="pi-input-icon" />
+            {/* Dynamic fields for each material */}
+            {materials.length > 0 && materials.map((material, index) => (
+              <div key={material.id} style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ background: '#3b82f6', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>{index + 1}</span>
+                  {material.description || 'New Material'} {material.rawMaterial ? <span style={{ color: '#64748b', fontSize: '13px', fontWeight: 'normal' }}>({material.rawMaterial})</span> : ''}
+                </h4>
+
+                <div className="pi-form-grid-2" style={{ marginBottom: '16px' }}>
+                  <div className="pi-form-field">
+                    <label className="pi-label">Customer part</label>
+                    <input
+                      type="text"
+                      value={material.customerPart || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'customerPart', e.target.value)}
+                      className="pi-input"
+                      placeholder="Enter customer part"
+                      readOnly={isViewMode}
+                    />
+                  </div>
+                  
+                  <div className="pi-form-field">
+                    <label className="pi-label">Purchase Number {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}</label>
+                    <input
+                      type="text"
+                      value={material.poNumber || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'poNumber', e.target.value)}
+                      className="pi-input"
+                      placeholder="Enter PO number"
+                      readOnly={isViewMode || user?.roleName !== 'StoreOfficer'}
+                    />
+                  </div>
+                </div>
+
+                <div className="pi-form-grid-2" style={{ marginBottom: '16px' }}>
+                  <div className="pi-form-field">
+                    <label className="pi-label">PO Reference {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}</label>
+                    <input
+                      type="text"
+                      value={material.poReference || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'poReference', e.target.value)}
+                      className="pi-input"
+                      placeholder="Enter PO reference"
+                      readOnly={isViewMode || user?.roleName !== 'StoreOfficer'}
+                    />
+                  </div>
+
+                  <div className="pi-form-field">
+                    <label className="pi-label">RM Cost</label>
+                    <input
+                      type="number"
+                      value={material.rmCost || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'rmCost', e.target.value)}
+                      className="pi-input"
+                      placeholder="Enter RM cost"
+                      readOnly={isViewMode}
+                    />
+                  </div>
+                </div>
+
+                <div className="pi-form-grid">
+                  <div className="pi-form-field">
+                    <label className="pi-label">RM rate / kg</label>
+                    <input
+                      type="number"
+                      value={material.rmRate || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'rmRate', e.target.value)}
+                      className="pi-input"
+                      placeholder="Rate"
+                      readOnly={isViewMode}
+                    />
+                  </div>
+
+                  <div className="pi-form-field">
+                    <label className="pi-label">No. of pieces / kg</label>
+                    <input
+                      type="number"
+                      value={material.piecesPerKg || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'piecesPerKg', e.target.value)}
+                      className="pi-input"
+                      placeholder="Pieces"
+                      readOnly={isViewMode}
+                    />
+                  </div>
+
+                  <div className="pi-form-field">
+                    <label className="pi-label">RM%</label>
+                    <input
+                      type="text"
+                      value={material.rmPercentage || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'rmPercentage', e.target.value)}
+                      className="pi-input"
+                      placeholder="RM%"
+                      readOnly={isViewMode}
+                    />
+                  </div>
                 </div>
               </div>
-
-              {/* Order Quantity */}
-              <div className="pi-form-field">
-                <label className="pi-label">Order quantity</label>
-                <input
-                  type="number"
-                  placeholder="Enter quantity"
-                  value={formData.orderQuantity}
-                  onChange={(e) => setFormData({...formData, orderQuantity: e.target.value})}
-                  className="pi-input"
-                  readOnly={fromCustomerOrder && !passedIndentId && !createdIndentId}
-                />
-              </div>
-            </div>
-
-            <div className="pi-form-grid-2">
-              {/* Purchase Number */}
-              <div className="pi-form-field">
-                <label className="pi-label">
-                  Purchase number
-                  {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter purchase number (optional)"
-                  value={formData.poNumber}
-                  onChange={(e) => setFormData({...formData, poNumber: e.target.value})}
-                  className="pi-input"
-                  readOnly={user?.roleName !== 'StoreOfficer'}
-                />
-              </div>
-
-              {/* PO Reference */}
-              <div className="pi-form-field">
-                <label className="pi-label">
-                  PO Reference
-                  {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter PO reference"
-                  value={formData.poReference}
-                  onChange={(e) => setFormData({...formData, poReference: e.target.value})}
-                  className="pi-input"
-                  readOnly={user?.roleName !== 'StoreOfficer'}
-                />
-              </div>
-            </div>
-
-            <div className="pi-form-grid-2">
-              {/* RM Cost */}
-              <div className="pi-form-field">
-                <label className="pi-label">RM cost</label>
-                <input
-                  type="number"
-                  placeholder="Enter raw material cost"
-                  value={formData.rmCost || ''}
-                  onChange={(e) => setFormData({...formData, rmCost: e.target.value})}
-                  className="pi-input"
-                />
-              </div>
-            </div>
-
-            <div className="pi-form-grid">
-              {/* RM Rate */}
-              <div className="pi-form-field">
-                <label className="pi-label">RM rate / kg</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  placeholder="Enter rate"
-                  value={formData.rmRate}
-                  onChange={(e) => setFormData({...formData, rmRate: e.target.value})}
-                  className="pi-input"
-                />
-              </div>
-
-              {/* No. of Pieces / kg */}
-              <div className="pi-form-field">
-                <label className="pi-label">No. of pieces / kg</label>
-                <input
-                  type="number"
-                  placeholder="Enter pieces per kg"
-                  value={formData.piecesPerKg}
-                  onChange={(e) => setFormData({...formData, piecesPerKg: e.target.value})}
-                  className="pi-input"
-                />
-              </div>
-
-              {/* RM% */}
-              <div className="pi-form-field">
-                <label className="pi-label">RM%</label>
-                <input
-                  type="number"
-                  placeholder="Enter RM percentage"
-                  value={formData.rmPercentage}
-                  onChange={(e) => setFormData({...formData, rmPercentage: e.target.value})}
-                  className="pi-input"
-                />
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Footer */}
