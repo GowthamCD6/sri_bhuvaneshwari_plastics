@@ -29,7 +29,7 @@ router.post('/purchase-dept', requireRole('PurchaseDepartment'), createPurchaseD
 router.get('/', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), getAllIndents);
 router.get('/admin/approvals', requireRole('Admin'), getAdminApprovals);
 router.get('/:id', requireRole('QMS', 'StoreOfficer', 'Admin', 'PurchaseDepartment', 'Accountant'), getIndentById);
-router.post('/', requireRole('QMS'), createIndent);
+router.post('/', requireRole('QMS', 'PurchaseDepartment'), createIndent);
 router.patch('/:id/status', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), updateIndentStatus);
 router.post('/:id/send-next', requireRole('QMS', 'StoreOfficer', 'Admin', 'Accountant'), sendToNextStage);
 router.post('/:id/upload-po', requireRole('QMS', 'StoreOfficer'), upload.single('poFile'), uploadPOFile);
