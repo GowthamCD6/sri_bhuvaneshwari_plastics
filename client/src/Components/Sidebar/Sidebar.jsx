@@ -73,7 +73,7 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       { label: "Approvals", section: true },
       {
         path: "/verify-purchase-dept-indents",
-        label: "Verify Purchase Indents",
+        label: "Verify Purchase Dept Indents",
         icon: ClipboardList,
       },
       {

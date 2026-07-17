@@ -178,7 +178,7 @@ const VerifyStoreIndents = () => {
     navigate('/purchase-indents', {
       state: {
         verifyMode: true,
-        indentData: indentToVerify
+        indentId: indentToVerify.id
       }
     });
   };

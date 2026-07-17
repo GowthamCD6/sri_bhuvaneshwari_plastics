@@ -30,7 +30,6 @@ import StoreRequestApproval from '../Pages/Admin/StoreRequestApproval/StoreReque
 import StoreRequests from '../Pages/PurchaseDepartment/StoreRequests/StoreRequests';
 import SupplierManagement from '../Pages/PurchaseDepartment/SupplierManagement/SupplierManagement';
 import PurchaseIndents from '../Pages/PurchaseDepartment/PurchaseIndents/PurchaseIndents';
-import CreateIndent from '../Pages/PurchaseDepartment/CreateIndent/CreateIndent';
 import PurchaseDashboard from '../Pages/PurchaseDepartment/Dashboard/PurchaseDashboard';
 
 const normalizeRole = (role) => {
@@ -116,7 +115,7 @@ const AppNavigator = () => {
       <Route path="/store-requests" element={<StoreRequests />} />
       <Route path="/suppliers" element={<SupplierManagement />} />
       <Route path="/qms-indents" element={<PurchaseIndents />} />
-      <Route path="/create-purchase-indent" element={<CreateIndent />} />
+      <Route path="/create-purchase-indent" element={<QMSPurchaseIndents />} />
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['accountant'])} />

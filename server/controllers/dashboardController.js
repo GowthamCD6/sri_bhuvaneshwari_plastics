@@ -97,6 +97,9 @@ const getQMSDashboard = async (req, res) => {
     // Get pending admin approval count
     const [[pendingAdmin]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE status = 'Pending Admin Approval'");
     
+    // Get pending purchase dept verification count
+    const [[pendingPurchaseDept]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE customer_order_id IS NULL AND workflow_stage = 'QMS Init'");
+    
     // Get urgent/high priority orders count
     const [[urgentOrders]] = await db.query("SELECT COUNT(*) as count FROM purchase_indents WHERE priority IN ('urgent', 'high', 'Urgent', 'High')");
     
@@ -112,6 +115,7 @@ const getQMSDashboard = async (req, res) => {
         orders: orders.count || 0,
         pendingStore: pendingStore.count || 0,
         pendingAdmin: pendingAdmin.count || 0,
+        pendingPurchaseDept: pendingPurchaseDept.count || 0,
         urgentOrders: urgentOrders.count || 0,
         completedOrders: completedOrders.count || 0,
         todayOrders: todayOrders.count || 0

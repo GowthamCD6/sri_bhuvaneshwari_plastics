@@ -363,7 +363,7 @@ const PurchaseIndents = () => {
             <div className="qi-modal-footer">
               <button 
                 className="qi-btn-secondary"
-                onClick={() => navigate('/create-purchase-indent', { state: { indentData: selectedIndent, readOnly: true } })}
+                onClick={() => navigate('/create-purchase-indent', { state: { indentId: selectedIndent.id, isViewMode: true } })}
               >
                 View Full Indent
               </button>
