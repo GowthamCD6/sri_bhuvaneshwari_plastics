@@ -218,6 +218,19 @@ const QMSDashboard = () => {
           </div>
         </div>
 
+        <div className="qms-kpi-card" onClick={() => navigate('/verify-purchase-dept-indents')} style={{ cursor: 'pointer' }}>
+          <div className="qms-kpi-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+            <Ico.FileText />
+          </div>
+          <div className="qms-kpi-body">
+            <p className="qms-kpi-label">Verify Purchase Dept</p>
+            <p className="qms-kpi-value" style={{ color: '#0284c7' }}>
+              {fmt(dashboardData.pendingPurchaseDept)}
+            </p>
+            <p className="qms-kpi-note">Purchase Dept requests</p>
+          </div>
+        </div>
+
         <div className="qms-kpi-card">
           <div className="qms-kpi-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
             <Ico.AlertTri />

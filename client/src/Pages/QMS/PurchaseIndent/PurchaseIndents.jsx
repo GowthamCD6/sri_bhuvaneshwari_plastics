@@ -490,6 +490,20 @@ const NewPurchaseIndent = () => {
           );
           const stockFields = resolveStockFields(materialRecord);
 
+          // Calculate initial order quantity based on required quantity and pieces per kg
+          const reqQty = parseFloat(item.quantity);
+          const pieces = parseFloat(formulaFields.formulaPiecesPerKg);
+          const rmPercent = parseFloat(formulaFields.formulaRmPercentage);
+          
+          let calculatedOrder = stockFields.orderQuantity || '';
+          if (!isNaN(reqQty) && !isNaN(pieces) && pieces > 0) {
+            const percentVal = !isNaN(rmPercent) ? rmPercent : 100;
+            calculatedOrder = ((reqQty / pieces) * (percentVal / 100)).toFixed(2);
+          } else if (!isNaN(reqQty) && (isNaN(pieces) || pieces <= 0)) {
+            // Default to required quantity if no formula exists
+            calculatedOrder = String(reqQty);
+          }
+
           return {
             id: Date.now() + idx,
             description: item.component_name || item.component || '',
@@ -498,7 +512,7 @@ const NewPurchaseIndent = () => {
             requiredQuantity: item.quantity || '',
             requiredDate: item.required_by_date || item.required_date || '',
             onHand: stockFields.currentStock,
-            order: stockFields.orderQuantity,
+            order: calculatedOrder,
             status: 'pending',
             uom: item.unit || item.uom || 'kg',
             isEditing: false,
@@ -837,7 +851,8 @@ const NewPurchaseIndent = () => {
         };
       }
 
-      if (field === 'rmRate' || field === 'piecesPerKg' || field === 'rmPercentage') {
+      if (field === 'requiredQuantity' || field === 'rmRate' || field === 'piecesPerKg' || field === 'rmPercentage') {
+        const reqQty = parseFloat(field === 'requiredQuantity' ? value : updatedMaterial.requiredQuantity);
         const rate = parseFloat(field === 'rmRate' ? value : updatedMaterial.rmRate);
         const pieces = parseFloat(field === 'piecesPerKg' ? value : updatedMaterial.piecesPerKg);
         const rmPercent = parseFloat(field === 'rmPercentage' ? value : updatedMaterial.rmPercentage);
@@ -846,6 +861,18 @@ const NewPurchaseIndent = () => {
           const percentVal = !isNaN(rmPercent) ? rmPercent : 100;
           updatedMaterial.rmCost = ((rate / pieces) * (percentVal / 100)).toFixed(2);
         }
+
+        // Auto-calculate order quantity if we have piecesPerKg
+        if (!isNaN(reqQty) && !isNaN(pieces) && pieces > 0) {
+          const percentVal = !isNaN(rmPercent) ? rmPercent : 100;
+          updatedMaterial.order = ((reqQty / pieces) * (percentVal / 100)).toFixed(2);
+        } else if (field === 'requiredQuantity' && (isNaN(pieces) || pieces <= 0)) {
+           // Fallback: if no pieces per kg, order qty is just required qty
+           if (!isNaN(reqQty)) {
+             updatedMaterial.order = String(reqQty);
+           }
+        }
+        
         return updatedMaterial;
       }
 
@@ -1350,6 +1377,33 @@ const NewPurchaseIndent = () => {
   // Render material card with edit capability
   const renderMaterialCard = (material, index) => {
     console.log(`🎨 Rendering material card ${index + 1}:`, material.description, '| isEditing:', material.isEditing);
+
+    const { compStock, rmStock } = (() => {
+      const normalizedComponent = normalizeText(material.description);
+      const normalizedRawMaterial = normalizeText(material.rawMaterial);
+      
+      let comp = '0';
+      let rm = '0';
+      
+      if (normalizedComponent) {
+        const compRecord = materialCatalog.find(m => {
+          const mName = normalizeText(m.material_name || m.materialName || m.description);
+          const mCode = normalizeText(m.material_code || m.materialCode);
+          return mName === normalizedComponent || mCode === normalizedComponent;
+        });
+        if (compRecord) comp = String(compRecord.current_stock ?? compRecord.stock_quantity ?? compRecord.available_stock ?? 0);
+      }
+      
+      if (normalizedRawMaterial) {
+        const rmRecord = materialCatalog.find(m => {
+          const mName = normalizeText(m.material_name || m.materialName || m.description);
+          const mCode = normalizeText(m.material_code || m.materialCode);
+          return mName === normalizedRawMaterial || mCode === normalizedRawMaterial;
+        });
+        if (rmRecord) rm = String(rmRecord.current_stock ?? rmRecord.stock_quantity ?? rmRecord.available_stock ?? 0);
+      }
+      return { compStock: comp, rmStock: rm };
+    })();
     if (material.isEditing) {
       console.log('  ↳ Rendering EDITING mode');
       return (
@@ -1401,30 +1455,17 @@ const NewPurchaseIndent = () => {
                 readOnly={isViewMode}
               />
             </div>
-            <div className="pi-material-column">
-              <div className="pi-material-label">Stock & order</div>
-              <div className="pi-material-stock-edit">
-                <label className="pi-stock-field">
-                  <span className="pi-stock-field-label">On hand</span>
-                  <input
-                    type="text"
-                    value={material.onHand}
-                    onChange={(e) => handleMaterialChange(material.id, 'onHand', e.target.value)}
-                    className="pi-input-small"
-                    placeholder="0"
-                  />
-                </label>
-                <span className="pi-material-bullet">•</span>
-                <label className="pi-stock-field">
-                  <span className="pi-stock-field-label">Order qty</span>
-                  <input
-                    type="text"
-                    value={material.order}
-                    onChange={(e) => handleMaterialChange(material.id, 'order', e.target.value)}
-                    className="pi-input-small"
-                    placeholder="0"
-                  />
-                </label>
+            <div className="pi-material-column" style={{ minWidth: '180px' }}>
+              <div className="pi-material-label">Available Stock</div>
+              <div style={{ fontSize: '12px', color: '#64748b', background: '#f8fafc', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span>Component:</span>
+                  <span style={{ fontWeight: 500, color: '#334155' }}>{compStock} {material.uom}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Raw Material:</span>
+                  <span style={{ fontWeight: 500, color: '#334155' }}>{rmStock} {material.uom}</span>
+                </div>
               </div>
             </div>
             
@@ -1484,27 +1525,19 @@ const NewPurchaseIndent = () => {
               )}
             </div>
           </div>
-          <div className="pi-material-column">
-            <div className="pi-material-label">Stock & order</div>
+          <div className="pi-material-column" style={{ minWidth: '180px' }}>
+            <div className="pi-material-label">Available Stock</div>
             <div className="pi-material-value-normal">
-              {showStock ? (
-                <div className="pi-stock-info">
-                  <div className="pi-stock-item">
-                    <span className="pi-stock-label">On hand:</span>
-                    <span className="pi-stock-value">{material.onHand} {material.uom}</span>
-                  </div>
-                  <div className="pi-stock-separator">·</div>
-                  <div className="pi-stock-item">
-                    <span className="pi-stock-label">Order qty:</span>
-                    <span className="pi-stock-value">{material.order} {material.uom}</span>
-                  </div>
+              <div style={{ fontSize: '12px', color: '#64748b', background: '#f8fafc', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                  <span>Component:</span>
+                  <span style={{ fontWeight: 500, color: '#334155' }}>{compStock} {material.uom}</span>
                 </div>
-              ) : (
-                <div className="pi-stock-item">
-                  <span className="pi-stock-label">Order qty:</span>
-                  <span className="pi-stock-value">{material.order} {material.uom}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Raw Material:</span>
+                  <span style={{ fontWeight: 500, color: '#334155' }}>{rmStock} {material.uom}</span>
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -1806,13 +1839,7 @@ const NewPurchaseIndent = () => {
                 />
               </div>
               <div className="pi-materials-toggles">
-                <button 
-                  onClick={() => setShowStock(!showStock)}
-                  className={`pi-btn ${showStock ? 'pi-btn-primary' : 'pi-btn-filter'}`}
-                >
-                  <Filter size={14} />
-                  {showStock ? 'Hide Stock' : 'Show Stock'}
-                </button>
+
                 <button 
                   onClick={() => setGroupBySupplier(!groupBySupplier)}
                   className={`pi-btn ${groupBySupplier ? 'pi-btn-primary' : 'pi-btn-filter'}`}
