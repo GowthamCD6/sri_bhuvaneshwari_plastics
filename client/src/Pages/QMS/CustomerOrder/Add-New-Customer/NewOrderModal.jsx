@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './NewOrderModal.css';
+import { inventoryService } from '../../../../services/apiService';
 import formulaCalculatorService from '../../../../services/formulaCalculatorService';
 
 // Inline SVGs for pixel-perfect icons without external libraries
@@ -77,6 +78,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
 
   const [formulaRows, setFormulaRows] = useState([]);
   const [formulaRowsLoading, setFormulaRowsLoading] = useState(true);
+  const [inventory, setInventory] = useState([]);
 
   // Error state
   const [errors, setErrors] = useState({});
@@ -88,16 +90,21 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
   useEffect(() => {
     let isActive = true;
 
-    const loadFormulaRows = async () => {
+    const loadData = async () => {
       try {
-        const data = await formulaCalculatorService.getDefaultCalculator();
+        const [data, invResponse] = await Promise.all([
+          formulaCalculatorService.getDefaultCalculator(),
+          inventoryService.getAllInventory({ active: 'true' })
+        ]);
         if (!isActive) return;
 
         setFormulaRows(Array.isArray(data?.rows) ? data.rows : []);
+        setInventory(invResponse.data || []);
       } catch (error) {
-        console.error('Failed to load formula rows:', error);
+        console.error('Failed to load data:', error);
         if (isActive) {
           setFormulaRows([]);
+          setInventory([]);
         }
       } finally {
         if (isActive) {
@@ -106,7 +113,7 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
       }
     };
 
-    loadFormulaRows();
+    loadData();
 
     return () => {
       isActive = false;
@@ -425,6 +432,10 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                     const isKnownComponent = componentRows.length > 0;
                     const isUnknownComponent = hasComponent && !formulaRowsLoading && !isKnownComponent;
 
+                    const componentInv = inventory.find(i => normalizeText(i.material_name) === normalizeText(item.component));
+                    const rawMaterialInv = item.rawMaterial ? inventory.find(i => normalizeText(i.material_name) === normalizeText(item.rawMaterial)) : null;
+                    const isComponentInInventory = !!componentInv;
+
                     return (
                       <div key={item.id} className="item-card">
                         <div className="item-header">
@@ -456,11 +467,22 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                                 handleItemChange(item.id, 'component', e.target.value);
                                 handleItemChange(item.id, 'rawMaterial', '');
                               }}
+                              onBlur={(e) => {
+                                const val = e.target.value.trim();
+                                if (val && !inventory.find(i => normalizeText(i.material_name) === normalizeText(val))) {
+                                  window.alert(`This component is new and not present in Goods Inventory.`);
+                                }
+                              }}
                             />
                           </div>
                           {itemErrors[`${item.id}_component`] && <span className="error-message">{itemErrors[`${item.id}_component`]}</span>}
                           {!itemErrors[`${item.id}_component`] && isUnknownComponent && (
-                            <span className="error-message">Item not in database</span>
+                            <span className="error-message">Item not in formula database</span>
+                          )}
+                          {isComponentInInventory && (
+                            <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0, color: '#16a34a' }}>
+                              In Stock: {componentInv.available_stock} {componentInv.unit_of_measurement}
+                            </span>
                           )}
                         </div>
 
@@ -505,6 +527,11 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
                           {!formulaRowsLoading && hasComponent && !isKnownComponent && (
                             <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0 }}>
                               No raw materials for that component.
+                            </span>
+                          )}
+                          {rawMaterialInv && (
+                            <span className="section-subtitle" style={{ marginTop: '6px', marginBottom: 0, color: '#16a34a' }}>
+                              RM In Stock: {rawMaterialInv.available_stock} {rawMaterialInv.unit_of_measurement}
                             </span>
                           )}
                         </div>

@@ -123,7 +123,8 @@ const MaterialManager = () => {
           status: statusMeta.status,
           statusClass: statusMeta.statusClass,
           stockClass: statusMeta.stockClass,
-          type: item.category || item.material_type || 'Material',
+          type: item.category || 'Material',
+          actualMaterialType: item.material_type || '',
           minStock: item.min_stock_level || 0,
           maxStock: item.max_stock_level || 0,
           reorderLevel: reorder || 0,
@@ -166,10 +167,23 @@ const MaterialManager = () => {
 
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
-    if (!categorySearch.trim()) return categories;
-    return categories.filter(cat => 
-      cat.name.toLowerCase().includes(categorySearch.toLowerCase())
-    );
+    let list = categories;
+    if (categorySearch.trim()) {
+      list = categories.filter(cat => 
+        cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+      );
+    }
+    
+    // Sort to pin "Raw Materials" and "Components" to the top
+    const pinned = ['Raw Materials', 'Components'];
+    return [...list].sort((a, b) => {
+      const aIsPinned = pinned.includes(a.name);
+      const bIsPinned = pinned.includes(b.name);
+      if (aIsPinned && !bIsPinned) return -1;
+      if (!aIsPinned && bIsPinned) return 1;
+      if (aIsPinned && bIsPinned) return pinned.indexOf(a.name) - pinned.indexOf(b.name);
+      return a.name.localeCompare(b.name);
+    });
   }, [categorySearch, categories]);
 
 
@@ -287,7 +301,7 @@ const MaterialManager = () => {
       unit: 'kg',
       minStock: '',
       maxStock: '',
-      type: activeCategory,
+      type: '',
       warehouseLocation: '',
       remarks: '',
       specifications: {}
@@ -311,7 +325,7 @@ const MaterialManager = () => {
       await materialService.createMaterial({
         materialCode: materialForm.id,
         materialName: materialForm.name,
-        materialType: activeCategory,
+        materialType: materialForm.type || 'Unspecified',
         category: activeCategory,
         unitOfMeasurement: materialForm.unit,
         minStockLevel: materialForm.minStock || 0,
@@ -376,7 +390,7 @@ const MaterialManager = () => {
         unit: selectedMaterial.unit,
         minStock: selectedMaterial.minStock || '',
         maxStock: selectedMaterial.maxStock || '',
-        type: selectedMaterial.type,
+        type: selectedMaterial.actualMaterialType || '',
         warehouseLocation: (selectedMaterial.warehouseLocation === '-' ? '' : selectedMaterial.warehouseLocation) || '',
         remarks: selectedMaterial.remarks || '',
         specifications: selectedMaterial.specifications || {}
@@ -404,8 +418,8 @@ const MaterialManager = () => {
 
       await materialService.updateMaterial(materialForm.materialId, {
         materialName: materialForm.name,
-        materialType: materialForm.type || activeCategory,
-        category: materialForm.type || activeCategory,
+        materialType: materialForm.type || 'Unspecified',
+        category: activeCategory,
         unitOfMeasurement: materialForm.unit,
         minStockLevel: materialForm.minStock,
         maxStockLevel: materialForm.maxStock,
@@ -466,7 +480,7 @@ const MaterialManager = () => {
               <Plus size={16} />
               Add Category
             </button>
-            {activeCategory && (
+            {activeCategory && activeCategory !== 'Raw Materials' && activeCategory !== 'Components' && (
               <button className="mm-btn-icon" onClick={handleEditCategory} title={`Rename "${activeCategory}"`}>
                 <Edit size={15} />
               </button>
@@ -680,7 +694,7 @@ const MaterialManager = () => {
                   <input 
                     type="text" 
                     className="mm-input" 
-                    value={selectedMaterial.type} 
+                    value={selectedMaterial.actualMaterialType || 'Unspecified'} 
                     readOnly 
                   />
                 </div>
@@ -1039,18 +1053,12 @@ const MaterialManager = () => {
                 </div>
                 <div className="mm-form-group half">
                   <label className="mm-label">Material Type</label>
-                  <div className="mm-select-wrapper">
-                    <select
-                      className="mm-select"
-                      value={materialForm.type}
-                      onChange={(e) => handleMaterialFormChange('type', e.target.value)}
-                    >
-                      {categories.map(cat => (
-                        <option key={cat.name} value={cat.name}>{cat.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="mm-select-icon" />
-                  </div>
+                  <input 
+                    type="text" 
+                    className="mm-input" 
+                    value={materialForm.type}
+                    onChange={(e) => handleMaterialFormChange('type', e.target.value)}
+                  />
                 </div>
               </div>
 

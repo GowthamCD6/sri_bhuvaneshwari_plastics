@@ -133,6 +133,25 @@ const getCalculatedPayload = (data = {}) => {
   };
 };
 
+const syncMaterialToInventory = async (materialName, category, createdBy) => {
+  if (!materialName || !materialName.trim()) return;
+  const name = materialName.trim();
+  const [existing] = await pool.query('SELECT material_id FROM materials WHERE material_name = ? LIMIT 1', [name]);
+  if (existing.length === 0) {
+    const code = `${category === 'Raw Materials' ? 'RM' : 'COMP'}-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+    const [result] = await pool.query(
+      `INSERT INTO materials (material_code, material_name, material_type, category, unit_of_measurement, current_stock, is_active, created_by)
+       VALUES (?, ?, ?, ?, ?, 0, 1, ?)`,
+      [code, name, 'Unspecified', category, category === 'Raw Materials' ? 'kg' : 'pcs', createdBy || null]
+    );
+    const materialId = result.insertId;
+    await pool.query(
+      `INSERT INTO inventory (material_id, current_stock, available_stock, reserved_stock) VALUES (?, 0, 0, 0)`,
+      [materialId]
+    );
+  }
+};
+
 // Get all formula calculators
 const getAllCalculators = async (req, res) => {
   try {
@@ -278,6 +297,12 @@ const createCalculator = async (req, res) => {
           rate_per_kg: row.ratePerKg || row.rate_per_kg,
         });
 
+        const partName = row.partName || row.part_name;
+        const rawMaterial = row.rawMaterial || row.raw_material;
+        
+        await syncMaterialToInventory(partName, 'Components', created_by);
+        await syncMaterialToInventory(rawMaterial, 'Raw Materials', created_by);
+
         await pool.query(
           `INSERT INTO formula_calculator_rows 
           (calculator_id, part_name, raw_material, cavity, no_of_gravity, component_weight,
@@ -288,8 +313,8 @@ const createCalculator = async (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             calculatorId,
-            row.partName || row.part_name,
-            row.rawMaterial || row.raw_material,
+            partName,
+            rawMaterial,
             calculated.cavity,
             calculated.no_of_gravity,
             calculated.component_weight,
@@ -368,6 +393,12 @@ const updateCalculator = async (req, res) => {
           rate_per_kg: row.ratePerKg || row.rate_per_kg,
         });
 
+        const partName = row.partName || row.part_name;
+        const rawMaterial = row.rawMaterial || row.raw_material;
+        
+        await syncMaterialToInventory(partName, 'Components', req.user?.user_id || req.userId);
+        await syncMaterialToInventory(rawMaterial, 'Raw Materials', req.user?.user_id || req.userId);
+
         await pool.query(
           `INSERT INTO formula_calculator_rows 
           (calculator_id, part_name, raw_material, cavity, no_of_gravity, component_weight,
@@ -378,8 +409,8 @@ const updateCalculator = async (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
-            row.partName || row.part_name,
-            row.rawMaterial || row.raw_material,
+            partName,
+            rawMaterial,
             calculated.cavity,
             calculated.no_of_gravity,
             calculated.component_weight,
@@ -443,6 +474,9 @@ const createCalculatorRow = async (req, res) => {
     const { part_name, raw_material } = req.body;
     const calculated = getCalculatedPayload(req.body);
 
+    await syncMaterialToInventory(part_name, 'Components', req.user?.user_id || req.userId);
+    await syncMaterialToInventory(raw_material, 'Raw Materials', req.user?.user_id || req.userId);
+
     const [result] = await pool.query(
       `INSERT INTO formula_calculator_rows
       (calculator_id, part_name, raw_material, cavity, no_of_gravity, component_weight,
@@ -494,6 +528,9 @@ const updateCalculatorRow = async (req, res) => {
     const { rowId } = req.params;
     const { part_name, raw_material } = req.body;
     const calculated = getCalculatedPayload(req.body);
+
+    await syncMaterialToInventory(part_name, 'Components', req.user?.user_id || req.userId);
+    await syncMaterialToInventory(raw_material, 'Raw Materials', req.user?.user_id || req.userId);
 
     const [result] = await pool.query(
       `UPDATE formula_calculator_rows 

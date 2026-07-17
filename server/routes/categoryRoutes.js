@@ -26,6 +26,21 @@ router.get('/', async (req, res) => {
 
   try {
     const [results] = await db.query(query);
+    const requiredCategories = ['Raw Materials', 'Components'];
+    requiredCategories.forEach(reqCat => {
+      if (!results.find(r => r.category === reqCat)) {
+        results.push({ category: reqCat, count: 0 });
+      }
+    });
+    results.sort((a, b) => {
+      const aIsReq = requiredCategories.includes(a.category);
+      const bIsReq = requiredCategories.includes(b.category);
+      if (aIsReq && !bIsReq) return -1;
+      if (!aIsReq && bIsReq) return 1;
+      if (aIsReq && bIsReq) return requiredCategories.indexOf(a.category) - requiredCategories.indexOf(b.category);
+      return a.category.localeCompare(b.category);
+    });
+
     console.log('Categories fetched:', results.length, 'categories');
     console.log('Categories data:', results);
     res.status(200).json({
@@ -115,7 +130,7 @@ router.post('/', verifyToken, async (req, res) => {
     const values = [
       materialCode,
       `${categoryName} - Category Placeholder`,
-      categoryName,
+      'Unspecified',
       categoryName,
       'kg',
       0,
@@ -152,6 +167,10 @@ router.post('/', verifyToken, async (req, res) => {
 router.put('/:categoryName', verifyToken, async (req, res) => {
   const { categoryName } = req.params;
   const { name } = req.body;
+
+  if (categoryName === 'Raw Materials' || categoryName === 'Components') {
+    return res.status(400).json({ success: false, message: `${categoryName} is an immutable category and cannot be renamed.` });
+  }
 
   if (!name || !name.trim()) {
     return res.status(400).json({ success: false, message: 'New category name is required' });
@@ -192,6 +211,10 @@ router.put('/:categoryName', verifyToken, async (req, res) => {
  */
 router.delete('/:categoryName', verifyToken, requirePermission('materials', 'delete'), async (req, res) => {
   const { categoryName } = req.params;
+
+  if (categoryName === 'Raw Materials' || categoryName === 'Components') {
+    return res.status(400).json({ success: false, message: `${categoryName} is an immutable category and cannot be deleted.` });
+  }
 
   try {
     // Check if category has active materials
