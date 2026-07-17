@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, Download } from 'lucide-react';
 import './CustomerOrder.css';
 import { purchaseIndentService } from '../../../services/apiService';
 import { downloadSingleIndentPdf } from '../../../services/indentPdfService';
@@ -132,6 +133,9 @@ const CustomerOrderApprovals = () => {
           id: indent.indent_number,
           indentId: indent.indent_id,
           date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          requiredBy: indent.required_by_date ? new Date(indent.required_by_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          department: indent.department || 'QMS',
+          itemsCount: materials.length,
           material: materialName,
           details,
           requestedBy: indent.requested_by_name || 'QMS Officer',
@@ -202,25 +206,6 @@ const CustomerOrderApprovals = () => {
     });
   };
 
-  const handleApprove = async (indentId) => {
-    try {
-      await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by Admin' });
-      fetchIndents();
-    } catch (err) {
-      console.error('Approve failed:', err);
-      alert('Failed to approve indent');
-    }
-  };
-
-  const handleReject = async (indentId) => {
-    try {
-      await purchaseIndentService.updateIndentStatus(indentId, { status: 'Rejected', comments: 'Rejected by Admin' });
-      fetchIndents();
-    } catch (err) {
-      console.error('Reject failed:', err);
-      alert('Failed to reject indent');
-    }
-  };
 
   return (
     <div className="qms-container">
@@ -242,24 +227,27 @@ const CustomerOrderApprovals = () => {
         <div className="qms-card">
           {/* Tabs and Search */}
           <div className="qms-top-bar">
-            <div className="qms-tabs">
+            <div className="qms-tabs-container">
               <button 
-                className={`qms-tab ${activeTab === 'pending' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
                 onClick={() => setActiveTab('pending')}
               >
-                Pending Review ({tabCounts.pending})
+                <span>Pending Review</span>
+                <span className="qms-tab-count">{tabCounts.pending}</span>
               </button>
               <button 
-                className={`qms-tab ${activeTab === 'approved' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
-                Approved History
+                <span>Approved History</span>
+                <span className="qms-tab-count">{tabCounts.approved}</span>
               </button>
               <button 
-                className={`qms-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'rejected' ? 'active' : ''}`}
                 onClick={() => setActiveTab('rejected')}
               >
-                Rejected
+                <span>Rejected</span>
+                <span className="qms-tab-count">{tabCounts.rejected}</span>
               </button>
             </div>
             <div className="qms-top-actions">
@@ -300,29 +288,35 @@ const CustomerOrderApprovals = () => {
           {/* Table Header */}
           <div className="qms-table-header">
             <div>Indent ID</div>
-            <div>Date</div>
-            <div>Material Details</div>
             <div>Requested By</div>
+            <div>Department</div>
+            <div>Indent Date</div>
+            <div>Required By</div>
             <div>Urgency</div>
+            <div>Items</div>
             <div>Status</div>
-            <div>View</div>
+            <div>Action</div>
           </div>
 
           {/* Table Body */}
           <div className="qms-table-body">
             {filteredIndents.map((indent) => (
               <div key={indent.id} className="qms-table-row">
-                <div className="qms-indent-id">{indent.id}</div>
-                <div className="qms-date">{indent.date}</div>
-                <div>
-                  <div className="qms-material-name">{indent.material}</div>
-                  <div className="qms-material-details">{indent.details}</div>
+                <div className="qms-indent-cell">
+                  <div className="qms-indent-id-main">{indent.id}</div>
+                  <div className="qms-indent-type">Customer Order</div>
+                  <div className="qms-indent-id-sub">#{indent.indentId || indent.id}</div>
                 </div>
-                <div className="qms-requester">
-                  <div className="qms-avatar">
-                    <span className="qms-avatar-text">Q</span>
-                  </div>
-                  <span className="qms-requester-name">{indent.requestedBy}</span>
+                <div className="qms-requester-cell">
+                  <div className="qms-requester-name-main">{indent.requestedBy}</div>
+                  <div className="qms-requester-role">QMS Officer</div>
+                </div>
+                <div className="qms-department">{indent.department}</div>
+                <div className="qms-date">{indent.date}</div>
+                <div className="qms-date">{indent.requiredBy}</div>
+                <div className="qms-items-cell">
+                  <div className="qms-items-count">{indent.itemsCount}</div>
+                  <div className="qms-items-label">Materials</div>
                 </div>
                 <div>
                   <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
@@ -336,29 +330,23 @@ const CustomerOrderApprovals = () => {
                     <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
                   </div>
                 </div>
-                <div>
+                <div className="qms-actions-cell-row">
                   <button 
-                    className="qms-view-btn"
+                    className="qms-action-link qms-action-btn-new"
                     onClick={() => handleViewIndent(indent)}
                   >
+                    <Eye size={16} />
                     View
                   </button>
-                  <div className="qms-inline-actions">
-                    <button
-                      className="qms-row-export-btn"
-                      disabled={downloadingIndentId === indent.indentId}
-                      onClick={() => exportSingleIndent(indent)}
-                      title="Download this purchase indent as PDF"
-                    >
-                      {downloadingIndentId === indent.indentId ? 'Downloading...' : 'Download PDF'}
-                    </button>
-                  </div>
-                  {indent.status === 'Pending Admin Approval' && (
-                    <div className="qms-inline-actions">
-                      <button className="qms-view-btn" onClick={() => handleApprove(indent.indentId)}>Approve</button>
-                      <button className="qms-view-btn" onClick={() => handleReject(indent.indentId)}>Reject</button>
-                    </div>
-                  )}
+                  <button
+                    className="qms-action-link qms-action-btn-new"
+                    disabled={downloadingIndentId === indent.indentId}
+                    onClick={() => exportSingleIndent(indent)}
+                    title="Download this purchase indent as PDF"
+                  >
+                    <Download size={16} />
+                    {downloadingIndentId === indent.indentId ? '...' : 'PDF'}
+                  </button>
                 </div>
               </div>
             ))}
