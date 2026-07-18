@@ -577,6 +577,10 @@ const sendToNextStage = async (req, res) => {
 
     // Determine next stage based on current stage and user role
     switch (currentStage) {
+      case 'Purchase Dept':
+        newStatus = 'Pending QMS Verification';
+        newStage = 'QMS Verified';
+        break;
       case 'QMS Init':
         if (isPurchaseDeptIndent) {
           // Purchase Department workflow: QMS approval -> Admin approval
@@ -658,6 +662,13 @@ const sendToNextStage = async (req, res) => {
           success: false,
           message: 'Invalid workflow stage'
         });
+    }
+
+    if (!newStatus || !newStage) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to transition this indent at its current stage, or the stage transition is invalid.'
+      });
     }
 
     // Add status and stage to params at the beginning
