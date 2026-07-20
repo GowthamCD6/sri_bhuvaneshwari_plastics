@@ -194,7 +194,7 @@ const MaterialManager = () => {
     
     // Then filter by search query if present
     if (materialSearch.trim()) {
-      const query = materialSearch.toLowerCase();
+      const query = materialSearch.toLowerCase().trim();
       filtered = filtered.filter(mat =>
         mat.name.toLowerCase().includes(query) ||
         mat.id.toLowerCase().includes(query) ||
@@ -202,6 +202,13 @@ const MaterialManager = () => {
         mat.warehouseLocation.toLowerCase().includes(query)
       );
     }
+
+    // Sort by warehouse location ascending
+    filtered.sort((a, b) => {
+      const locA = (a.warehouseLocation || '').toLowerCase();
+      const locB = (b.warehouseLocation || '').toLowerCase();
+      return locA.localeCompare(locB);
+    });
     
     return filtered;
   }, [materialSearch, materials, activeCategory]);
@@ -371,7 +378,7 @@ const MaterialManager = () => {
   // Handle Update Stock
   const handleUpdateStock = () => {
     if (selectedMaterial) {
-      navigate('/store-officer/stock-adjustment', { 
+      navigate('/stock-adjustment', { 
         state: { material: selectedMaterial } 
       });
     }

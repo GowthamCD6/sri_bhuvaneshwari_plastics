@@ -16,6 +16,7 @@ function AppContent() {
     const token = loginData.token;
     login(userData, token);
     console.log('User logged in with role:', userData?.roleName);
+    navigate('/', { replace: true });
   };
 
   const handleLogout = () => {

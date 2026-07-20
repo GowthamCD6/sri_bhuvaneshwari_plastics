@@ -118,6 +118,17 @@ const createMaterial = async (req, res) => {
       return res.status(409).json({ success: false, message: 'Material with this code already exists' });
     }
 
+    if (warehouseLocation && warehouseLocation.trim() !== '') {
+      const newLoc = warehouseLocation.trim();
+      const [locCheck] = await db.query(
+        'SELECT material_id FROM inventory WHERE warehouse_location = ?',
+        [newLoc]
+      );
+      if (locCheck.length > 0) {
+        return res.status(400).json({ success: false, message: 'This warehouse location is already assigned to another material' });
+      }
+    }
+
     const normalizedSpecifications = normalizeSpecifications(specifications);
     const specsJson = normalizedSpecifications == null ? null : JSON.stringify(normalizedSpecifications);
     const initialStock = Number(openingStock) || 0;
@@ -214,13 +225,24 @@ const updateMaterial = async (req, res) => {
 
   allowedFields.forEach(field => {
     const camelField = field.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
-    if (req.body[camelField] !== undefined) {
+    let value = req.body[camelField];
+    
+    if (value !== undefined) {
+      if (['standard_cost', 'reorder_level', 'reorder_quantity', 'min_stock_level', 'max_stock_level', 'lead_time_days'].includes(field)) {
+        if (value === '' || value === null) {
+          value = null;
+        } else {
+          const num = Number(value);
+          value = isNaN(num) ? null : num;
+        }
+      }
+
       updates.push(`${field} = ?`);
       if (field === 'specifications') {
-          const normalizedSpecifications = normalizeSpecifications(req.body[camelField]);
+          const normalizedSpecifications = normalizeSpecifications(value);
           values.push(normalizedSpecifications == null ? null : JSON.stringify(normalizedSpecifications));
       } else {
-        values.push(req.body[camelField]);
+        values.push(value);
       }
     }
   });
@@ -232,17 +254,56 @@ const updateMaterial = async (req, res) => {
   try {
     if (updates.length > 0) {
       const materialValues = [...values, materialId];
-      const [result] = await db.query(
-        `UPDATE materials SET ${updates.join(', ')} WHERE material_id = ?`,
-        materialValues
-      );
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: 'Material not found' });
+      try {
+        const [result] = await db.query(
+          `UPDATE materials SET ${updates.join(', ')} WHERE material_id = ?`,
+          materialValues
+        );
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ success: false, message: 'Material not found' });
+        }
+      } catch (updErr) {
+        if ((updErr.code === 'ER_BAD_FIELD_ERROR' || updErr.errno === 1054) && updates.includes('preferred_supplier = ?')) {
+          console.warn('preferred_supplier column not found during update — retrying without it.');
+          const filteredUpdates = [];
+          const filteredValues = [];
+          for (let i = 0; i < updates.length; i++) {
+            if (updates[i] !== 'preferred_supplier = ?') {
+              filteredUpdates.push(updates[i]);
+              filteredValues.push(values[i]);
+            }
+          }
+          if (filteredUpdates.length > 0) {
+            const retryValues = [...filteredValues, materialId];
+            const [retryResult] = await db.query(
+              `UPDATE materials SET ${filteredUpdates.join(', ')} WHERE material_id = ?`,
+              retryValues
+            );
+            if (retryResult.affectedRows === 0) {
+              return res.status(404).json({ success: false, message: 'Material not found' });
+            }
+          }
+        } else {
+          throw updErr;
+        }
       }
     }
 
     // Update warehouse_location in inventory table if provided
     if (req.body.warehouseLocation !== undefined) {
+      const newLoc = req.body.warehouseLocation.trim();
+      
+      // Check if location is already in use by another material
+      if (newLoc !== '') {
+        const [locCheck] = await db.query(
+          'SELECT material_id FROM inventory WHERE warehouse_location = ? AND material_id != ?',
+          [newLoc, materialId]
+        );
+        if (locCheck.length > 0) {
+          return res.status(400).json({ success: false, message: 'This warehouse location is already assigned to another material' });
+        }
+      }
+
       const [invCheck] = await db.query(
         'SELECT inventory_id FROM inventory WHERE material_id = ?',
         [materialId]

@@ -232,7 +232,7 @@ const VerifyStoreIndents = () => {
         </div>
         <div className="vsi-card">
           <div className="vsi-card-header">
-            <span className="vsi-card-label">Processed Today</span>
+            <span className="vsi-card-label">Processed</span>
             <CheckCircle size={20} className="vsi-stat-icon" style={{color: '#10b981'}} />
           </div>
           <div className="vsi-card-value">{stats.verified}</div>
