@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Package, ArrowDownCircle, ArrowUpCircle, Minus, Plus, Search, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { Package, ArrowDownCircle, ArrowUpCircle, Minus, Plus, Search, ChevronLeft, ChevronRight, Check, X, Download } from 'lucide-react';
 import './StockAdjustment.css';
 import { inventoryService, stockAdjustmentService } from '../../../services/apiService';
+import { generateStockAdjustmentPDF } from '../../../services/stockAdjustmentPdfService';
 
 const StockAdjustment = () => {
   const location = useLocation();
@@ -241,6 +242,17 @@ const StockAdjustment = () => {
     setShowMaterialDropdown(false);
     setMaterialSearch('');
     setQuantity(0);
+  };
+
+  const handleExportPDF = () => {
+    const exportData = filteredHistory.map(h => {
+      const mat = materials.find(m => m.id === h.materialId || m.code === h.materialId);
+      return {
+        ...h,
+        location: mat ? mat.location : '-'
+      };
+    });
+    generateStockAdjustmentPDF(exportData, historyFilter);
   };
 
   // Handle submit
@@ -514,6 +526,14 @@ const StockAdjustment = () => {
         <div className="sa-history-header">
           <h2 className="sa-card-title-sm">Recent Adjustment History</h2>
           <div className="sa-history-filters">
+            <button 
+              className="sa-btn-secondary" 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 16px', height: '36px', fontSize: '14px', whiteSpace: 'nowrap' }}
+              onClick={handleExportPDF}
+            >
+              <Download size={16} />
+              Export Note
+            </button>
             <div className="sa-filter-tabs">
               {['All', 'Stock In', 'Stock Out'].map(filter => (
                 <button 
