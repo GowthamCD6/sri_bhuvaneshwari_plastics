@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { authService } from '../../../services/apiService';
 import './Login.css';
 import logo from '../../../assets/SBP_logo.png';
@@ -76,60 +77,7 @@ const Login = ({ onLogin }) => {
     }
   };
 
-  // Initialize Google Sign-In
-  useEffect(() => {
-    // Suppress Google OAuth console errors
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      // Filter out Google OAuth origin errors
-      if (args[0]?.includes?.('GSI_LOGGER') || args[0]?.includes?.('origin is not allowed')) {
-        return; // Suppress these errors
-      }
-      originalConsoleError.apply(console, args);
-    };
 
-    // Wait for Google Identity Services to load
-    const initializeGoogleSignIn = () => {
-      if (window.google && window.google.accounts) {
-        try {
-          window.google.accounts.id.initialize({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-            callback: handleGoogleCallback,
-            auto_select: false
-          });
-          
-          // Render the Google Sign-In button
-          const buttonDiv = document.getElementById('google-signin-button');
-          if (buttonDiv) {
-            window.google.accounts.id.renderButton(
-              buttonDiv,
-              {
-                theme: 'outline',
-                size: 'large',
-                width: buttonDiv.offsetWidth,
-                text: 'continue_with',
-                shape: 'rectangular'
-              }
-            );
-          }
-        } catch (error) {
-          // Silently handle Google Sign-In initialization errors
-          console.log('Google Sign-In not configured for this origin');
-        }
-      } else {
-        // Retry after a delay if Google hasn't loaded yet
-        setTimeout(initializeGoogleSignIn, 100);
-      }
-    };
-
-    // Small delay to ensure DOM is ready
-    setTimeout(initializeGoogleSignIn, 100);
-
-    // Cleanup
-    return () => {
-      console.error = originalConsoleError;
-    };
-  }, []);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -159,7 +107,18 @@ const Login = ({ onLogin }) => {
             </p>
           </div>
 
-          <div id="google-signin-button" style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}></div>
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleCallback}
+              onError={() => {
+                setError('Google login failed. Please try again.');
+              }}
+              useOneTap
+              shape="rectangular"
+              size="large"
+              width="100%"
+            />
+          </div>
 
           <div className="divider"><span>or sign in with mobile</span></div>
 
