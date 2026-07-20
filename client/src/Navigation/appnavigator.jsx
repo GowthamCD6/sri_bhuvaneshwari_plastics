@@ -13,7 +13,8 @@ import VerifyPurchaseDeptIndents from '../Pages/QMS/VerifyPurchaseDeptIndents/Ve
 
 // ===== ACCOUNTANT ROLE PAGES =====
 import AccountantDashboard from '../Pages/Accountant/Dashboard/AccountantDashboard';
-import ViewAccountantIndents from '../Pages/Accountant/ViewIndents/ViewAccountantIndents';
+import CustomerIndents from '../Pages/Accountant/CustomerIndents/CustomerIndents';
+import StoreIndents from '../Pages/Accountant/StoreIndents/StoreIndents';
 
 // ===== STORE OFFICER ROLE PAGES =====
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
@@ -123,7 +124,8 @@ const AppNavigator = () => {
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-dashboard" element={protectRoute(<AccountantDashboard />, ['accountant'])} />
-      <Route path="/view-accountant-indents" element={protectRoute(<ViewAccountantIndents />, ['accountant'])} />
+      <Route path="/accountant/customer-indents" element={protectRoute(<CustomerIndents />, ['accountant'])} />
+      <Route path="/accountant/store-indents" element={protectRoute(<StoreIndents />, ['accountant'])} />
       <Route path="/accountant-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['accountant'])} />
 
       {/* ===== CATCH ALL - REDIRECT TO DEFAULT ROUTE ===== */}

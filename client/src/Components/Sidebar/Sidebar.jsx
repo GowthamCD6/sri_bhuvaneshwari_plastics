@@ -138,11 +138,16 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
         label: "Dashboard",
         icon: LayoutDashboard,
       },
-      { label: "Approvals", section: true },
+      { label: "View Indents", section: true },
       {
-        path: "/view-accountant-indents",
-        label: "View Indents",
-        icon: CheckCircle,
+        path: "/accountant/customer-indents",
+        label: "Customer Indents",
+        icon: ShoppingCart,
+      },
+      {
+        path: "/accountant/store-indents",
+        label: "Store Request Indents",
+        icon: Package,
       },
     ],
   };

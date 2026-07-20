@@ -168,8 +168,12 @@ const getAllIndents = async (req, res) => {
         'SELECT * FROM purchase_indent_materials WHERE indent_id = ?',
         [indent.indent_id]
       );
-      console.log(`Indent ${indent.indent_number}: Found ${materials.length} materials`);
       indent.materials = materials;
+      // Get the first available PO number from materials
+      const materialWithPO = materials.find(m => m.po_number);
+      if (materialWithPO) {
+        indent.material_po_number = materialWithPO.po_number;
+      }
     }
 
     res.status(200).json({
