@@ -60,6 +60,7 @@ const getAdminApprovals = async (req, res) => {
         MAX(u.username) as requested_by_name,
         MAX(co.indent_id) as customer_order_indent_id,
         MAX(co.customer_name) as customer_name,
+        (SELECT component_name FROM customer_order_items coi WHERE coi.order_id = MAX(pi.customer_order_id) LIMIT 1) as customer_part_name,
         COUNT(pim.indent_material_id) as total_materials
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id
@@ -125,6 +126,7 @@ const getAllIndents = async (req, res) => {
         MAX(u.username) as requested_by_name,
         MAX(co.indent_id) as customer_order_indent_id,
         MAX(co.customer_name) as customer_name,
+        (SELECT component_name FROM customer_order_items coi WHERE coi.order_id = MAX(pi.customer_order_id) LIMIT 1) as customer_part_name,
         COUNT(pim.indent_material_id) as total_materials
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id
@@ -197,7 +199,8 @@ const getIndentById = async (req, res) => {
         co.indent_id as customer_order_indent_id,
         co.customer_name,
         co.customer_phone,
-        co.customer_email
+        co.customer_email,
+        (SELECT component_name FROM customer_order_items coi WHERE coi.order_id = pi.customer_order_id LIMIT 1) as customer_part_name
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id
       LEFT JOIN customer_orders co ON pi.customer_order_id = co.order_id
@@ -266,7 +269,7 @@ const createIndent = async (req, res) => {
       workflowStage,
       status,
       poNumber,
-      poReference,
+      poDate,
       materials
     } = req.body;
 
@@ -291,7 +294,7 @@ const createIndent = async (req, res) => {
     const { indentResult, indentNumber } = await insertIndentWithGeneratedNumber(async (generatedIndentNumber) => {
       const [result] = await db.query(
         `INSERT INTO purchase_indents 
-          (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_reference, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+          (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_date, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           generatedIndentNumber,
@@ -303,7 +306,7 @@ const createIndent = async (req, res) => {
           status || 'Draft',
           workflowStage || 'QMS Init',
           poNumber || null,
-          poReference || null,
+          poDate || null,
           req.body.orderQuantity || null,
           req.body.rmCost || null,
           req.body.rmRate || null,
@@ -327,7 +330,7 @@ const createIndent = async (req, res) => {
       console.log('Inserting material:', material.description);
       await db.query(
         `INSERT INTO purchase_indent_materials 
-          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications, customer_part, po_number, po_date, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           indentId,
@@ -342,7 +345,7 @@ const createIndent = async (req, res) => {
           material.specifications || null,
           material.customerPart || material.customer_part || null,
           material.poNumber || material.po_number || null,
-          material.poReference || material.po_reference || null,
+          material.poDate || material.po_date || null,
           material.rmCost || material.rm_cost || null,
           material.rmRate || material.rm_rate || null,
           material.piecesPerKg || material.pieces_per_kg || null,
@@ -405,7 +408,7 @@ const createIndent = async (req, res) => {
 const updateIndentStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poReference, materials } = req.body;
+    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poDate, materials } = req.body;
     const userId = req.user.userId;
 
     // Get current indent
@@ -443,9 +446,9 @@ const updateIndentStatus = async (req, res) => {
       updateParams.push(poNumber);
     }
 
-    if (poReference !== undefined) {
-      updateFields.push('po_reference = ?');
-      updateParams.push(poReference);
+    if (poDate !== undefined) {
+      updateFields.push('po_date = ?');
+      updateParams.push(poDate);
     }
 
     if (storeOfficerNotes !== undefined) {
@@ -499,7 +502,7 @@ const updateIndentStatus = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_date, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
@@ -512,7 +515,7 @@ const updateIndentStatus = async (req, res) => {
             material.preferredSupplier || '',
             material.customerPart || material.customer_part || null,
             material.poNumber || material.po_number || null,
-            material.poReference || material.po_reference || null,
+            material.poDate || material.po_date || null,
             material.rmCost || material.rm_cost || null,
             material.rmRate || material.rm_rate || null,
             material.piecesPerKg || material.pieces_per_kg || null,
@@ -550,7 +553,7 @@ const updateIndentStatus = async (req, res) => {
 const sendToNextStage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { comments, poNumber, poReference, accountantNotes, materials } = req.body;
+    const { comments, poNumber, poDate, accountantNotes, materials } = req.body;
     const userId = req.user.userId;
     const userRole = req.user.roleName;
 
@@ -600,16 +603,16 @@ const sendToNextStage = async (req, res) => {
           // Update PO fields from Store Officer
           console.log('=== STORE OFFICER SUBMITTING ===');
           console.log('PO Number received:', poNumber);
-          console.log('PO Reference received:', poReference);
+          console.log('PO Date received:', poDate);
           console.log('Additional data:', { orderQuantity: req.body.orderQuantity, rmCost: req.body.rmCost, rmRate: req.body.rmRate });
           
           if (poNumber !== undefined) {
             updateFields.push('po_number = ?');
             updateParams.push(poNumber || null);
           }
-          if (poReference !== undefined) {
-            updateFields.push('po_reference = ?');
-            updateParams.push(poReference || null);
+          if (poDate !== undefined) {
+            updateFields.push('po_date = ?');
+            updateParams.push(poDate || null);
           }
           if (req.body.orderQuantity !== undefined) {
             updateFields.push('order_quantity = ?');
@@ -698,7 +701,7 @@ const sendToNextStage = async (req, res) => {
       for (const material of materials) {
         await db.query(
           `INSERT INTO purchase_indent_materials 
-            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_reference, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+            (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, customer_part, po_number, po_date, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             id,
@@ -711,7 +714,7 @@ const sendToNextStage = async (req, res) => {
             material.preferredSupplier || '',
             material.customerPart || material.customer_part || null,
             material.poNumber || material.po_number || null,
-            material.poReference || material.po_reference || null,
+            material.poDate || material.po_date || null,
             material.rmCost || material.rm_cost || null,
             material.rmRate || material.rm_rate || null,
             material.piecesPerKg || material.pieces_per_kg || null,

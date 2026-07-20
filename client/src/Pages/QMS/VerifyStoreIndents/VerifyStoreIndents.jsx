@@ -91,7 +91,7 @@ const VerifyStoreIndents = () => {
               status: displayStatus,
               statusClass: statusClass,
               poNumber: indent.po_number,
-              poReference: indent.po_reference,
+              poDate: indent.po_date,
               workflowStage: indent.workflow_stage // For debugging
             };
           });
@@ -364,7 +364,7 @@ const VerifyStoreIndents = () => {
                     {/* PO Number */}
                     <td>
                       <div className="vsi-text-bold">{item.poNumber || 'N/A'}</div>
-                      <div className="vsi-subtext">{item.poReference || ''}</div>
+                      <div className="vsi-subtext">{item.poDate || ''}</div>
                     </td>
 
                     {/* Verification Status */}
