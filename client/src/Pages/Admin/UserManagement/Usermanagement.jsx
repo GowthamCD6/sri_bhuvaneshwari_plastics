@@ -138,7 +138,7 @@ const UserManagement = () => {
   }, [users]);
 
   const roleNameOptions = useMemo(() => (
-    ['Admin', 'QMS', 'StoreOfficer', 'PurchaseDepartment']
+    ['Admin', 'QMS', 'StoreOfficer', 'PurchaseDepartment', 'Accountant']
   ), []);
 
   const openAddUserModal = () => {

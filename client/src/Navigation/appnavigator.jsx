@@ -11,6 +11,10 @@ import CustomerOrders from '../Pages/QMS/CustomerOrder/CustomerOrders';
 import VerifyStoreIndents from '../Pages/QMS/VerifyStoreIndents/VerifyStoreIndents';
 import VerifyPurchaseDeptIndents from '../Pages/QMS/VerifyPurchaseDeptIndents/VerifyPurchaseDeptIndents';
 
+// ===== ACCOUNTANT ROLE PAGES =====
+import AccountantDashboard from '../Pages/Accountant/Dashboard/AccountantDashboard';
+import ViewAccountantIndents from '../Pages/Accountant/ViewIndents/ViewAccountantIndents';
+
 // ===== STORE OFFICER ROLE PAGES =====
 import Inventory from '../Pages/StoreOfficer/Inventory/Inventory';
 import GoodsInventory from '../Pages/StoreOfficer/GoodsInventory/GoodsInventory';
@@ -63,7 +67,7 @@ const AppNavigator = () => {
       case 'purchasedepartment':
         return '/purchase-dashboard';
       case 'accountant':
-        return '/accountant-purchase-indents';
+        return '/accountant-dashboard';
       default:
         return '/access-denied';
     }
@@ -118,6 +122,8 @@ const AppNavigator = () => {
       <Route path="/create-purchase-indent" element={<QMSPurchaseIndents />} />
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
+      <Route path="/accountant-dashboard" element={protectRoute(<AccountantDashboard />, ['accountant'])} />
+      <Route path="/view-accountant-indents" element={protectRoute(<ViewAccountantIndents />, ['accountant'])} />
       <Route path="/accountant-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['accountant'])} />
 
       {/* ===== CATCH ALL - REDIRECT TO DEFAULT ROUTE ===== */}

@@ -131,6 +131,20 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       { label: "Vendor Management", section: true },
       { path: "/suppliers", label: "Supplier Management", icon: Truck },
     ],
+    accountant: [
+      { label: "Overview", section: true },
+      {
+        path: "/accountant-dashboard",
+        label: "Dashboard",
+        icon: LayoutDashboard,
+      },
+      { label: "Approvals", section: true },
+      {
+        path: "/view-accountant-indents",
+        label: "View Indents",
+        icon: CheckCircle,
+      },
+    ],
   };
 
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
