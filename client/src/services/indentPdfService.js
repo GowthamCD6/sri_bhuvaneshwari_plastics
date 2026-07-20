@@ -115,7 +115,7 @@ export const downloadSingleIndentPdf = ({ indentSummary, indentDetail, sourceLab
   const custPhone   = str(indentDetail?.customer_phone);
   const custEmail   = str(indentDetail?.customer_email);
   const poNum       = str(indentDetail?.po_number);
-  const poRef       = str(indentDetail?.po_reference);
+  const poRef       = str(indentDetail?.po_date);
 
   const storeNotes  = str(indentDetail?.store_officer_notes);
   const qmsNotes    = str(indentDetail?.qms_notes);
@@ -239,7 +239,7 @@ export const downloadSingleIndentPdf = ({ indentSummary, indentDetail, sourceLab
       if (custEmail !== EMPTY) metaRow('Email', custEmail, '', '');
     }
     if (hasPO) {
-      metaRow('PO Number', poNum, 'PO Reference', poRef);
+      metaRow('PO Number', poNum, 'PO Date', poRef);
     }
 
     y += 4;

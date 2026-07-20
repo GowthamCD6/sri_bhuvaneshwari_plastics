@@ -91,16 +91,16 @@ const buildFormulaFields = (rows, componentName, rawMaterialName = '') => {
     rawMaterial: formulaRow?.raw_material || rawMaterialName || '',
     formulaRawMaterial: formulaRow?.raw_material || rawMaterialName || '',
     formulaRmCost: formulaRow?.raw_material_cost_per_component != null
-      ? String(formulaRow.raw_material_cost_per_component)
+      ? Number(formulaRow.raw_material_cost_per_component).toFixed(2)
       : '',
     formulaRmRate: formulaRow?.rate_per_kg != null
-      ? String(formulaRow.rate_per_kg)
+      ? Number(formulaRow.rate_per_kg).toFixed(2)
       : '',
     formulaPiecesPerKg: formulaRow?.pieces_per_kg != null
-      ? String(formulaRow.pieces_per_kg)
+      ? Number(formulaRow.pieces_per_kg).toFixed(2)
       : '',
     formulaRmPercentage: formulaRow?.rm_percentage != null
-      ? String(formulaRow.rm_percentage)
+      ? Number(formulaRow.rm_percentage).toFixed(2)
       : '',
     formulaMatched: Boolean(formulaRow),
   };
@@ -222,7 +222,7 @@ const NewPurchaseIndent = () => {
     customerOrderId: null, // Numeric order_id for database
     orderQuantity: '',
     poNumber: '',
-    poReference: '',
+    poDate: '',
     rmCost: '',
     rmRate: '',
     piecesPerKg: '',
@@ -264,7 +264,7 @@ const NewPurchaseIndent = () => {
       status: formData.status,
       workflowStage: formData.workflowStage,
       poNumber: formData.poNumber,
-      poReference: formData.poReference,
+      poDate: formData.poDate,
       orderQuantity: formData.orderQuantity,
       rmCost: formData.rmCost,
       rmRate: formData.rmRate,
@@ -525,7 +525,7 @@ const NewPurchaseIndent = () => {
             stockMatched: stockFields.stockMatched,
             customerPart: orderData.indentId || orderData.orderId || item.component_name || item.description || '',
             poNumber: '',
-            poReference: '',
+            poDate: '',
             rmCost: formulaFields.formulaRmCost || '',
             rmRate: formulaFields.formulaRmRate || '',
             piecesPerKg: formulaFields.formulaPiecesPerKg || '',
@@ -628,7 +628,7 @@ const NewPurchaseIndent = () => {
           console.log('=== FETCHED INDENT DATA ===');
           console.log('Full indent:', indent);
           console.log('PO Number from DB:', indent.po_number);
-          console.log('PO Reference from DB:', indent.po_reference);
+          console.log('PO Date from DB:', indent.po_date);
           
           setFormData({
             department: indent.department || 'stores',
@@ -638,11 +638,11 @@ const NewPurchaseIndent = () => {
             indentDate: toDateInputValue(indent.indent_date || indent.request_date) || getTodayDate(),
             requiredByDate: toDateInputValue(indent.required_by_date) || '',
             justification: indent.justification || '',
-            customerPart: indent.customer_order_indent_id || indent.customer_order_id || '',
+            customerPart: indent.customer_part_name || indent.customer_order_indent_id || indent.customer_order_id || '',
             customerOrderId: indent.customer_order_id || null,
             orderQuantity: indent.order_quantity || '',
             poNumber: indent.po_number || '',
-            poReference: indent.po_reference || '',
+            poDate: indent.po_date || '',
             rmCost: indent.rm_cost || '',
             rmRate: indent.rm_rate || '',
             piecesPerKg: indent.pieces_per_kg || '',
@@ -659,7 +659,7 @@ const NewPurchaseIndent = () => {
           console.log('=== FORM DATA AFTER SET ===');
           console.log('Workflow Stage:', indent.workflow_stage || 'QMS Init');
           console.log('poNumber:', indent.po_number || '(empty)');
-          console.log('poReference:', indent.po_reference || '(empty)');
+          console.log('poDate:', indent.po_date || '(empty)');
           console.log('poFilePath from DB:', resolvePoFilePath(indent) || '(no file)');
           console.log('Store Officer Notes:', indent.store_officer_notes || '(none)');
           console.log('QMS Notes:', indent.qms_notes || '(none)');
@@ -703,7 +703,7 @@ const NewPurchaseIndent = () => {
                 stockMatched: stockFields.stockMatched,
                 customerPart: m.customer_part || m.material_description || '',
                 poNumber: m.po_number || '',
-                poReference: m.po_reference || '',
+                poDate: m.po_date || '',
                 rmCost: m.rm_cost || formulaFields.formulaRmCost || '',
                 rmRate: m.rm_rate || formulaFields.formulaRmRate || '',
                 piecesPerKg: m.pieces_per_kg || formulaFields.formulaPiecesPerKg || '',
@@ -765,7 +765,7 @@ const NewPurchaseIndent = () => {
       formulaMatched: false,
       customerPart: '',
       poNumber: '',
-      poReference: '',
+      poDate: '',
       rmCost: '',
       rmRate: '',
       piecesPerKg: '',
@@ -997,7 +997,7 @@ const NewPurchaseIndent = () => {
         workflowStage: workflowStage,
         status: status,
         poNumber: formData.poNumber || null,
-        poReference: formData.poReference || null,
+        poDate: formData.poDate || null,
         orderQuantity: formData.orderQuantity || null,
         rmCost: formData.rmCost || null,
         rmRate: formData.rmRate || null,
@@ -1015,7 +1015,7 @@ const NewPurchaseIndent = () => {
           specifications: null,
           customerPart: m.customerPart || null,
           poNumber: m.poNumber || null,
-          poReference: m.poReference || null,
+          poDate: m.poDate || null,
           rmCost: m.rmCost || null,
           rmRate: m.rmRate || null,
           piecesPerKg: m.piecesPerKg || null,
@@ -1060,7 +1060,7 @@ const NewPurchaseIndent = () => {
           console.log('Submitting to next workflow stage - using sendToNextStage');
           response = await purchaseIndentService.sendToNextStage(finalIndentId, {
             poNumber: formData.poNumber || null,
-            poReference: formData.poReference || null,
+            poDate: formData.poDate || null,
             orderQuantity: formData.orderQuantity || null,
             rmCost: formData.rmCost || null,
             rmRate: formData.rmRate || null,
@@ -1076,7 +1076,7 @@ const NewPurchaseIndent = () => {
               preferredSupplier: m.preferredSupplier || '',
               customerPart: m.customerPart || null,
               poNumber: m.poNumber || null,
-              poReference: m.poReference || null,
+              poDate: m.poDate || null,
               rmCost: m.rmCost || null,
               rmRate: m.rmRate || null,
               piecesPerKg: m.piecesPerKg || null,
@@ -1093,7 +1093,7 @@ const NewPurchaseIndent = () => {
             status: status,
             workflowStage: workflowStage,
             poNumber: formData.poNumber || null,
-            poReference: formData.poReference || null,
+            poDate: formData.poDate || null,
             orderQuantity: formData.orderQuantity || null,
             rmCost: formData.rmCost || null,
             rmRate: formData.rmRate || null,
@@ -1109,7 +1109,7 @@ const NewPurchaseIndent = () => {
               preferredSupplier: m.preferredSupplier || '',
               customerPart: m.customerPart || null,
               poNumber: m.poNumber || null,
-              poReference: m.poReference || null,
+              poDate: m.poDate || null,
               rmCost: m.rmCost || null,
               rmRate: m.rmRate || null,
               piecesPerKg: m.piecesPerKg || null,
@@ -1143,7 +1143,7 @@ const NewPurchaseIndent = () => {
               if (action === 'submit') {
                 response = await purchaseIndentService.sendToNextStage(finalIndentId, {
                   poNumber: formData.poNumber || null,
-                  poReference: formData.poReference || null,
+                  poDate: formData.poDate || null,
                   orderQuantity: formData.orderQuantity || null,
                   rmCost: formData.rmCost || null,
                   rmRate: formData.rmRate || null,
@@ -1159,7 +1159,7 @@ const NewPurchaseIndent = () => {
                     preferredSupplier: m.preferredSupplier || '',
                     customerPart: m.customerPart || null,
                     poNumber: m.poNumber || null,
-                    poReference: m.poReference || null,
+                    poDate: m.poDate || null,
                     rmCost: m.rmCost || null,
                     rmRate: m.rmRate || null,
                     piecesPerKg: m.piecesPerKg || null,
@@ -1172,7 +1172,7 @@ const NewPurchaseIndent = () => {
                   status: status,
                   workflowStage: workflowStage,
                   poNumber: formData.poNumber || null,
-                  poReference: formData.poReference || null,
+                  poDate: formData.poDate || null,
                   orderQuantity: formData.orderQuantity || null,
                   rmCost: formData.rmCost || null,
                   rmRate: formData.rmRate || null,
@@ -1188,7 +1188,7 @@ const NewPurchaseIndent = () => {
                     preferredSupplier: m.preferredSupplier || '',
                     customerPart: m.customerPart || null,
                     poNumber: m.poNumber || null,
-                    poReference: m.poReference || null,
+                    poDate: m.poDate || null,
                     rmCost: m.rmCost || null,
                     rmRate: m.rmRate || null,
                     piecesPerKg: m.piecesPerKg || null,
@@ -1275,7 +1275,7 @@ const NewPurchaseIndent = () => {
                 workflowStage: indent.workflow_stage || prev.workflowStage,
                 poFilePath: resolvePoFilePath(indent) || prev.poFilePath,
                 poNumber: indent.po_number || prev.poNumber,
-                poReference: indent.po_reference || prev.poReference
+                poDate: indent.po_date || prev.poDate
               }));
               
               // Update materials if present
@@ -1976,28 +1976,28 @@ const NewPurchaseIndent = () => {
                   </div>
                   
                   <div className="pi-form-field">
-                    <label className="pi-label">Purchase Number {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}</label>
+                    <label className="pi-label">Purchase Number {(user?.roleName !== 'StoreOfficer' && user?.roleName !== 'QMS') && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer or QMS will fill)</span>}</label>
                     <input
                       type="text"
                       value={material.poNumber || ''}
                       onChange={(e) => handleMaterialChange(material.id, 'poNumber', e.target.value)}
                       className="pi-input"
                       placeholder="Enter PO number"
-                      readOnly={isViewMode || user?.roleName !== 'StoreOfficer'}
+                      readOnly={isViewMode || (user?.roleName !== 'StoreOfficer' && user?.roleName !== 'QMS')}
                     />
                   </div>
                 </div>
 
                 <div className="pi-form-grid-2" style={{ marginBottom: '16px' }}>
                   <div className="pi-form-field">
-                    <label className="pi-label">PO Reference {user?.roleName !== 'StoreOfficer' && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer will fill)</span>}</label>
+                    <label className="pi-label">PO Date {(user?.roleName !== 'StoreOfficer' && user?.roleName !== 'QMS') && <span style={{fontSize: '12px', color: '#64748b'}}> (Store Officer or QMS will fill)</span>}</label>
                     <input
-                      type="text"
-                      value={material.poReference || ''}
-                      onChange={(e) => handleMaterialChange(material.id, 'poReference', e.target.value)}
+                      type="date"
+                      value={material.poDate || ''}
+                      onChange={(e) => handleMaterialChange(material.id, 'poDate', e.target.value)}
                       className="pi-input"
-                      placeholder="Enter PO reference"
-                      readOnly={isViewMode || user?.roleName !== 'StoreOfficer'}
+                      placeholder="Select PO Date"
+                      readOnly={isViewMode || (user?.roleName !== 'StoreOfficer' && user?.roleName !== 'QMS')}
                     />
                   </div>
 

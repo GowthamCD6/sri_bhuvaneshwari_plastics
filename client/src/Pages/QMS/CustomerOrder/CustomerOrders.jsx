@@ -690,13 +690,13 @@ const CustomerOrders = () => {
               </div>
 
               <div className="detail-section">
-                <div className="detail-section-title">Raw Materials / PO Reference</div>
+                <div className="detail-section-title">Raw Materials / PO Date</div>
                 <div className="detail-section-content">
                   <div className="details-grid details-grid-compact">
                     <div className="detail-card">
-                      <div className="detail-label">PO Reference</div>
+                      <div className="detail-label">PO Date</div>
                       <div className="detail-value">
-                        {selectedOrder.purchase_indent_number || selectedOrder.purchaseIndentNumber || selectedOrder.po_reference || selectedOrder.poReference || '-'}
+                        {selectedOrder.purchase_indent_number || selectedOrder.purchaseIndentNumber || selectedOrder.po_date || selectedOrder.poDate || '-'}
                       </div>
                     </div>
                     <div className="detail-card">
