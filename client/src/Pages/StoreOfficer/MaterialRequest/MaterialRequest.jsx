@@ -28,16 +28,20 @@ const getTodayDate = () => {
 };
 
 const parseDateParts = (value) => {
-  const raw = String(value || '').trim();
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  
+  // If it's just a date string like YYYY-MM-DD
+  if (raw.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = raw.split('-');
     return {
-      year: Number(match[1]),
-      month: Number(match[2]),
-      day: Number(match[3])
+      year: Number(year),
+      month: Number(month),
+      day: Number(day)
     };
   }
 
+  // Otherwise, it's likely an ISO string (e.g. 2026-07-20T18:30:00.000Z)
   const date = new Date(raw);
   if (Number.isNaN(date.getTime())) return null;
   return {
