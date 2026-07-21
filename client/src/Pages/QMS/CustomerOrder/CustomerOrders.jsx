@@ -343,7 +343,7 @@ const CustomerOrders = () => {
 
   const stats = useMemo(() => {
     const openOrders = orders.filter(o => isOpenStatus(o)).length;
-    const pendingAdminApproval = orders.filter(o => String(o.status || o.indentStatus || '').toLowerCase().includes('admin')).length;
+    const pendingAdminApproval = orders.filter(o => String(o.status || o.indentStatus || '').toLowerCase().trim() === 'pending admin approval').length;
 
     const today = new Date();
     const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -725,22 +725,43 @@ const CustomerOrders = () => {
 
             <div className="order-details-footer">
               <div className="status-actions">
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Draft')}>Draft</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Store Review')}>Send to Store</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
-                <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Admin Approved')}>Approve</button>
-                {getDeliveryStatus(selectedOrder).toLowerCase() !== 'delivered' && (
-                  <button
-                    type="button"
-                    className="status-btn status-btn-delivered"
-                    onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, {
-                      deliveryStatus: 'Delivered',
-                      comments: 'Marked as delivered to customer'
-                    })}
-                  >
-                    Mark Delivered
-                  </button>
-                )}
+                {(() => {
+                  const orderStatus = selectedOrder.status || selectedOrder.indentStatus || 'Draft';
+                  const delStatus = getDeliveryStatus(selectedOrder).toLowerCase();
+                  
+                  return (
+                    <>
+                      {orderStatus !== 'Draft' && (
+                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Draft')}>Draft</button>
+                      )}
+                      
+                      {orderStatus === 'Draft' && (
+                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Store Review')}>Send to Store</button>
+                      )}
+                      
+                      {(orderStatus !== 'Pending Admin Approval' && orderStatus !== 'Admin Approved') && (
+                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
+                      )}
+                      
+                      {(orderStatus === 'Draft' || orderStatus === 'Pending Store Review') && (
+                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Admin Approved')}>Approve</button>
+                      )}
+                      
+                      {(orderStatus === 'Admin Approved' && delStatus !== 'delivered') && (
+                        <button
+                          type="button"
+                          className="status-btn status-btn-delivered"
+                          onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, {
+                            deliveryStatus: 'Delivered',
+                            comments: 'Marked as delivered to customer'
+                          })}
+                        >
+                          Mark Delivered
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <button className="btn-secondary" type="button" onClick={() => setSelectedOrder(null)}>Close</button>
             </div>

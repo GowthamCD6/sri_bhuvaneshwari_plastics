@@ -459,6 +459,26 @@ const MaterialRequest = () => {
     setNewRequest(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleRmCodeBlur = async () => {
+    if (!newRequest.rmCode || newRequest.rmCode.trim().length < 2) return;
+    try {
+      const response = await materialService.getAllMaterials({ search: newRequest.rmCode });
+      const materials = response.data || [];
+      const match = materials.find(m => String(m.material_code || '').toLowerCase() === newRequest.rmCode.toLowerCase().trim());
+      
+      if (match) {
+        setNewRequest(prev => ({
+          ...prev,
+          rmName: prev.rmName || match.material_name || '',
+          storageLocation: prev.storageLocation || match.warehouse_location || '',
+          unit: prev.unit || normalizeUnit(match.unit_of_measurement)
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch material on blur:', err);
+    }
+  };
+
   const handleSubmitNewRequest = (e) => {
     e.preventDefault();
     if (!newRequest.rmCode || !newRequest.rmName || !newRequest.neededQuantity || !newRequest.neededDate) {
@@ -792,6 +812,7 @@ const MaterialRequest = () => {
                     placeholder="e.g. RM-10024" 
                     value={newRequest.rmCode}
                     onChange={(e) => handleNewRequestChange('rmCode', e.target.value)}
+                    onBlur={handleRmCodeBlur}
                     required
                   />
                 </div>
@@ -822,22 +843,13 @@ const MaterialRequest = () => {
                 </div>
                 <div className="mr-form-group">
                   <label className="mr-label">Storage Location</label>
-                  <div className="mr-select-wrapper">
-                    <select 
-                      className="mr-select"
-                      value={newRequest.storageLocation}
-                      onChange={(e) => handleNewRequestChange('storageLocation', e.target.value)}
-                    >
-                      {newRequest.storageLocation && !['warehouse-a', 'warehouse-b', 'warehouse-c'].includes(newRequest.storageLocation) && (
-                        <option value={newRequest.storageLocation}>{newRequest.storageLocation}</option>
-                      )}
-                      <option value="">Select location...</option>
-                      <option value="warehouse-a">Warehouse A</option>
-                      <option value="warehouse-b">Warehouse B</option>
-                      <option value="warehouse-c">Warehouse C</option>
-                    </select>
-                    <ChevronDown size={16} className="mr-select-icon" />
-                  </div>
+                  <input 
+                    type="text" 
+                    className="mr-input" 
+                    placeholder="e.g. Warehouse A / Rack 3" 
+                    value={newRequest.storageLocation}
+                    onChange={(e) => handleNewRequestChange('storageLocation', e.target.value)}
+                  />
                 </div>
               </div>
 

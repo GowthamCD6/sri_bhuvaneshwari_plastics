@@ -239,10 +239,6 @@ const VerifyPurchaseDeptIndents = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="vsi-filter-btn">
-              <Filter size={16} />
-              Filters
-            </button>
           </div>
         </div>
 

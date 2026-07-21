@@ -153,8 +153,11 @@ const VerifyStoreIndents = () => {
       i.statusClass === 'badge-verified'
     ).length;
     const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
+    
+    // For now, setting fully stocked to 0 as a placeholder until stock validation logic is implemented
+    const fullyStocked = 0;
 
-    return { pending, verified, requiresPurchase };
+    return { pending, verified, requiresPurchase, fullyStocked };
   }, [allIndents]);
 
   // Pagination logic
@@ -290,10 +293,6 @@ const VerifyStoreIndents = () => {
                 onChange={handleSearchChange}
               />
             </div>
-            <button className="vsi-filter-btn">
-              <Filter size={16} />
-              Filters
-            </button>
           </div>
         </div>
 
