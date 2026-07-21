@@ -2,12 +2,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Search, ChevronDown, Edit2, Plus, X, Phone, Mail, MapPin, Building, Package, User, Trash2 } from 'lucide-react';
 import '../../QMS/CustomerOrder/CustomerOrders.css';
 import './SupplierManagement.css';
-import { supplierService } from '../../../services/apiService';
+import { supplierService, categoryService, inventoryService } from '../../../services/apiService';
 
 const SupplierManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [materialFilter, setMaterialFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -251,7 +252,28 @@ const SupplierManagement = () => {
     fetchSuppliers();
   }, []);
 
-  const categories = ['All Categories', 'Raw Materials', 'Packaging', 'Additives', 'Maintenance', 'Consumables', 'Lab Supplies'];
+  const [categories, setCategories] = useState(['All Categories']);
+  const [dbMaterials, setDbMaterials] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [catRes, invRes] = await Promise.all([
+          categoryService.getAllCategories(),
+          inventoryService.getAllInventory({ active: 'true' })
+        ]);
+        if (catRes?.data) {
+          setCategories(['All Categories', ...catRes.data.map(c => c.category)]);
+        }
+        if (invRes?.data) {
+          setDbMaterials(invRes.data);
+        }
+      } catch (err) {
+        console.error('Error fetching DB data:', err);
+      }
+    };
+    fetchData();
+  }, []);
 
   const [newSupplier, setNewSupplier] = useState({
     name: '',
@@ -260,6 +282,7 @@ const SupplierManagement = () => {
     email: '',
     address: '',
     category: 'Raw Materials',
+    preferredMaterial: '',
     gst: ''
   });
 
@@ -315,6 +338,11 @@ const SupplierManagement = () => {
       result = result.filter(s => s.category === categoryFilter);
     }
 
+    // Apply material filter
+    if (materialFilter !== 'all') {
+      result = result.filter(s => s.preferredMaterial === materialFilter);
+    }
+
     // Apply search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -347,7 +375,7 @@ const SupplierManagement = () => {
     }
 
     return result;
-  }, [suppliers, statusFilter, categoryFilter, searchQuery, sortField, sortDirection]);
+  }, [suppliers, statusFilter, categoryFilter, materialFilter, searchQuery, sortField, sortDirection]);
 
   // Pagination
   const totalPages = Math.ceil(filteredSuppliers.length / itemsPerPage);
@@ -445,6 +473,7 @@ const SupplierManagement = () => {
     setSearchQuery('');
     setStatusFilter('all');
     setCategoryFilter('all');
+    setMaterialFilter('all');
     setSortField('');
     setSortDirection('asc');
     setCurrentPage(1);
@@ -458,9 +487,9 @@ const SupplierManagement = () => {
 
   const handleExportData = () => {
     const csvContent = "data:text/csv;charset=utf-8," + 
-      "ID,Name,Contact Person,Phone,Email,Category,Status,Rating,Total Orders,Last Order\n" +
+      "ID,Name,Contact Person,Phone,Email,Category,Preferred Material,Status,Rating,Total Orders,Last Order\n" +
       filteredSuppliers.map(s => 
-        `${s.id},${s.name},${s.contactPerson},${s.phone},${s.email},${s.category},${s.status},${s.rating},${s.totalOrders},${s.lastOrder}`
+        `${s.id},${s.name},${s.contactPerson},${s.phone},${s.email},${s.category},${s.preferredMaterial || ''},${s.status},${s.rating},${s.totalOrders},${s.lastOrder}`
       ).join("\n");
     
     const encodedUri = encodeURI(csvContent);
@@ -571,7 +600,6 @@ const SupplierManagement = () => {
         </div>
         
         <div className="sup-categories-overview">
-          <h3>Categories Distribution</h3>
           <div className="sup-categories-grid">
             {overviewStats.categoryStats.map((cat) => (
               <div 
@@ -629,11 +657,29 @@ const SupplierManagement = () => {
             <div className="sup-filter-dropdown">
               <select 
                 value={categoryFilter}
-                onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => { 
+                  setCategoryFilter(e.target.value); 
+                  setMaterialFilter('all');
+                  setCurrentPage(1); 
+                }}
               >
                 <option value="all">All Categories</option>
                 {categories.slice(1).map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="sup-dropdown-icon" />
+            </div>
+            <div className="sup-filter-dropdown">
+              <select 
+                value={materialFilter}
+                onChange={(e) => { setMaterialFilter(e.target.value); setCurrentPage(1); }}
+              >
+                <option value="all">All Materials</option>
+                {dbMaterials
+                  .filter(m => categoryFilter === 'all' || m.category === categoryFilter)
+                  .map(m => (
+                    <option key={m.material_id || m.material_code} value={m.material_name}>{m.material_name}</option>
                 ))}
               </select>
               <ChevronDown size={14} className="sup-dropdown-icon" />
@@ -690,6 +736,13 @@ const SupplierManagement = () => {
                   Category {sortField === 'category' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th 
+                  onClick={() => handleSort('preferredMaterial')}
+                  className={`sortable ${sortField === 'preferredMaterial' ? `sorted-${sortDirection}` : ''}`}
+                  style={{ cursor: 'pointer' }}
+                >
+                  Pref. Material {sortField === 'preferredMaterial' && (sortDirection === 'asc' ? '↑' : '↓')}
+                </th>
+                <th 
                   onClick={() => handleSort('status')}
                   className={`sortable ${sortField === 'status' ? `sorted-${sortDirection}` : ''}`}
                   style={{ cursor: 'pointer' }}
@@ -720,6 +773,9 @@ const SupplierManagement = () => {
                       >
                         {supplier.category}
                       </span>
+                    </td>
+                    <td className="sup-td-material">
+                      {supplier.preferredMaterial || '-'}
                     </td>
                     <td className="sup-td-status">
                       <span 
@@ -876,6 +932,11 @@ const SupplierManagement = () => {
               </div>
 
               <div className="sup-detail-section">
+                <span className="sup-detail-label">Preferred Material</span>
+                <span className="sup-detail-value">{selectedSupplier.preferredMaterial || 'Not Specified'}</span>
+              </div>
+
+              <div className="sup-detail-section">
                 <span className="sup-detail-label">GST Number</span>
                 <span className="sup-detail-value sup-gst">{selectedSupplier.gst}</span>
               </div>
@@ -1004,6 +1065,20 @@ const SupplierManagement = () => {
                   {addFormErrors.category && <div className="sup-field-error">{addFormErrors.category}</div>}
                 </div>
                 <div className="sup-form-group">
+                  <label>Preferred Material</label>
+                  <select
+                    value={newSupplier.preferredMaterial || ''}
+                    onChange={(e) => setNewSupplier(prev => ({ ...prev, preferredMaterial: e.target.value }))}
+                  >
+                    <option value="">Select a material</option>
+                    {dbMaterials
+                      .filter(m => m.category === newSupplier.category)
+                      .map(m => (
+                        <option key={m.material_id || m.material_code} value={m.material_name}>{m.material_name}</option>
+                      ))}
+                  </select>
+                </div>
+                <div className="sup-form-group">
                   <label>GST Number</label>
                   <input
                     type="text"
@@ -1124,6 +1199,20 @@ const SupplierManagement = () => {
                     ))}
                   </select>
                   {editFormErrors.category && <div className="sup-field-error">{editFormErrors.category}</div>}
+                </div>
+                <div className="sup-form-group">
+                  <label>Preferred Material</label>
+                  <select
+                    value={editingSupplier.preferredMaterial || ''}
+                    onChange={(e) => setEditingSupplier(prev => ({ ...prev, preferredMaterial: e.target.value }))}
+                  >
+                    <option value="">Select a material</option>
+                    {dbMaterials
+                      .filter(m => m.category === editingSupplier.category)
+                      .map(m => (
+                        <option key={m.material_id || m.material_code} value={m.material_name}>{m.material_name}</option>
+                      ))}
+                  </select>
                 </div>
                 <div className="sup-form-group">
                   <label>Status</label>

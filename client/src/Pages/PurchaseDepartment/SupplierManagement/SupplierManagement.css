@@ -171,9 +171,13 @@
 
 /* Toolbar - inherits from .filters-row in CustomerOrders.css */
 .sup-toolbar {
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   background: var(--white);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
 }
 
 /* Search inherits from .search-wrapper and .search-input in CustomerOrders.css */
@@ -181,8 +185,9 @@
 .sup-filters {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .sup-filter-dropdown {
@@ -191,16 +196,20 @@
 
 .sup-filter-dropdown select {
   appearance: none;
-  padding: 10px 36px 10px 14px;
+  padding: 8px 30px 8px 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-medium);
   background: var(--white);
   cursor: pointer;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   transition: all 0.2s ease;
+  max-width: 140px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sup-filter-dropdown select:focus {
@@ -539,11 +548,10 @@
 
 /* Table Cells - aligned with CustomerOrders patterns */
 .sup-td-id {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-light);
+  color: var(--text-medium);
   white-space: nowrap;
-  font-family: 'SF Mono', Monaco, monospace;
 }
 
 .sup-td-name {
@@ -571,10 +579,10 @@
 }
 
 .sup-td-phone {
-  font-size: 13px;
-  color: var(--text-light);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-medium);
   white-space: nowrap;
-  font-family: 'SF Mono', Monaco, monospace;
 }
 
 .sup-td-category {
