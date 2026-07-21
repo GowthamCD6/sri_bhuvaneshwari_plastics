@@ -5,14 +5,11 @@ const jwt = require('jsonwebtoken');
  * Used for authenticating API requests
  * Short-lived token (24 hours by default)
  */
-const generateAccessToken = (user) => {
+const generateAccessToken = (user, sessionId) => {
   const payload = {
     userId: user.user_id,
-    username: user.username,
-    email: user.email,
     roleId: user.role_id,
-    roleName: user.role_name,
-    deptId: user.dept_id
+    sessionId: sessionId
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -31,9 +28,10 @@ const generateAccessToken = (user) => {
  * 3. Token Rotation: Old refresh tokens can be invalidated when new ones are issued
  * 4. Device Management: Can track and revoke refresh tokens per device
  */
-const generateRefreshToken = (user) => {
+const generateRefreshToken = (user, sessionId) => {
   const payload = {
     userId: user.user_id,
+    sessionId: sessionId,
     tokenType: 'refresh'
   };
 

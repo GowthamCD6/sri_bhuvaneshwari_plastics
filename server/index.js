@@ -21,6 +21,7 @@ const supplierRoutes = require('./routes/supplierRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const formulaCalculatorRoutes = require('./routes/formulaCalculatorRoutes');
+const roleRoutes = require('./routes/roleRoutes');
 
 // Middleware
 const corsOptions = {
@@ -72,6 +73,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/formula-calculators', formulaCalculatorRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

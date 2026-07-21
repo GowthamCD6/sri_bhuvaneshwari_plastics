@@ -8,27 +8,27 @@ const {
   updateOrder,
   deleteOrder
 } = require('../controllers/customerOrderController');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, authorize } = require('../middleware/authMiddleware');
 
 // All routes require authentication
 router.use(verifyToken);
 
 // Get all orders (with filters)
-router.get('/', getAllOrders);
+router.get('/', authorize('orders:read'), getAllOrders);
 
 // Get single order
-router.get('/:id', getOrderById);
+router.get('/:id', authorize('orders:read'), getOrderById);
 
 // Create new order
-router.post('/', createOrder);
+router.post('/', authorize('orders:write'), createOrder);
 
 // Update order status
-router.patch('/:id/status', updateOrderStatus);
+router.patch('/:id/status', authorize('orders:write'), updateOrderStatus);
 
-// Update order details
-router.put('/:id', updateOrder);
+// Update entire order
+router.put('/:id', authorize('orders:write'), updateOrder);
 
 // Delete order
-router.delete('/:id', deleteOrder);
+router.delete('/:id', authorize('orders:delete'), deleteOrder);
 
 module.exports = router;

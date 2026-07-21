@@ -1,21 +1,48 @@
 const bcrypt = require('bcrypt');
 const db = require('../config/db'); // Now using promise-based pool
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwtUtils');
+const { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeToken } = require('../utils/jwtUtils');
 const { verifyGoogleToken } = require('../utils/googleAuth');
+const crypto = require('crypto');
 
 /**
- * Set JWT Cookie
+ * Helper to fetch permissions for a role
  */
-const setTokenCookie = (res, token) => {
+const getPermissionsForRole = async (roleId) => {
+  try {
+    const query = `
+      SELECT p.permission_name 
+      FROM permissions p
+      JOIN role_permissions rp ON p.id = rp.permission_id
+      WHERE rp.role_id = ?
+    `;
+    const [results] = await db.query(query, [roleId]);
+    return results.map(r => r.permission_name);
+  } catch (error) {
+    console.error('Error fetching permissions:', error);
+    return [];
+  }
+};
+/**
+ * Set JWT Cookies
+ */
+const setTokenCookies = (res, accessToken, refreshToken) => {
   const expiresIn = process.env.JWT_COOKIE_EXPIRES_IN || '1';
   const days = parseInt(expiresIn);
   
-  res.cookie('jwt_token', token, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: days * 24 * 60 * 60 * 1000
-  });
+  };
+
+  res.cookie('jwt_token', accessToken, cookieOptions);
+  if (refreshToken) {
+    res.cookie('refresh_token', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days for refresh token
+    });
+  }
 };
 
 /**
@@ -57,19 +84,32 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    // Generate tokens and session
+    const sessionId = crypto.randomUUID();
+    const accessToken = generateAccessToken(user, sessionId);
+    const refreshToken = generateRefreshToken(user, sessionId);
 
-    // Set cookie (for future use)
-    setTokenCookie(res, accessToken);
+    // Save session to database
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const ipAddress = req.ip || req.connection.remoteAddress || null;
+    const userAgent = req.get('User-Agent') || null;
+
+    const sessionQuery = `
+      INSERT INTO user_sessions (session_id, user_id, refresh_token, ip_address, user_agent, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    await db.query(sessionQuery, [sessionId, user.user_id, refreshToken, ipAddress, userAgent, expiresAt]);
+
+    // Set cookies (both access and refresh)
+    setTokenCookies(res, accessToken, refreshToken);
+
+    // Fetch permissions
+    const permissions = await getPermissionsForRole(user.role_id);
 
     // Send response
     res.status(200).json({
       success: true,
       message: 'Login successful',
-      token: accessToken,
-      refreshToken: refreshToken,
       user: {
         userId: user.user_id,
         phoneNumber: user.phone_number,
@@ -77,9 +117,10 @@ const login = async (req, res) => {
         email: user.email,
         roleName: user.role_name,
         roleId: user.role_id,
-        deptId: user.dept_id
+        deptId: user.dept_id,
+        permissions: permissions
       },
-      permissions: []
+      permissions: permissions
     });
 
   } catch (error) {
@@ -140,19 +181,32 @@ const googleLogin = async (req, res) => {
  */
 const completeGoogleLogin = async (user, req, res) => {
   try {
-    // Generate tokens
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    // Generate tokens and session
+    const sessionId = crypto.randomUUID();
+    const accessToken = generateAccessToken(user, sessionId);
+    const refreshToken = generateRefreshToken(user, sessionId);
 
-    // Set cookie
-    setTokenCookie(res, accessToken);
+    // Save session to database
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const ipAddress = req.ip || req.connection.remoteAddress || null;
+    const userAgent = req.get('User-Agent') || null;
+
+    const sessionQuery = `
+      INSERT INTO user_sessions (session_id, user_id, refresh_token, ip_address, user_agent, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    await db.query(sessionQuery, [sessionId, user.user_id, refreshToken, ipAddress, userAgent, expiresAt]);
+
+    // Set cookies
+    setTokenCookies(res, accessToken, refreshToken);
+
+    // Fetch permissions
+    const permissions = await getPermissionsForRole(user.role_id);
 
     // Send response
     res.status(200).json({
       success: true,
       message: 'Google login successful',
-      token: accessToken,
-      refreshToken: refreshToken,
       user: {
         userId: user.user_id,
         phoneNumber: user.phone_number,
@@ -160,9 +214,10 @@ const completeGoogleLogin = async (user, req, res) => {
         email: user.email,
         roleName: user.role_name,
         roleId: user.role_id,
-        deptId: user.dept_id
+        deptId: user.dept_id,
+        permissions: permissions
       },
-      permissions: []
+      permissions: permissions
     });
   } catch (error) {
     console.error('Complete Google login error:', error);
@@ -175,8 +230,18 @@ const completeGoogleLogin = async (user, req, res) => {
  */
 const logout = async (req, res) => {
   try {
-    // Clear cookie
+    const token = req.cookies?.jwt_token || req.cookies?.refresh_token;
+    if (token) {
+      const decoded = decodeToken(token);
+      if (decoded && decoded.sessionId) {
+        // Invalidate session in database
+        await db.query('UPDATE user_sessions SET is_active = FALSE WHERE session_id = ?', [decoded.sessionId]);
+      }
+    }
+
+    // Clear cookies
     res.clearCookie('jwt_token');
+    res.clearCookie('refresh_token');
 
     res.status(200).json({
       success: true,
@@ -218,6 +283,9 @@ const getProfile = async (req, res) => {
 
     const user = results[0];
 
+    // Fetch permissions
+    const permissions = await getPermissionsForRole(user.role_id);
+
     res.status(200).json({
       success: true,
       user: {
@@ -229,9 +297,10 @@ const getProfile = async (req, res) => {
         roleId: user.role_id,
         deptId: user.dept_id,
         createdAt: user.created_at,
-        updatedAt: user.updated_at
+        updatedAt: user.updated_at,
+        permissions: permissions
       },
-      permissions: []
+      permissions: permissions
     });
 
   } catch (error) {
@@ -248,12 +317,12 @@ const getProfile = async (req, res) => {
  */
 const refreshToken = async (req, res) => {
   try {
-    const { refreshToken: token } = req.body;
+    const token = req.cookies?.refresh_token;
 
     if (!token) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: 'Refresh token is required'
+        message: 'Refresh token is missing from cookies'
       });
     }
 
@@ -265,6 +334,30 @@ const refreshToken = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired refresh token'
+      });
+    }
+
+    // Check if session is active in database
+    const sessionQuery = `
+      SELECT * FROM user_sessions 
+      WHERE session_id = ? AND is_active = TRUE AND expires_at > NOW()
+    `;
+    const [sessions] = await db.query(sessionQuery, [decoded.sessionId]);
+
+    if (sessions.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session invalid or expired'
+      });
+    }
+
+    // Verify refresh token matches the one in database
+    if (sessions[0].refresh_token !== token) {
+      // Possible token theft, invalidate session!
+      await db.query('UPDATE user_sessions SET is_active = FALSE WHERE session_id = ?', [decoded.sessionId]);
+      return res.status(401).json({
+        success: false,
+        message: 'Security violation: Refresh token mismatch'
       });
     }
 
@@ -286,15 +379,23 @@ const refreshToken = async (req, res) => {
 
     const user = results[0];
 
-    // Generate new access token
-    const newAccessToken = generateAccessToken(user);
+    // Generate new tokens (rotating refresh token but keeping same sessionId)
+    const newAccessToken = generateAccessToken(user, decoded.sessionId);
+    const newRefreshToken = generateRefreshToken(user, decoded.sessionId);
 
-    // Set new cookie
-    setTokenCookie(res, newAccessToken);
+    // Update session in database
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await db.query(
+      'UPDATE user_sessions SET refresh_token = ?, expires_at = ? WHERE session_id = ?',
+      [newRefreshToken, expiresAt, decoded.sessionId]
+    );
+
+    // Set new cookies
+    setTokenCookies(res, newAccessToken, newRefreshToken);
 
     res.status(200).json({
       success: true,
-      token: newAccessToken
+      message: 'Token refreshed successfully'
     });
 
   } catch (error) {

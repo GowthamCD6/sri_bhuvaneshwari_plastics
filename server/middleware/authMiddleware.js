@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
 const normalizeRoleName = (roleName) => {
   const normalized = String(roleName || '').trim().toLowerCase();
@@ -10,7 +11,7 @@ const normalizeRoleName = (roleName) => {
 /**
  * Verify JWT Token Middleware
  */
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     // Never block CORS preflight requests
     if (req.method === 'OPTIONS') {
@@ -32,6 +33,18 @@ const verifyToken = (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Instant Revocation Check
+    if (decoded.sessionId) {
+      const [sessions] = await db.query('SELECT is_active FROM user_sessions WHERE session_id = ?', [decoded.sessionId]);
+      if (sessions.length === 0 || !sessions[0].is_active) {
+        return res.status(401).json({
+          success: false,
+          message: 'Session has been revoked or is invalid'
+        });
+      }
+    }
+
     req.user = decoded;
     next();
 
@@ -89,27 +102,70 @@ const requireRole = (...allowedRoles) => {
 };
 
 /**
- * Check if user has specific permission for a resource
- * @param {string} resource - Resource name (e.g., 'materials', 'users')
- * @param {string} action - Action type ('create', 'read', 'update', 'delete', 'approve')
+ * PBAC: Authorize user based on specific permission
+ * @param {string} requiredPermission - e.g., 'inventory:read'
  */
-const requirePermission = (resource, action) => {
+const authorize = (requiredPermission) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
-        return res.status(401).json({
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+
+      // Check permissions from database
+      const query = `
+        SELECT p.permission_name 
+        FROM permissions p
+        JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = ? AND p.permission_name = ?
+      `;
+      const [results] = await db.query(query, [req.user.roleId, requiredPermission]);
+
+      if (results.length === 0) {
+        return res.status(403).json({
           success: false,
-          message: 'Authentication required'
+          message: 'Access denied. Insufficient permissions.'
         });
       }
-      next();
 
+      next();
     } catch (error) {
-      console.error('Permission middleware error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-      });
+      console.error('Authorization middleware error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  };
+};
+
+/**
+ * PBAC: Authorize user based on multiple possible permissions (OR logic)
+ * @param {Array<string>} requiredPermissions - e.g., ['dashboard:admin', 'dashboard:store']
+ */
+const authorizeAny = (...requiredPermissions) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Authentication required' });
+      }
+
+      const query = `
+        SELECT p.permission_name 
+        FROM permissions p
+        JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = ? AND p.permission_name IN (?)
+      `;
+      const [results] = await db.query(query, [req.user.roleId, requiredPermissions]);
+
+      if (results.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Insufficient permissions.'
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Authorization middleware error:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
     }
   };
 };
@@ -117,7 +173,7 @@ const requirePermission = (resource, action) => {
 /**
  * Optional authentication - attach user if token exists but don't require it
  */
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.startsWith('Bearer ') 
@@ -126,7 +182,16 @@ const optionalAuth = (req, res, next) => {
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
+      
+      // Instant Revocation Check
+      if (decoded.sessionId) {
+        const [sessions] = await db.query('SELECT is_active FROM user_sessions WHERE session_id = ?', [decoded.sessionId]);
+        if (sessions.length > 0 && sessions[0].is_active) {
+          req.user = decoded;
+        }
+      } else {
+        req.user = decoded; // Legacy tokens without sessionId
+      }
     }
 
     next();
@@ -140,6 +205,7 @@ const optionalAuth = (req, res, next) => {
 module.exports = {
   verifyToken,
   requireRole,
-  requirePermission,
+  authorize,
+  authorizeAny,
   optionalAuth
 };

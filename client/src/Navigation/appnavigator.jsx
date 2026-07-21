@@ -28,6 +28,7 @@ import FormulaCalculator from '../Pages/StoreOfficer/FormulaCalculator/FormulaCa
 // ===== ADMIN ROLE PAGES =====
 import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
 import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
+import RoleManagement from '../Pages/Admin/RoleManagement/RoleManagement';
 import CustomerOrder from '../Pages/Admin/CustomerOrder/CustomerOrder';
 import StoreRequestApproval from '../Pages/Admin/StoreRequestApproval/StoreRequestApproval';
 
@@ -91,11 +92,11 @@ const AppNavigator = () => {
       <Route path="/dashboard" element={<Navigate to={getDefaultRoute()} replace />} />
 
       {/* ===== QMS ROLE ROUTES ===== */}
-      <Route path="/qms-dashboard" element={<QMSDashboard />} />
-      <Route path="/customer-orders" element={<CustomerOrders />} />
-      <Route path="/qms-purchase-indents" element={<QMSPurchaseIndents />} />
-      <Route path="/verify-store-indents" element={<VerifyStoreIndents />} />
-      <Route path="/verify-purchase-dept-indents" element={<VerifyPurchaseDeptIndents />} />
+      <Route path="/qms-dashboard" element={protectRoute(<QMSDashboard />, ['qms'])} />
+      <Route path="/customer-orders" element={protectRoute(<CustomerOrders />, ['qms'])} />
+      <Route path="/qms-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['qms'])} />
+      <Route path="/verify-store-indents" element={protectRoute(<VerifyStoreIndents />, ['qms'])} />
+      <Route path="/verify-purchase-dept-indents" element={protectRoute(<VerifyPurchaseDeptIndents />, ['qms'])} />
 
       {/* ===== STORE OFFICER ROLE ROUTES ===== */}
       <Route path="/purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['qms', 'storeofficer', 'admin', 'accountant'])} />
@@ -108,19 +109,20 @@ const AppNavigator = () => {
       <Route path="/formula-calculator" element={protectRoute(<FormulaCalculator />, ['storeofficer'])} />
 
       {/* ===== ADMIN ROLE ROUTES ===== */}
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-      <Route path="/user-management" element={<UserManagement />} />
-      <Route path="/customer-order" element={<CustomerOrder />} />
-      <Route path="/store-request-approvals" element={<StoreRequestApproval />} />
-      <Route path="/admin-purchase-indents" element={<QMSPurchaseIndents />} />
+      <Route path="/admin-dashboard" element={protectRoute(<AdminDashboard />, ['admin'])} />
+      <Route path="/user-management" element={protectRoute(<UserManagement />, ['admin'])} />
+      <Route path="/role-management" element={protectRoute(<RoleManagement />, ['admin'])} />
+      <Route path="/customer-order" element={protectRoute(<CustomerOrder />, ['admin'])} />
+      <Route path="/store-request-approvals" element={protectRoute(<StoreRequestApproval />, ['admin'])} />
+      <Route path="/admin-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['admin'])} />
 
       {/* ===== PURCHASE DEPARTMENT ROLE ROUTES ===== */}
-      <Route path="/purchase-dashboard" element={<PurchaseDashboard />} />
+      <Route path="/purchase-dashboard" element={protectRoute(<PurchaseDashboard />, ['purchasedepartment'])} />
       <Route path="/overview" element={<Navigate to="/purchase-dashboard" replace />} />
-      <Route path="/store-requests" element={<StoreRequests />} />
-      <Route path="/suppliers" element={<SupplierManagement />} />
-      <Route path="/qms-indents" element={<PurchaseIndents />} />
-      <Route path="/create-purchase-indent" element={<QMSPurchaseIndents />} />
+      <Route path="/store-requests" element={protectRoute(<StoreRequests />, ['purchasedepartment'])} />
+      <Route path="/suppliers" element={protectRoute(<SupplierManagement />, ['purchasedepartment'])} />
+      <Route path="/qms-indents" element={protectRoute(<PurchaseIndents />, ['purchasedepartment'])} />
+      <Route path="/create-purchase-indent" element={protectRoute(<QMSPurchaseIndents />, ['purchasedepartment'])} />
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-dashboard" element={protectRoute(<AccountantDashboard />, ['accountant'])} />
