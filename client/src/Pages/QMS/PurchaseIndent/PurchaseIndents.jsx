@@ -2059,23 +2059,40 @@ const NewPurchaseIndent = () => {
           <div className="pi-footer">
             <div className="pi-document-code">Document code: SBP/PI/IB/02-00 | v1.0</div>
             <div className="pi-footer-actions">
-              <button 
-                onClick={() => handleSubmit('save')}
-                className="pi-btn pi-btn-outline"
-                disabled={loading}
-              >
-                <Save size={16} />
-                Save draft
-              </button>
-              <button 
-                onClick={() => handleSubmit('submit')}
-                className="pi-btn pi-btn-primary"
-                disabled={loading}
-              >
-                <Send size={16} />
-                {user?.roleName === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
-              </button>
-              {currentIndentId && isDeleteAllowed && (
+              {user?.roleName !== 'Accountant' && (
+                <button 
+                  onClick={() => handleSubmit('save')}
+                  className="pi-btn pi-btn-outline"
+                  disabled={loading}
+                >
+                  <Save size={16} />
+                  Save draft
+                </button>
+              )}
+              
+              {user?.roleName === 'Accountant' ? (
+                formData.workflowStage === 'Accountant' && (
+                  <button 
+                    onClick={() => handleSubmit('submit')}
+                    className="pi-btn pi-btn-primary"
+                    disabled={loading}
+                  >
+                    <Check size={16} />
+                    Mark as Processed
+                  </button>
+                )
+              ) : (
+                <button 
+                  onClick={() => handleSubmit('submit')}
+                  className="pi-btn pi-btn-primary"
+                  disabled={loading}
+                >
+                  <Send size={16} />
+                  {user?.roleName === 'StoreOfficer' && passedIndentId ? 'Send to QMS for Verification' : 'Submit for approval'}
+                </button>
+              )}
+
+              {currentIndentId && isDeleteAllowed && user?.roleName !== 'Accountant' && (
                 <button
                   onClick={handleDeleteIndent}
                   className="pi-btn pi-btn-outline"

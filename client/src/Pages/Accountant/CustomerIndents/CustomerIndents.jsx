@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Search, Filter, Clock, CheckCircle, ShoppingBag, Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import './ViewAccountantIndents.css';
+import './CustomerIndents.css';
 import { purchaseIndentService } from '../../../services/apiService';
 import useAuthStore from '../../../store/authStore';
 
-const ViewAccountantIndents = () => {
+const CustomerIndents = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   
   // State management
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5);
   const [selectedIndents, setSelectedIndents] = useState([]);
@@ -56,8 +57,10 @@ const ViewAccountantIndents = () => {
             let statusClass = 'badge-pending';
             if (['Accountant'].includes(indent.workflow_stage)) {
               statusClass = 'badge-pending';
+              displayStatus = 'Pending Processing';
             } else if (['Completed'].includes(indent.workflow_stage)) {
               statusClass = 'badge-verified';
+              displayStatus = 'Processed';
             } else if (indent.workflow_stage === 'Store Officer') {
               // Submitted by QMS, waiting for Store Officer
               displayStatus = 'Pending Store Review';
@@ -78,12 +81,13 @@ const ViewAccountantIndents = () => {
               date: new Date(indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
               project: indent.customer_name || 'Stock Replenishment',
               orderId: indent.customer_order_indent_id ? `Order #${indent.customer_order_indent_id}` : 'N/A',
+              isCustomerIndent: !!indent.customer_order_id || !!indent.customer_order_indent_id,
               raisedBy: indent.requested_by_name || 'N/A',
               itemCount: `${indent.total_materials || 0} Items`,
               priority: indent.priority === 'Urgent' ? 'High Priority' : 'Normal Priority',
               status: displayStatus,
               statusClass: statusClass,
-              poNumber: indent.po_number,
+              poNumber: indent.po_number || indent.material_po_number,
               poDate: indent.po_date,
               workflowStage: indent.workflow_stage // For debugging
             };
@@ -106,6 +110,9 @@ const ViewAccountantIndents = () => {
   // Filter and search logic
   const filteredIndents = useMemo(() => {
     let filtered = allIndents;
+
+    // Filter for Customer Indents only
+    filtered = filtered.filter(indent => indent.isCustomerIndent);
 
     // Filter by tab
     if (activeTab === 'pending') {
@@ -135,19 +142,21 @@ const ViewAccountantIndents = () => {
     return filtered;
   }, [allIndents, searchQuery, activeTab]);
 
-  // Calculate stats
+  // Calculate stats based on filteredIndents instead of allIndents to reflect current type
   const stats = useMemo(() => {
-    const pending = allIndents.filter(i => 
+    const typeIndents = allIndents.filter(indent => indent.isCustomerIndent);
+    
+    const pending = typeIndents.filter(i => 
       i.status.toLowerCase().includes('pending') || 
       i.statusClass === 'badge-pending'
     ).length;
-    const verified = allIndents.filter(i => 
+    const verified = typeIndents.filter(i => 
       i.status.toLowerCase().includes('verified') || 
       i.statusClass === 'badge-verified'
     ).length;
-    const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
+    const requiresPurchase = typeIndents.filter(i => !i.poNumber).length;
 
-    return { pending, verified, requiresPurchase };
+    return { pending, verified, requiresPurchase, fullyStocked: 0 };
   }, [allIndents]);
 
   // Pagination logic
@@ -200,7 +209,8 @@ const ViewAccountantIndents = () => {
       state: {
         indentId: indent.indentId,
         fromCustomerOrder: false,
-        orderData: null
+        orderData: null,
+        isViewMode: true
       },
       replace: false
     });
@@ -211,8 +221,9 @@ const ViewAccountantIndents = () => {
       
       {/* Top Navbar Area */}
       <header className="vsi-header">
-        <h1 className="vsi-page-title">View Indents</h1>
+        <h1 className="vsi-page-title">Customer Indents</h1>
       </header>
+
 
       {/* Stats Cards Row */}
       <div className="vsi-stats-row">
@@ -293,8 +304,10 @@ const ViewAccountantIndents = () => {
         {/* Table */}
         <div className="vsi-table-container">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-              Loading indents...
+            <div style={{ padding: '16px' }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} style={{ height: '48px', background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 2s infinite', borderRadius: '6px', marginBottom: '8px' }} />
+              ))}
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
@@ -435,4 +448,4 @@ const ViewAccountantIndents = () => {
   );
 };
 
-export default ViewAccountantIndents;
+export default CustomerIndents;
