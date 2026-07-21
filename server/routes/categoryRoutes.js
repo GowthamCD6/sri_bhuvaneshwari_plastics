@@ -1,17 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const { verifyToken, requirePermission } = require('../middleware/authMiddleware');
+const { verifyToken, authorize } = require('../middleware/authMiddleware');
 
 const isProd = process.env.NODE_ENV === 'production';
 
-// Note: GET route is public for now, POST/DELETE require authentication
-// router.use(verifyToken);
+router.use(verifyToken);
 
 /**
  * Get all categories with material counts
  */
-router.get('/', async (req, res) => {
+router.get('/', authorize('categories:read'), async (req, res) => {
   console.log('GET /api/categories - Fetching all categories');
   
   const query = `
@@ -60,7 +59,7 @@ router.get('/', async (req, res) => {
  * Create a new category
  * Note: Creates a placeholder material entry to establish the category
  */
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', authorize('categories:write'), async (req, res) => {
   console.log('=== POST /api/categories - Create Category ===');
   console.log('Request body:', req.body);
   console.log('User:', req.user);
@@ -164,7 +163,7 @@ router.post('/', verifyToken, async (req, res) => {
 /**
  * Rename a category (updates all materials with the old category name)
  */
-router.put('/:categoryName', verifyToken, async (req, res) => {
+router.put('/:categoryName', authorize('categories:write'), async (req, res) => {
   const { categoryName } = req.params;
   const { name } = req.body;
 
@@ -209,7 +208,7 @@ router.put('/:categoryName', verifyToken, async (req, res) => {
 /**
  * Delete a category (only if it has no active materials)
  */
-router.delete('/:categoryName', verifyToken, requirePermission('materials', 'delete'), async (req, res) => {
+router.delete('/:categoryName', authorize('categories:write'), async (req, res) => {
   const { categoryName } = req.params;
 
   if (categoryName === 'Raw Materials' || categoryName === 'Components') {
