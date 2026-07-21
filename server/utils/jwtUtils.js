@@ -9,6 +9,7 @@ const generateAccessToken = (user, sessionId) => {
   const payload = {
     userId: user.user_id,
     roleId: user.role_id,
+    roleName: user.role_name,
     sessionId: sessionId
   };
 

@@ -614,11 +614,7 @@ const NewPurchaseIndent = () => {
 
       try {
         setLoading(true);
-        const token = useAuthStore.getState().token;
-        if (!token) {
-          setError('No authentication token found');
-          return;
-        }
+
 
         const response = await purchaseIndentService.getIndentById(passedIndentId);
         
@@ -958,12 +954,7 @@ const NewPurchaseIndent = () => {
         }
       }
 
-      const token = useAuthStore.getState().token;
-      if (!token) {
-        setError('No authentication token found. Please login again.');
-        setLoading(false);
-        return;
-      }
+
 
       // Generate indent number if not exists - use timestamp for uniqueness
       const indentNumber = formData.indentNumber || `PI-${new Date().getFullYear()}-${Date.now()}`;
