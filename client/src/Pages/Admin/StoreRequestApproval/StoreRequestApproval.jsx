@@ -254,24 +254,27 @@ const StoreRequestApproval = () => {
       <main className="qms-main">
         <div className="qms-card">
           <div className="qms-top-bar">
-            <div className="qms-tabs">
+            <div className="qms-tabs-container">
               <button
-                className={`qms-tab ${activeTab === 'pending' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
                 onClick={() => setActiveTab('pending')}
               >
-                Pending Review ({tabCounts.pending})
+                <span>Pending Review</span>
+                <span className="qms-tab-count">{tabCounts.pending}</span>
               </button>
               <button
-                className={`qms-tab ${activeTab === 'approved' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
-                Approved History
+                <span>Approved History</span>
+                <span className="qms-tab-count">{tabCounts.approved}</span>
               </button>
               <button
-                className={`qms-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+                className={`qms-tab-btn ${activeTab === 'rejected' ? 'active' : ''}`}
                 onClick={() => setActiveTab('rejected')}
               >
-                Rejected
+                <span>Rejected</span>
+                <span className="qms-tab-count">{tabCounts.rejected}</span>
               </button>
             </div>
             <div className="qms-top-actions">
