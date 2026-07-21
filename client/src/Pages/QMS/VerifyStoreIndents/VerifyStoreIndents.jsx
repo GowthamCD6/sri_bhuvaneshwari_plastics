@@ -55,8 +55,11 @@ const VerifyStoreIndents = () => {
         
         console.log('Combined indents:', allIndentsData);
         
-        if (allIndentsData.length > 0) {
-          const transformedData = allIndentsData.map(indent => {
+        // Filter out Purchase Dept indents (they have customer_order_id = null)
+        const storeIndentsData = allIndentsData.filter(indent => indent.customer_order_id != null);
+        
+        if (storeIndentsData.length > 0) {
+          const transformedData = storeIndentsData.map(indent => {
             // Determine status based on workflow_stage
             let displayStatus = 'Pending QMS';
             let statusClass = 'badge-pending';
@@ -116,14 +119,10 @@ const VerifyStoreIndents = () => {
 
     // Filter by tab
     if (activeTab === 'pending') {
-      filtered = filtered.filter(indent => 
-        indent.status.toLowerCase().includes('pending') || 
-        indent.statusClass === 'badge-pending'
-      );
+      filtered = filtered.filter(indent => indent.workflowStage === 'QMS Verified');
     } else if (activeTab === 'verified') {
       filtered = filtered.filter(indent => 
-        indent.status.toLowerCase().includes('verified') || 
-        indent.statusClass === 'badge-verified'
+        ['Admin', 'Accountant', 'Completed'].includes(indent.workflowStage)
       );
     }
     // 'all' shows everything
@@ -144,14 +143,8 @@ const VerifyStoreIndents = () => {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const pending = allIndents.filter(i => 
-      i.status.toLowerCase().includes('pending') || 
-      i.statusClass === 'badge-pending'
-    ).length;
-    const verified = allIndents.filter(i => 
-      i.status.toLowerCase().includes('verified') || 
-      i.statusClass === 'badge-verified'
-    ).length;
+    const pending = allIndents.filter(i => i.workflowStage === 'QMS Verified').length;
+    const verified = allIndents.filter(i => ['Admin', 'Accountant', 'Completed'].includes(i.workflowStage)).length;
     const requiresPurchase = allIndents.filter(i => !i.poNumber).length;
     
     // For now, setting fully stocked to 0 as a placeholder until stock validation logic is implemented
