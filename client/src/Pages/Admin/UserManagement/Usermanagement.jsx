@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './Usermanagement.css';
 import { userService } from '../../../services/apiService';
+import RequirePermission from '../../../components/RequirePermission';
 
 // SVG Icons
 const Icons = {
@@ -352,10 +353,12 @@ const UserManagement = () => {
               </div>
             )}
           </div>
-          <button className="um-add-user-btn" type="button" onClick={openAddUserModal}>
-            <Icons.Plus />
-            Add New User
-          </button>
+          <RequirePermission permission="users:manage">
+            <button className="um-add-user-btn" type="button" onClick={openAddUserModal}>
+              <Icons.Plus />
+              Add New User
+            </button>
+          </RequirePermission>
         </div>
       </div>
 
@@ -606,12 +609,14 @@ const UserManagement = () => {
                   <span className="um-last-active">{user.lastActive}</span>
                 </td>
                 <td>
-                  <button 
-                    className="um-manage-btn"
-                    onClick={() => openEditUserModal(user)}
-                  >
-                    Manage
-                  </button>
+                  <RequirePermission permission="users:manage">
+                    <button 
+                      className="um-manage-btn"
+                      onClick={() => openEditUserModal(user)}
+                    >
+                      Manage
+                    </button>
+                  </RequirePermission>
                 </td>
               </tr>
             ))}

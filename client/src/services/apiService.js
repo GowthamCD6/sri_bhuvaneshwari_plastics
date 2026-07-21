@@ -7,72 +7,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
- * Get JWT token from cookie
- */
-const getTokenFromCookie = () => {
-  const name = 'jwt_token=';
-  const decodedCookie = decodeURIComponent(document.cookie);
-  const ca = decodedCookie.split(';');
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') {
-      c = c.substring(1);
-    }
-    if (c.indexOf(name) === 0) {
-      return c.substring(name.length, c.length);
-    }
-  }
-  return null;
-};
-
-/**
- * Set JWT token in cookie
- */
-const setTokenInCookie = (token, expiresInDays = 1) => {
-  const d = new Date();
-  d.setTime(d.getTime() + (expiresInDays * 24 * 60 * 60 * 1000));
-  const expires = 'expires=' + d.toUTCString();
-  document.cookie = `jwt_token=${token};${expires};path=/;SameSite=Strict`;
-};
-
-/**
- * Remove JWT token from cookie
- */
-const removeTokenFromCookie = () => {
-  document.cookie = 'jwt_token=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/';
-};
-
-/**
- * Store JWT in localStorage as backup
- */
-const setTokenInStorage = (token) => {
-  localStorage.setItem('jwt_token', token);
-};
-
-/**
- * Get JWT from localStorage as backup.
- * Also reads from Zustand's persisted auth-storage so the token
- * survives page refreshes even if the direct 'jwt_token' key is gone.
+ * Get JWT from localStorage as backup (for legacy support or specific scenarios)
  */
 const getTokenFromStorage = () => {
-  const direct = localStorage.getItem('jwt_token');
-  if (direct) return direct;
-
-  // Fallback: Zustand persist stores { state: { token: '...' }, version: 0 }
-  try {
-    const raw = localStorage.getItem('auth-storage');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const token = parsed?.state?.token;
-      if (token) {
-        // Re-sync the direct key so subsequent calls hit the fast path
-        localStorage.setItem('jwt_token', token);
-        return token;
-      }
-    }
-  } catch (_) {}
-
-  return null;
+  return null; // Disabled for HttpOnly cookies
 };
 
 /**
@@ -86,14 +24,14 @@ const removeTokenFromStorage = () => {
  * Store refresh token in localStorage
  */
 const setRefreshTokenInStorage = (token) => {
-  localStorage.setItem('refresh_token', token);
+  // Disabled
 };
 
 /**
  * Get refresh token from localStorage
  */
 const getRefreshTokenFromStorage = () => {
-  return localStorage.getItem('refresh_token');
+  return null;
 };
 
 /**
@@ -107,32 +45,28 @@ const removeRefreshTokenFromStorage = () => {
  * Clear all authentication data including Zustand persisted state
  */
 const clearAllAuth = () => {
-  removeTokenFromCookie();
   removeTokenFromStorage();
   removeRefreshTokenFromStorage();
   removeUserData();
   localStorage.removeItem('auth-storage');
+  // Instruct backend to clear HttpOnly cookie
+  fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(()=>console.log('Logout API failed'));
 };
 
 /**
- * Attempt to refresh the access token using the stored refresh token.
+ * Attempt to refresh the access token via HttpOnly cookies.
  * Returns true on success, false otherwise.
  */
 const _attemptTokenRefresh = async () => {
-  const storedRefreshToken = getRefreshTokenFromStorage();
-  if (!storedRefreshToken) return false;
   try {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ refreshToken: storedRefreshToken }),
+      credentials: 'include', // Sends refresh_token cookie automatically
     });
-    if (!response.ok) return false;
-    const data = await response.json();
-    if (data.token) {
-      setTokenInCookie(data.token);
-      setTokenInStorage(data.token);
+    
+    if (response.ok) {
+      // Backend automatically sets the new HttpOnly jwt_token cookie
       return true;
     }
     return false;
@@ -173,11 +107,6 @@ const fetchWithAuth = async (url, options = {}) => {
     ...options.headers,
   };
 
-  const token = getTokenFromCookie() || getTokenFromStorage();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
   const config = {
     ...options,
     headers,
@@ -205,6 +134,14 @@ const fetchWithAuth = async (url, options = {}) => {
       const sessionErr = new Error('Session expired. Please log in again.');
       sessionErr.status = 401;
       throw sessionErr;
+    }
+
+    // Handle global 403 Forbidden (RBAC/PBAC rejection)
+    if (response.status === 403) {
+      window.location.href = '/access-denied';
+      const err = new Error('Access Denied. Insufficient permissions.');
+      err.status = 403;
+      throw err;
     }
 
     const data = await response.json();
@@ -244,15 +181,7 @@ export const authService = {
       body: JSON.stringify({ mobile, password }),
     });
 
-    // Store token and user data when JWT is integrated
-    if (response.token) {
-      setTokenInCookie(response.token);
-      setTokenInStorage(response.token);
-    }
-    if (response.refreshToken) {
-      setRefreshTokenInStorage(response.refreshToken);
-    }
-    if (response.user) {
+    if (response.success && response.user) {
       setUserData(response.user);
     }
 
@@ -268,14 +197,7 @@ export const authService = {
       body: JSON.stringify({ token: googleToken }),
     });
 
-    if (response.token) {
-      setTokenInCookie(response.token);
-      setTokenInStorage(response.token);
-    }
-    if (response.refreshToken) {
-      setRefreshTokenInStorage(response.refreshToken);
-    }
-    if (response.user) {
+    if (response.success && response.user) {
       setUserData(response.user);
     }
 
@@ -888,17 +810,44 @@ export const categoryService = {
   },
 };
 
-// Export token management utilities for use in components if needed
+// ========================
+// ROLE SERVICES
+// ========================
+
+export const roleService = {
+  /**
+   * Get all roles
+   */
+  getAllRoles: async () => {
+    return await fetchWithAuth('/roles');
+  },
+
+  /**
+   * Get all permissions
+   */
+  getAllPermissions: async () => {
+    return await fetchWithAuth('/roles/permissions');
+  },
+
+  /**
+   * Get permissions for a specific role
+   */
+  getRolePermissions: async (roleId) => {
+    return await fetchWithAuth(`/roles/${roleId}/permissions`);
+  },
+
+  /**
+   * Update permissions for a specific role
+   */
+  updateRolePermissions: async (roleId, permissionIds) => {
+    return await fetchWithAuth(`/roles/${roleId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissionIds }),
+    });
+  },
+};
+
 export const tokenUtils = {
-  getToken: () => getTokenFromCookie() || getTokenFromStorage(),
-  setToken: (token) => {
-    setTokenInCookie(token);
-    setTokenInStorage(token);
-  },
-  removeToken: () => {
-    removeTokenFromCookie();
-    removeTokenFromStorage();
-  },
   getUserData,
   setUserData,
   removeUserData,
@@ -917,5 +866,6 @@ export default {
   stockAdjustmentService,
   dashboardService,
   categoryService,
+  roleService,
   tokenUtils,
 };
