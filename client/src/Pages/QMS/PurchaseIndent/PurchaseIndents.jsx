@@ -1807,9 +1807,7 @@ const NewPurchaseIndent = () => {
                 {validationErrors.materials && (
                   <div className="pi-error-message">{validationErrors.materials}</div>
                 )}
-                <div className="pi-total-order">
-                  Total Order Quantity: {calculateTotalOrder()} units
-                </div>
+
               </div>
               <button onClick={handleAddMaterial} className="pi-btn pi-btn-add-material">
                 <Plus size={16} />
@@ -1875,11 +1873,7 @@ const NewPurchaseIndent = () => {
               )}
             </div>
 
-            <div className="pi-materials-footer">
-              <span className="pi-materials-footer-text">
-                Materials added: {materials.length} | Total items: {calculateTotalOrder()}
-              </span>
-            </div>
+
           </div>
 
           {/* Part & PO Reference */}
