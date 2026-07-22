@@ -1,7 +1,3 @@
-env_file:
-  - ./client/.env
-  - ./server/.env
-
 services:
   sbp-frontend:
     container_name: sbp-frontend
@@ -22,27 +18,22 @@ services:
     container_name: sbp-backend
     build:
       context: ./server
-      dockerfile: Dockerfile
-    image: sbp-backend:latest
-    restart: unless-stopped
-    depends_on:
-      sbp-mysql:
-        condition: service_healthy
     env_file:
-      - path: ./server/.env
-        required: true
+      - ./server/.env
     ports:
       - "5001:5000"
     volumes:
       - /opt/uploads/sbp:/usr/src/app/uploads
+    depends_on:
+      sbp-mysql:
+        condition: service_healthy
 
   sbp-mysql:
     container_name: sbp-mysql
     image: mysql:8.4
     restart: unless-stopped
     env_file:
-      - path: ./server/.env
-        required: true
+      - ./server/.env
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
