@@ -1,0 +1,70 @@
+services:
+  sbp-frontend:
+    container_name: sbp-frontend
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+    image: sbp-frontend:latest
+    restart: unless-stopped
+    depends_on:
+      - sbp-backend
+    ports:
+      - "8081:80"
+
+  sbp-backend:
+    container_name: sbp-backend
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: sbp-backend:latest
+    restart: unless-stopped
+    depends_on:
+      sbp-mysql:
+        condition: service_healthy
+    env_file:
+      - path: ./server/.env
+        required: true
+    ports:
+      - "5001:5000"
+    volumes:
+      - /opt/uploads/sbp:/usr/src/app/uploads
+
+  sbp-mysql:
+    container_name: sbp-mysql
+    image: mysql:8.4
+    restart: unless-stopped
+    env_file:
+      - path: ./server/.env
+        required: true
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  sbp-nginx:
+    container_name: sbp-nginx
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - sbp-frontend
+      - sbp-backend
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
