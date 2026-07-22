@@ -1,0 +1,89 @@
+.store-request-approval .qms-main {
+  padding: 1.25rem;
+}
+
+.store-request-approval .qms-card {
+  border-radius: 0.75rem;
+}
+
+.store-request-approval .qms-table-header,
+.store-request-approval .qms-table-row {
+  grid-template-columns: 150px 120px 1fr 150px 110px 140px 196px;
+  gap: 0.875rem;
+}
+
+.store-request-approval .qms-status {
+  align-items: flex-start;
+}
+
+.store-request-approval .qms-status-text {
+  line-height: 1.35;
+}
+
+.store-request-approval .qms-view-btn {
+  min-width: 78px;
+  padding: 0.34rem 0.72rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.sra-actions-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sra-actions-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.sra-error {
+  margin: 1rem 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.sra-info-state {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1380px) {
+  .store-request-approval .qms-table-header,
+  .store-request-approval .qms-table-row {
+    grid-template-columns: 136px 104px 1fr 130px 98px 126px 186px;
+    gap: 0.75rem;
+  }
+
+  .store-request-approval .qms-search {
+    width: 17rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .store-request-approval .qms-main {
+    padding: 1rem;
+  }
+
+  .store-request-approval .qms-table-header,
+  .store-request-approval .qms-table-row {
+    grid-template-columns: 124px 96px 1fr 118px 92px 116px 176px;
+    gap: 0.625rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .store-request-approval .qms-tab {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}

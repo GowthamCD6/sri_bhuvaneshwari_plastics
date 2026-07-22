@@ -1,0 +1,121 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 72px;
+
+  /* Global Theme Tokens (source: QMS -> CustomerOrders) */
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --bg-light: #f8fafc;
+  --text-dark: #0f172a;
+  --text-medium: #334155;
+  --text-light: #94a3b8;
+  --border-color: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --white: #ffffff;
+
+  --success-green: #10b981;
+  --success-green-strong: #059669;
+  --success-green-hover: #047857;
+  --danger-red: #ef4444;
+  --danger-red-strong: #dc2626;
+  --danger-red-hover: #b91c1c;
+  --warning-orange: #f97316;
+
+  --surface-muted: #f1f5f9;
+  --accent-purple: #8b5cf6;
+
+  /* Semantic Surfaces (subtle banners, chips, highlights) */
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-text: #166534;
+
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-text: #1d4ed8;
+
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+
+  /* Badge Colors */
+  --badge-blue-bg: #dbeafe;
+  --badge-blue-text: #1e40af;
+  --badge-orange-bg: #f97316;
+  --badge-orange-text: #ffffff;
+  --badge-green-bg: #10b981;
+  --badge-green-text: #ffffff;
+
+  /* Radii + Shadows */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-light);
+  overflow: visible;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.main-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
+}
+
+.content-placeholder {
+  background: var(--white);
+  padding: 48px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--text-light);
+  border: 2px dashed var(--border-color);
+}
+
+.content-placeholder p {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
+}
