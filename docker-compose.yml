@@ -12,7 +12,7 @@ services:
     depends_on:
       - sbp-backend
     ports:
-      - "8081:80"
+      - "8082:80"
 
   sbp-backend:
     container_name: sbp-backend
@@ -21,7 +21,7 @@ services:
     env_file:
       - ./server/.env
     ports:
-      - "5001:5000"
+      - "5002:5000"
     volumes:
       - /opt/uploads/sbp:/usr/src/app/uploads
     depends_on:
@@ -40,7 +40,7 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "3307:3306"
+      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -53,7 +53,7 @@ services:
     container_name: sbp-nginx
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
