@@ -1,3 +1,7 @@
+env_file:
+  - ./client/.env
+  - ./server/.env
+
 services:
   sbp-frontend:
     container_name: sbp-frontend
