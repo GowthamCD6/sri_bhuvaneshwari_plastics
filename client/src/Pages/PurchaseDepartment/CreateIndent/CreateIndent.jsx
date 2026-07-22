@@ -18,7 +18,7 @@ const formatDateForInput = (value) => {
   if (!value) return getTodayDate();
 
   if (typeof value === 'string') {
-    const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+    const match = value.match(/^\d{4}-\d{2}-\d{2}$/); // only exact match YYYY-MM-DD
     if (match) return match[0];
   }
 
@@ -218,9 +218,11 @@ const CreatePurchaseIndent = () => {
   const location = useLocation();
   const { user } = useAuthStore();
 
-  const [indentNumber] = useState(generateIndentNumber);
+  const [indentNumber] = useState(() => {
+    return location.state?.storeRequest?.id || generateIndentNumber();
+  });
   const [formData, setFormData] = useState({
-    department: 'QMS',
+    department: 'Store',
     requiredDate: getTodayDate(),
     priority: 'Normal',
     reason: '',
@@ -385,7 +387,7 @@ const CreatePurchaseIndent = () => {
     try {
       setSubmitting(true);
       const response = await purchaseIndentService.createIndent(
-        buildPayload('Pending QMS Verification', 'QMS Init')
+        buildPayload('Pending QMS Verification', 'Purchase Dept')
       );
       if (storeRequest && storeRequest.id && response.data?.indent_id) {
         await storeRequestService.updateRequest(storeRequest.id, {
@@ -393,7 +395,7 @@ const CreatePurchaseIndent = () => {
           indentId: response.data.indent_id
         });
       }
-      showToast('success', 'Indent submitted for Store Verification.');
+      showToast('success', 'Indent submitted successfully.');
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
       console.error('Submit indent error:', err);
@@ -447,7 +449,7 @@ const CreatePurchaseIndent = () => {
             <div className="pi-form-grid">
               <div className="pi-field">
                 <label className="pi-label">Department</label>
-                <input className="pi-input" value="QMS" readOnly />
+                <input className="pi-input" value={formData.department} readOnly />
               </div>
 
               <div className="pi-field">

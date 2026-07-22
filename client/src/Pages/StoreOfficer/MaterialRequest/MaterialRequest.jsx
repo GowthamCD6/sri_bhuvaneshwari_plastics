@@ -29,7 +29,7 @@ const getTodayDate = () => {
 
 const parseDateParts = (value) => {
   const raw = String(value || '').trim();
-  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/); // Exact match only
   if (match) {
     return {
       year: Number(match[1]),

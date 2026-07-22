@@ -124,12 +124,14 @@ const getAllIndents = async (req, res) => {
       SELECT 
         pi.*,
         MAX(u.username) as requested_by_name,
+        MAX(r.role_name) as requested_by_role,
         MAX(co.indent_id) as customer_order_indent_id,
         MAX(co.customer_name) as customer_name,
         (SELECT component_name FROM customer_order_items coi WHERE coi.order_id = MAX(pi.customer_order_id) LIMIT 1) as customer_part_name,
         COUNT(pim.indent_material_id) as total_materials
       FROM purchase_indents pi
       LEFT JOIN users u ON pi.requested_by = u.user_id
+      LEFT JOIN roles r ON u.role_id = r.role_id
       LEFT JOIN customer_orders co ON pi.customer_order_id = co.order_id
       LEFT JOIN purchase_indent_materials pim ON pi.indent_id = pim.indent_id
       WHERE 1=1
