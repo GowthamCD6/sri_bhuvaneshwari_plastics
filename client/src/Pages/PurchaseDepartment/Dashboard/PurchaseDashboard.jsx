@@ -265,17 +265,7 @@ const PurchaseDashboard = () => {
           <h1 className="pd-page-title">Purchase Department Dashboard</h1>
           <p className="pd-page-sub">Live procurement operations overview</p>
         </div>
-        <div style={{ display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
-          <button className="pd-outline-btn" onClick={() => navigate("/store-requests")}>
-            <Ico.Inbox /> Store Requests
-          </button>
-          <button className="pd-primary-btn" onClick={() => navigate("/create-purchase-indent")}>
-            <Ico.Plus /> Create Indent
-          </button>
-          <button className={`pd-refresh-btn${loading?" pd-spin":""}`} onClick={fetchAll} disabled={loading}>
-            <Ico.Refresh /> {loading ? "Refreshing-" : "Refresh"}
-          </button>
-        </div>
+
       </div>
 
       {/* --- ROW 1 - 4 SEMI-CIRCLE GAUGES ----------------------------------- */}

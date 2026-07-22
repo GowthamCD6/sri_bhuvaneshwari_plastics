@@ -36,6 +36,7 @@ const VerifyPurchaseDeptIndents = () => {
 
       // Fetch Purchase Dept indents across all stages so we can show pending + history
       const responses = await Promise.all([
+        purchaseIndentService.getAllIndents({ workflowStage: 'Purchase Dept' }),
         purchaseIndentService.getAllIndents({ workflowStage: 'QMS Init' }),
         purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
         purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
@@ -47,9 +48,9 @@ const VerifyPurchaseDeptIndents = () => {
         return acc;
       }, []);
 
-      // Only keep Purchase Dept indents (no linked customer order)
+      // Only keep Purchase Dept indents (no linked customer order) and exclude Drafts
       const purchaseDeptIndents = allData
-        .filter((indent) => indent.customer_order_id == null)
+        .filter((indent) => indent.customer_order_id == null && indent.status !== 'Draft')
         .map((indent) => {
           const materials = Array.isArray(indent.materials) ? indent.materials : [];
           const first = materials[0];
@@ -67,7 +68,7 @@ const VerifyPurchaseDeptIndents = () => {
           let displayStatus;
           if (indent.status === 'Rejected') {
             displayStatus = 'Rejected';
-          } else if (indent.workflow_stage === 'QMS Init') {
+          } else if (indent.workflow_stage === 'Purchase Dept' || indent.workflow_stage === 'QMS Init') {
             displayStatus = 'Pending QMS Verification';
           } else if (['Admin', 'Accountant', 'Completed'].includes(indent.workflow_stage)) {
             displayStatus = 'QMS Approved';

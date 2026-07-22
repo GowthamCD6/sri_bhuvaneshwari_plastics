@@ -759,7 +759,7 @@ const NewPurchaseIndent = () => {
       formulaPiecesPerKg: '',
       formulaRmPercentage: '',
       formulaMatched: false,
-      customerPart: '',
+      customerPart: formData.indentNumber || '',
       poNumber: '',
       poDate: '',
       rmCost: '',
@@ -824,7 +824,7 @@ const NewPurchaseIndent = () => {
       if (field === 'description' || field === 'rawMaterial' || field === 'customerPart') {
         const formulaFields = buildFormulaFields(
           formulaRows,
-          field === 'customerPart' ? value : (updatedMaterial.customerPart || updatedMaterial.description),
+          field === 'description' ? value : updatedMaterial.description,
           field === 'rawMaterial' ? value : updatedMaterial.rawMaterial
         );
         const materialRecord = resolveMaterialRecord(
@@ -2044,16 +2044,6 @@ const NewPurchaseIndent = () => {
           <div className="pi-footer">
             <div className="pi-document-code">Document code: SBP/PI/IB/02-00 | v1.0</div>
             <div className="pi-footer-actions">
-              {user?.roleName !== 'Accountant' && (
-                <button 
-                  onClick={() => handleSubmit('save')}
-                  className="pi-btn pi-btn-outline"
-                  disabled={loading}
-                >
-                  <Save size={16} />
-                  Save draft
-                </button>
-              )}
               
               {user?.roleName === 'Accountant' ? (
                 formData.workflowStage === 'Accountant' && (

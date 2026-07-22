@@ -23,224 +23,29 @@ const SupplierManagement = () => {
   const [pageNotice, setPageNotice] = useState(null);
   const itemsPerPage = 5;
 
-  const [suppliers, setSuppliers] = useState([
-    {
-      id: 'SUP-001',
-      name: 'Reliance Polymers Ltd',
-      contactPerson: 'Rajesh Kumar',
-      phone: '+91 98765 43210',
-      email: 'rajesh@reliancepolymers.com',
-      address: '45, Industrial Area, Chennai - 600032',
-      category: 'Raw Materials',
-      gst: '33AABCT1234A1Z5',
-      status: 'active',
-      rating: 4.5,
-      totalOrders: 156,
-      lastOrder: 'Oct 20, 2024'
-    },
-    {
-      id: 'SUP-002',
-      name: 'Chennai Packaging Solutions',
-      contactPerson: 'Priya Sharma',
-      phone: '+91 87654 32109',
-      email: 'priya@chennaipack.com',
-      address: '78, Ambattur Industrial Estate, Chennai - 600058',
-      category: 'Packaging',
-      gst: '33AABCP5678B2Z6',
-      status: 'active',
-      rating: 4.2,
-      totalOrders: 89,
-      lastOrder: 'Oct 22, 2024'
-    },
-    {
-      id: 'SUP-003',
-      name: 'Metro Chemicals Pvt Ltd',
-      contactPerson: 'Suresh Menon',
-      phone: '+91 76543 21098',
-      email: 'suresh@metrochemicals.in',
-      address: '23, SIPCOT Industrial Park, Hosur - 635126',
-      category: 'Additives',
-      gst: '33AABCM9012C3Z7',
-      status: 'active',
-      rating: 4.0,
-      totalOrders: 67,
-      lastOrder: 'Oct 18, 2024'
-    },
-    {
-      id: 'SUP-004',
-      name: 'Southern Lubricants Co',
-      contactPerson: 'Anand Krishnan',
-      phone: '+91 65432 10987',
-      email: 'anand@southernlube.com',
-      address: '12, Industrial Complex, Coimbatore - 641014',
-      category: 'Maintenance',
-      gst: '33AABCS3456D4Z8',
-      status: 'inactive',
-      rating: 3.8,
-      totalOrders: 34,
-      lastOrder: 'Sep 15, 2024'
-    },
-    {
-      id: 'SUP-005',
-      name: 'Prime Plastics Industries',
-      contactPerson: 'Deepak Nair',
-      phone: '+91 54321 09876',
-      email: 'deepak@primeplastics.in',
-      address: '56, Guindy Industrial Estate, Chennai - 600032',
-      category: 'Raw Materials',
-      gst: '33AABCP7890E5Z9',
-      status: 'active',
-      rating: 4.7,
-      totalOrders: 203,
-      lastOrder: 'Oct 24, 2024'
-    },
-    {
-      id: 'SUP-006',
-      name: 'SafetyFirst Equipments',
-      contactPerson: 'Kavitha Rajan',
-      phone: '+91 43210 98765',
-      email: 'kavitha@safetyfirst.co.in',
-      address: '34, Anna Salai, Chennai - 600002',
-      category: 'Consumables',
-      gst: '33AABCS1234F6Z0',
-      status: 'active',
-      rating: 4.3,
-      totalOrders: 78,
-      lastOrder: 'Oct 21, 2024'
-    },
-    {
-      id: 'SUP-007',
-      name: 'Lab Solutions India',
-      contactPerson: 'Dr. Ramesh Iyer',
-      phone: '+91 32109 87654',
-      email: 'ramesh@labsolutions.in',
-      address: '89, Tech Park, Bangalore - 560100',
-      category: 'Lab Supplies',
-      gst: '29AABCL5678G7Z1',
-      status: 'active',
-      rating: 4.6,
-      totalOrders: 45,
-      lastOrder: 'Oct 19, 2024'
-    },
-    {
-      id: 'SUP-008',
-      name: 'Bharat Colorants',
-      contactPerson: 'Manoj Pillai',
-      phone: '+91 21098 76543',
-      email: 'manoj@bharatcolor.com',
-      address: '67, Industrial Zone, Hyderabad - 500032',
-      category: 'Additives',
-      gst: '36AABCB9012H8Z2',
-      status: 'inactive',
-      rating: 3.5,
-      totalOrders: 23,
-      lastOrder: 'Aug 10, 2024'
-    },
-    {
-      id: 'SUP-009',
-      name: 'TechPack Industries',
-      contactPerson: 'Sanjay Gupta',
-      phone: '+91 10987 65432',
-      email: 'sanjay@techpack.in',
-      address: '45, Noida Industrial Area, Noida - 201301',
-      category: 'Packaging',
-      gst: '09AABCT3456I9Z3',
-      status: 'active',
-      rating: 4.1,
-      totalOrders: 112,
-      lastOrder: 'Oct 23, 2024'
-    },
-    {
-      id: 'SUP-010',
-      name: 'Universal Polymers',
-      contactPerson: 'Vikram Singh',
-      phone: '+91 09876 54321',
-      email: 'vikram@universalpoly.com',
-      address: '90, Sector 18, Gurugram - 122015',
-      category: 'Raw Materials',
-      gst: '06AABCU7890J0Z4',
-      status: 'active',
-      rating: 4.4,
-      totalOrders: 178,
-      lastOrder: 'Oct 24, 2024'
-    },
-    {
-      id: 'SUP-011',
-      name: 'EcoPlast Solutions',
-      contactPerson: 'Ravi Menon',
-      phone: '+91 98765 43210',
-      email: 'ravi@ecoplast.in',
-      address: '123, Green Valley, Kochi - 682030',
-      category: 'Raw Materials',
-      gst: '32AABCE1234K1Z5',
-      status: 'active',
-      rating: 4.2,
-      totalOrders: 89,
-      lastOrder: 'Oct 22, 2024'
-    },
-    {
-      id: 'SUP-012',
-      name: 'Quality Control Labs',
-      contactPerson: 'Dr. Priya Sharma',
-      phone: '+91 87654 32109',
-      email: 'priya@qclabs.com',
-      address: '56, Science City, Pune - 411057',
-      category: 'Lab Supplies',
-      gst: '27AABCQ5678L2Z6',
-      status: 'active',
-      rating: 4.8,
-      totalOrders: 134,
-      lastOrder: 'Oct 25, 2024'
-    },
-    {
-      id: 'SUP-013',
-      name: 'Industrial Maintenance Co',
-      contactPerson: 'Sunil Kumar',
-      phone: '+91 76543 21098',
-      email: 'sunil@indmaint.com',
-      address: '78, Workshop Lane, Faridabad - 121001',
-      category: 'Maintenance',
-      gst: '06AABCI9012M3Z7',
-      status: 'inactive',
-      rating: 3.9,
-      totalOrders: 56,
-      lastOrder: 'Sep 12, 2024'
-    },
-    {
-      id: 'SUP-014',
-      name: 'Premium Additives Ltd',
-      contactPerson: 'Anjali Desai',
-      phone: '+91 65432 10987',
-      email: 'anjali@premiumadd.com',
-      address: '34, Chemical Complex, Vadodara - 390020',
-      category: 'Additives',
-      gst: '24AABCP3456N4Z8',
-      status: 'active',
-      rating: 4.3,
-      totalOrders: 167,
-      lastOrder: 'Oct 23, 2024'
-    },
-    {
-      id: 'SUP-015',
-      name: 'FlexiPack Materials',
-      contactPerson: 'Rahul Joshi',
-      phone: '+91 54321 09876',
-      email: 'rahul@flexipack.in',
-      address: '90, Packaging Zone, Mumbai - 400042',
-      category: 'Packaging',
-      gst: '27AABCF7890O5Z9',
-      status: 'active',
-      rating: 4.1,
-      totalOrders: 198,
-      lastOrder: 'Oct 24, 2024'
-    }
-  ]);
+  const [suppliers, setSuppliers] = useState([]);
 
   const fetchSuppliers = async () => {
     try {
-      const data = await supplierService.getAllSuppliers();
-      if (data && Array.isArray(data)) {
-        setSuppliers(data);
+      const res = await supplierService.getAllSuppliers();
+      const rows = res?.data || res || [];
+      if (Array.isArray(rows)) {
+        const mapped = rows.map(s => ({
+          id: s.supplier_id ? `SUP-${String(s.supplier_id).padStart(3, '0')}` : (s.id || `SUP-${Math.floor(Math.random()*1000)}`),
+          dbId: s.supplier_id,
+          name: s.supplier_name || s.name || '',
+          contactPerson: s.contact_person || s.contactPerson || '-',
+          phone: s.phone || '-',
+          email: s.email || '-',
+          address: s.address || '-',
+          category: s.category || 'Raw Materials',
+          gst: s.gstin || s.gst || '-',
+          status: (s.is_active || s.status === 'active') ? 'active' : 'inactive',
+          rating: s.rating || 0,
+          totalOrders: s.total_orders || s.totalOrders || 0,
+          lastOrder: s.last_order_date || s.lastOrder || '-'
+        }));
+        setSuppliers(mapped);
       }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
@@ -254,19 +59,18 @@ const SupplierManagement = () => {
 
   const [categories, setCategories] = useState(['All Categories']);
   const [dbMaterials, setDbMaterials] = useState([]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, invRes] = await Promise.all([
+        const [catRes, invRes] = await Promise.allSettled([
           categoryService.getAllCategories(),
           inventoryService.getAllInventory({ active: 'true' })
         ]);
-        if (catRes?.data) {
-          setCategories(['All Categories', ...catRes.data.map(c => c.category)]);
+        if (catRes.status === 'fulfilled' && catRes.value?.data) {
+          setCategories(['All Categories', ...catRes.value.data.map(c => c.category)]);
         }
-        if (invRes?.data) {
-          setDbMaterials(invRes.data);
+        if (invRes.status === 'fulfilled' && invRes.value?.data) {
+          setDbMaterials(invRes.value.data);
         }
       } catch (err) {
         console.error('Error fetching DB data:', err);
