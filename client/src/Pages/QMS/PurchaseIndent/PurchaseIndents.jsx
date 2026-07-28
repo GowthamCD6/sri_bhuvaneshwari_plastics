@@ -1743,7 +1743,6 @@ const NewPurchaseIndent = () => {
 
             {/* Materials List */}
             <div className="pi-materials-list">
-
               {materials.length === 0 ? (
                 <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
                   <p>No materials added yet. Click "Add material" to get started.</p>

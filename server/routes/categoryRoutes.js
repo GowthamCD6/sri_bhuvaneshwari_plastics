@@ -44,7 +44,6 @@ router.get('/', authorize('categories:read'), async (req, res) => {
       data: results
     });
   } catch (err) {
-    console.error('Database error in GET /api/categories:', err);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -137,7 +136,6 @@ router.post('/', authorize('categories:write'), async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Database error:', err);
     res.status(500).json({
       success: false,
       message: isProd ? 'Failed to create category' : `Failed to create category: ${err.sqlMessage || err.message}`
@@ -182,7 +180,6 @@ router.put('/:categoryName', authorize('categories:write'), async (req, res) => 
 
     res.status(200).json({ success: true, message: 'Category renamed successfully', data: { oldName: categoryName, newName } });
   } catch (err) {
-    console.error('Database error:', err);
     res.status(500).json({
       success: false,
       message: isProd ? 'Failed to rename category' : `Failed to rename category: ${err.sqlMessage || err.message}`
@@ -224,7 +221,6 @@ router.delete('/:categoryName', authorize('categories:write'), async (req, res) 
       message: 'Category deleted successfully'
     });
   } catch (err) {
-    console.error('Database error:', err);
     res.status(500).json({
       success: false,
       message: isProd ? 'Failed to delete category' : `Failed to delete category: ${err.sqlMessage || err.message}`

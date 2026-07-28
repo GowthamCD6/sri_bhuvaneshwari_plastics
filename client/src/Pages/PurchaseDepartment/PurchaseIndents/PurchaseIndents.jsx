@@ -27,8 +27,7 @@ const PurchaseIndents = () => {
       const mapped = data.map((indent) => {
         const materials = Array.isArray(indent.materials) ? indent.materials : [];
         const first = materials[0];
-        const isPurchaseDept = !indent.customer_order_id &&
-          (indent.workflow_stage === 'Purchase Dept' || indent.workflow_stage === 'QMS Init');
+        const isPurchaseDept = !indent.customer_order_id && indent.workflow_stage === 'Purchase Dept';
         return {
           id: indent.indent_number,
           date: new Date(indent.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -37,17 +36,21 @@ const PurchaseIndents = () => {
             : '-',
           rawRequiredDate: indent.required_by_date, // Pass raw date for editing/viewing
           material: first?.material_description || 'Materials',
-          category: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'Customer Order' : 'Store Request'),
+          category: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'Customer Indent' : 'Store Indent'),
           priority: String(indent.priority || 'NORMAL').toUpperCase(),
           status: indent.status || 'Pending',
-          origin: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'QMS Dept' : 'Store Request'),
+          origin: isPurchaseDept ? 'Purchase Dept' : (indent.customer_order_id ? 'QMS Dept' : 'Store Indent'),
           quantity: first?.quantity ? `${first.quantity} ${first.unit_of_measurement || ''}` : '-',
           requestedBy: indent.requested_by_name || '-',
           remarks: indent.reason || '',
           materials: materials,
         };
       });
-      setIndents(mapped);
+      
+      // Filter out customer indents (since they belong to QMS flow)
+      // Only show indents that are purely for the Purchase Department/Store
+      const purchaseDeptIndents = mapped.filter(item => item.origin !== 'QMS Dept');
+      setIndents(purchaseDeptIndents);
     } catch (err) {
       setError('Failed to load indents');
     } finally {
@@ -362,7 +365,7 @@ const PurchaseIndents = () => {
             <div className="qi-modal-footer">
               <button 
                 className="qi-btn-secondary"
-                onClick={() => navigate('/create-purchase-indent', { state: { indentId: selectedIndent.id, isViewMode: true } })}
+                onClick={() => navigate('/create-purchase-indent', { state: { indentData: selectedIndent, readOnly: true } })}
               >
                 View Full Indent
               </button>

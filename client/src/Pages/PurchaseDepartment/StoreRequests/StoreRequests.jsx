@@ -59,7 +59,7 @@ const StoreRequests = () => {
         priority: req.priority || 'Normal',
         status: (req.status || 'Pending').toLowerCase(),
         requestedBy: req.requested_by_name || 'Store Officer',
-        department: req.dept_name || '- ',
+        department: req.dept_name || 'Store',
         indentId: req.indent_id
       }));
       setRequests(mapped);
