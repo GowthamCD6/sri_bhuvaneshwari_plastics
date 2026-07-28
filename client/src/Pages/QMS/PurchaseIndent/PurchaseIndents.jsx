@@ -1939,7 +1939,7 @@ const NewPurchaseIndent = () => {
             <div className="pi-footer-actions">
               
               {user?.roleName === 'Accountant' ? (
-                formData.workflowStage === 'Accountant' && (
+                null /* formData.workflowStage === 'Accountant' && (
                   <button 
                     onClick={() => handleSubmit('submit')}
                     className="pi-btn pi-btn-primary"
@@ -1948,7 +1948,7 @@ const NewPurchaseIndent = () => {
                     <Check size={16} />
                     Mark as Processed
                   </button>
-                )
+                ) */
               ) : (
                 <button 
                   onClick={() => handleSubmit('submit')}

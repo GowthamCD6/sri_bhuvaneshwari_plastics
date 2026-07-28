@@ -186,7 +186,8 @@ const getAllIndents = async (req, res) => {
     console.error('Get indents error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch indents'
+      message: process.env.NODE_ENV === 'production' ? 'Failed to fetch indents' : 'Failed to fetch indents: ' + error.message,
+      ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
     });
   }
 };
