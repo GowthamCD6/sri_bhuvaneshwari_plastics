@@ -236,41 +236,91 @@ const CreatePurchaseIndent = () => {
   
   const storeRequest = location.state?.storeRequest;
   const viewIndentData = location.state?.indentData;
+  const passedIndentId = location.state?.indentId || viewIndentData?.indentId || viewIndentData?.indent_id;
   const readOnlyMode = location.state?.readOnly;
 
+  const targetIndentId = passedIndentId || viewIndentData?.indentId || viewIndentData?.indent_id;
+  const [currentIndentId, setCurrentIndentId] = useState(targetIndentId || null);
+
   useEffect(() => {
-    if (viewIndentData) {
-      setIsReadOnly(!!readOnlyMode);
+    const mapPriority = (p) => {
+      if (!p) return 'Normal';
+      const l = p.toString().toLowerCase();
+      if (l === 'high') return 'High';
+      if (l === 'urgent') return 'Urgent';
+      return 'Normal';
+    };
+
+    const mapRowData = (m, catalog = allMaterials) => {
+      const matDesc = (m.material_description || m.material_name || m.description || '').trim();
+      const matCode = (m.material_code || m.raw_material || m.materialCode || '').trim();
       
-      const mapPriority = (p) => {
-        if (!p) return 'Normal';
-        const l = p.toString().toLowerCase();
-        if (l === 'high') return 'High';
-        if (l === 'urgent') return 'Urgent';
-        return 'Normal';
+      const matched = catalog.find(mat => 
+        (m.material_id && mat.material_id === m.material_id) ||
+        (matDesc && mat.material_name?.toLowerCase().trim() === matDesc.toLowerCase()) ||
+        (matCode && mat.material_code?.toLowerCase().trim() === matCode.toLowerCase())
+      );
+
+      return {
+        _key: m.indent_material_id || Math.random(),
+        materialId: m.material_id || matched?.material_id || null,
+        description: matDesc || matched?.material_name || '',
+        materialCode: matCode || matched?.material_code || '',
+        warehouseLocation: m.warehouse_location || matched?.warehouse_location || '',
+        currentStock: m.current_stock ?? m.stock_quantity ?? matched?.current_stock ?? '',
+        quantity: m.quantity || '',
+        unit: m.unit_of_measurement || m.unit || matched?.unit_of_measurement || 'Kg',
+        remarks: m.specifications || m.remarks || ''
       };
+    };
 
-      setFormData(prev => ({
-        ...prev,
-        indentNumber: viewIndentData.id || viewIndentData.indent_number,
-        requiredDate: formatDateForInput(viewIndentData.rawRequiredDate),
-        priority: mapPriority(viewIndentData.priority),
-        reason: viewIndentData.remarks || viewIndentData.reason || ''
-      }));
+    if (viewIndentData || targetIndentId) {
+      setIsReadOnly(!!readOnlyMode);
+      if (targetIndentId) setCurrentIndentId(targetIndentId);
 
-      const mats = viewIndentData.materials || [];
-      if (mats.length > 0) {
-        setRows(mats.map(m => ({
-          _key: Math.random(),
-          materialId: m.material_id,
-          description: m.material_name || m.material_description || '',
-          materialCode: m.material_code || '',
-          warehouseLocation: m.warehouse_location || '',
-          currentStock: m.current_stock || m.stock_quantity || '',
-          quantity: m.quantity || '',
-          unit: m.unit_of_measurement || 'Kg',
-          remarks: m.specifications || m.remarks || ''
-        })));
+      if (viewIndentData) {
+        setFormData(prev => ({
+          ...prev,
+          indentNumber: viewIndentData.id || viewIndentData.indent_number || prev.indentNumber,
+          department: viewIndentData.department || 'Store',
+          requiredDate: formatDateForInput(viewIndentData.rawRequiredDate || viewIndentData.required_by_date || viewIndentData.request_date),
+          priority: mapPriority(viewIndentData.priority),
+          reason: viewIndentData.reason || viewIndentData.remarks || viewIndentData.justification || '',
+          status: viewIndentData.status || '',
+          workflowStage: viewIndentData.workflow_stage || viewIndentData.workflowStage || ''
+        }));
+
+        const mats = viewIndentData.materials || [];
+        if (mats.length > 0) {
+          setRows(mats.map(m => mapRowData(m)));
+        }
+      }
+
+      // Always fetch latest record from API if indentId is present to guarantee DB accuracy
+      if (targetIndentId) {
+        purchaseIndentService.getIndentById(targetIndentId)
+          .then(res => {
+            if (res.success && res.data) {
+              const indent = res.data;
+              setCurrentIndentId(indent.indent_id);
+              setFormData(prev => ({
+                ...prev,
+                indentNumber: indent.indent_number || indent.id || prev.indentNumber,
+                department: indent.department || 'Store',
+                requiredDate: formatDateForInput(indent.required_by_date || indent.request_date),
+                priority: mapPriority(indent.priority),
+                reason: indent.reason || indent.remarks || indent.justification || viewIndentData?.reason || viewIndentData?.remarks || '',
+                status: indent.status,
+                workflowStage: indent.workflow_stage
+              }));
+
+              const fetchedMats = indent.materials || [];
+              if (fetchedMats.length > 0) {
+                setRows(fetchedMats.map(m => mapRowData(m)));
+              }
+            }
+          })
+          .catch(() => {});
       }
     } else if (storeRequest) {
       setFormData(prev => ({
@@ -284,7 +334,7 @@ const CreatePurchaseIndent = () => {
         _key: Date.now(),
         materialId: null,
         description: storeRequest.material,
-        materialCode: storeRequest.code,
+        materialCode: storeRequest.code || '',
         warehouseLocation: '',
         currentStock: '',
         quantity: storeRequest.quantity,
@@ -292,7 +342,7 @@ const CreatePurchaseIndent = () => {
         remarks: storeRequest.specs || ''
       }]);
     }
-  }, [storeRequest, viewIndentData, readOnlyMode]);
+  }, [storeRequest, viewIndentData, targetIndentId, readOnlyMode, allMaterials]);
 
   useEffect(() => {
     materialService.getAllMaterials()
@@ -300,34 +350,71 @@ const CreatePurchaseIndent = () => {
         const materials = res.materials || res.data || [];
         setAllMaterials(materials);
         
-        if (storeRequest) {
-          const matchedMaterial = materials.find(m => 
-            m.material_name === storeRequest.material || 
-            m.material_code === storeRequest.code
+        // Enrich rows with materials catalog data
+        setRows(prevRows => prevRows.map(row => {
+          if (!row.description && !row.materialId) return row;
+          const matched = materials.find(m => 
+            (row.materialId && m.material_id === row.materialId) ||
+            (row.description && m.material_name?.toLowerCase().trim() === row.description.toLowerCase().trim()) ||
+            (row.materialCode && m.material_code?.toLowerCase().trim() === row.materialCode.toLowerCase().trim())
           );
-          if (matchedMaterial) {
-            setRows(prev => {
-              const r = prev[0];
-              return [{
-                ...r,
-                materialId: matchedMaterial.material_id,
-                materialCode: storeRequest.code || matchedMaterial.material_code,
-                warehouseLocation: matchedMaterial.warehouse_location,
-                currentStock: matchedMaterial.current_stock ?? matchedMaterial.stock_quantity ?? '',
-                quantity: storeRequest.quantity,
-                unit: storeRequest.unit || matchedMaterial.unit_of_measurement,
-                remarks: storeRequest.specs || ''
-              }];
-            });
+          if (matched) {
+            return {
+              ...row,
+              materialId: row.materialId || matched.material_id,
+              materialCode: row.materialCode || matched.material_code || '',
+              warehouseLocation: row.warehouseLocation || matched.warehouse_location || '',
+              currentStock: row.currentStock !== '' ? row.currentStock : (matched.current_stock ?? matched.stock_quantity ?? ''),
+              unit: row.unit || matched.unit_of_measurement || 'Kg'
+            };
           }
-        }
+          return row;
+        }));
       })
       .catch((err) => {});
-  }, [storeRequest]);
+  }, []);
 
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const userRole = user?.roleName?.toLowerCase() || '';
+  const isQmsOrAdmin = userRole === 'qms' || userRole === 'admin';
+  const isPendingVerification = 
+    formData.status === 'Pending QMS Verification' || 
+    formData.status === 'Pending QMS Approval' || 
+    formData.status === 'Pending Admin Approval' || 
+    ['Purchase Dept', 'QMS Init', 'QMS Verified', 'Admin'].includes(formData.workflowStage);
+  const canQmsVerify = isQmsOrAdmin && isReadOnly && currentIndentId && isPendingVerification && formData.status !== 'Rejected';
+
+  const handleQmsApprove = async () => {
+    try {
+      setSubmitting(true);
+      await purchaseIndentService.sendToNextStage(currentIndentId, { comments: 'Approved by QMS' });
+      showToast('success', 'Indent approved successfully.');
+      setTimeout(() => navigate(-1), 1200);
+    } catch (err) {
+      showToast('error', err.message || 'Failed to approve indent');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleQmsReject = async () => {
+    try {
+      setSubmitting(true);
+      await purchaseIndentService.updateIndentStatus(currentIndentId, {
+        status: 'Rejected',
+        comments: 'Rejected by QMS',
+      });
+      showToast('success', 'Indent rejected.');
+      setTimeout(() => navigate(-1), 1200);
+    } catch (err) {
+      showToast('error', err.message || 'Failed to reject indent');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleFieldChange = (key, value) => {
@@ -404,6 +491,30 @@ const CreatePurchaseIndent = () => {
     }
   };
 
+  const getStepState = (stepNumber) => {
+    const stage = formData.workflowStage || 'Purchase Dept';
+    const status = formData.status;
+
+    if (status === 'Rejected') return stepNumber === 1 ? 'active' : '';
+
+    if (stepNumber === 1) return 'active';
+    if (stepNumber === 2) {
+      if (['Purchase Dept', 'QMS Init'].includes(stage)) return 'active';
+      if (['Admin', 'Accountant', 'Completed'].includes(stage)) return 'active';
+      return '';
+    }
+    if (stepNumber === 3) {
+      if (stage === 'Admin') return 'active';
+      if (['Accountant', 'Completed'].includes(stage)) return 'active';
+      return '';
+    }
+    if (stepNumber === 4) {
+      if (['Accountant', 'Completed'].includes(stage)) return 'active';
+      return '';
+    }
+    return '';
+  };
+
   return (
     <div className="purchase-indent-page">
       <div className="purchase-indent-container">
@@ -422,6 +533,26 @@ const CreatePurchaseIndent = () => {
           </div>
           
           <div className="pi-header-right">
+            {canQmsVerify && (
+              <>
+                <button
+                  className="pi-btn"
+                  style={{ background: '#ef4444', color: 'white' }}
+                  onClick={handleQmsReject}
+                  disabled={submitting}
+                >
+                  Reject Indent
+                </button>
+                <button
+                  className="pi-btn"
+                  style={{ background: '#10b981', color: 'white' }}
+                  onClick={handleQmsApprove}
+                  disabled={submitting}
+                >
+                  Approve & Verify
+                </button>
+              </>
+            )}
             {!isReadOnly && (
               <button
                 className="pi-btn pi-btn-primary"
@@ -481,7 +612,7 @@ const CreatePurchaseIndent = () => {
                 <textarea
                   className="pi-textarea"
                   placeholder="e.g., Restocking for Q4 production..."
-                  value={formData.reason}
+                  value={formData.reason || (isReadOnly ? 'No specific reason specified (Standard material request)' : '')}
                   onChange={(e) => handleFieldChange('reason', e.target.value)}
                   disabled={isReadOnly}
                 />
@@ -535,19 +666,19 @@ const CreatePurchaseIndent = () => {
           <div className="pi-section">
             <h2 className="pi-section-title">Approval Workflow</h2>
             <div className="pi-workflow-steps">
-              <div className="pi-step-item active">
+              <div className={`pi-step-item ${getStepState(1)}`}>
                 <div className="pi-step-circle">1</div>
                 <div className="pi-step-label">Purchase Dept</div>
               </div>
-              <div className="pi-step-item">
+              <div className={`pi-step-item ${getStepState(2)}`}>
                 <div className="pi-step-circle">2</div>
                 <div className="pi-step-label">QMS Verification</div>
               </div>
-              <div className="pi-step-item">
+              <div className={`pi-step-item ${getStepState(3)}`}>
                 <div className="pi-step-circle">3</div>
-                <div className="pi-step-label">Admin Appoval</div>
+                <div className="pi-step-label">Admin Approval</div>
               </div>
-               <div className="pi-step-item">
+              <div className={`pi-step-item ${getStepState(4)}`}>
                 <div className="pi-step-circle">4</div>
                 <div className="pi-step-label">Accountant</div>
               </div>

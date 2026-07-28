@@ -34,46 +34,53 @@ const VerifyPurchaseDeptIndents = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch Purchase Dept indents across all stages so we can show pending + history
-      const responses = await Promise.all([
-        purchaseIndentService.getAllIndents({ workflowStage: 'Purchase Dept' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'QMS Init' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Completed' }),
-      ]);
+      // Fetch all indents directly in a single request
+      const response = await purchaseIndentService.getAllIndents();
+      let allData = [];
+      if (response && response.success && Array.isArray(response.data)) {
+        allData = response.data;
+      } else if (Array.isArray(response?.data)) {
+        allData = response.data;
+      } else if (Array.isArray(response)) {
+        allData = response;
+      }
 
-      const allData = responses.reduce((acc, res) => {
-        if (res.success && res.data) return [...acc, ...res.data];
-        return acc;
-      }, []);
+      // If no indents found via getAllIndents, fallback to getPurchaseDeptIndents
+      if (allData.length === 0) {
+        try {
+          const deptRes = await purchaseIndentService.getPurchaseDeptIndents();
+          if (deptRes && deptRes.success && Array.isArray(deptRes.data)) {
+            allData = deptRes.data;
+          }
+        } catch (e) {}
+      }
 
       // Only keep Purchase Dept indents (no linked customer order) and exclude Drafts
       const purchaseDeptIndents = allData
-        .filter((indent) => indent.customer_order_id == null && indent.status !== 'Draft')
+        .filter((indent) => (!indent.customer_order_id || indent.customer_order_id === null) && indent.status !== 'Draft')
         .map((indent) => {
           const materials = Array.isArray(indent.materials) ? indent.materials : [];
           const first = materials[0];
           const materialName = first?.material_description || 'Materials';
+          const materialCode = first?.material_code || first?.raw_material || 'N/A';
           const quantity = first?.quantity
-            ? `${first.quantity}${first.unit_of_measurement || ''}`
+            ? `${first.quantity} ${first.unit_of_measurement || ''}`.trim()
             : '-';
           const details =
             materials.length > 1
-              ? `${quantity} • +${materials.length - 1} more`
-              : `${quantity} • ${materialName}`;
+              ? `${quantity} • +${materials.length - 1} more items`
+              : quantity;
           
-          const itemCountText = materials.length > 0 ? `${materials.length} Items` : '0 Items';
+          const itemCountText = materials.length > 0 ? `${materials.length} Item${materials.length > 1 ? 's' : ''}` : '0 Items';
+          const reasonText = indent.reason || indent.remarks || 'Standard Material Request';
 
           let displayStatus;
           if (indent.status === 'Rejected') {
             displayStatus = 'Rejected';
-          } else if (indent.workflow_stage === 'Purchase Dept' || indent.workflow_stage === 'QMS Init') {
-            displayStatus = 'Pending QMS Verification';
           } else if (['Admin', 'Accountant', 'Completed'].includes(indent.workflow_stage)) {
             displayStatus = 'QMS Approved';
           } else {
-            displayStatus = indent.status;
+            displayStatus = 'Pending QMS Verification';
           }
 
           return {
@@ -81,11 +88,14 @@ const VerifyPurchaseDeptIndents = () => {
             indentId: indent.indent_id,
             date: formatDate(indent.request_date),
             material: materialName,
+            materialCode,
+            reason: reasonText,
             details,
             requestedBy: indent.requested_by_name || 'Purchase Department',
             urgency: toUrgencyLabel(indent.priority),
             status: displayStatus,
             itemCount: itemCountText,
+            rawIndent: indent,
           };
         });
 
@@ -111,7 +121,7 @@ const VerifyPurchaseDeptIndents = () => {
     const searched = !q
       ? indents
       : indents.filter((indent) =>
-          [indent.id, indent.material, indent.details, indent.requestedBy, indent.status]
+          [indent.id, indent.material, indent.materialCode, indent.reason, indent.details, indent.requestedBy, indent.status]
             .filter(Boolean)
             .join(' ')
             .toLowerCase()
@@ -133,8 +143,8 @@ const VerifyPurchaseDeptIndents = () => {
 
   const handleViewIndent = (indent) => {
     if (!indent?.indentId) return;
-    navigate('/qms-purchase-indents', {
-      state: { indentId: indent.indentId, isViewMode: true },
+    navigate('/create-purchase-indent', {
+      state: { indentId: indent.indentId, indentData: indent.rawIndent || indent, readOnly: true },
     });
   };
 
@@ -251,10 +261,10 @@ const VerifyPurchaseDeptIndents = () => {
             <thead>
               <tr>
                 <th>INDENT ID</th>
-                <th>PROJECT / CUSTOMER</th>
+                <th>MATERIAL & CODE</th>
+                <th>REASON / PURPOSE</th>
                 <th>RAISED BY</th>
                 <th>ITEMS</th>
-                <th>PO NUMBER</th>
                 <th>VERIFICATION STATUS</th>
                 <th style={{ textAlign: 'right' }}>ACTIONS</th>
               </tr>
@@ -270,10 +280,18 @@ const VerifyPurchaseDeptIndents = () => {
                       <div className="vsi-subtext">{indent.date}</div>
                     </td>
 
-                    {/* Material / Dept */}
+                    {/* Material & Code */}
                     <td>
                       <div className="vsi-text-bold">{indent.material}</div>
-                      <div className="vsi-subtext-blue">{indent.details}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                        <span className="vpdi-code-badge">Code: {indent.materialCode}</span>
+                        <span className="vsi-subtext-blue" style={{ marginTop: 0 }}>({indent.details})</span>
+                      </div>
+                    </td>
+
+                    {/* Reason / Purpose */}
+                    <td style={{ maxWidth: '240px' }}>
+                      <div className="vpdi-reason-text">{indent.reason}</div>
                     </td>
 
                     {/* Raised By */}
@@ -290,11 +308,6 @@ const VerifyPurchaseDeptIndents = () => {
                       <div className="vsi-subtext">{indent.urgency}</div>
                     </td>
 
-                    {/* PO Number */}
-                    <td>
-                      <div className="vsi-text-bold">N/A</div>
-                    </td>
-
                     {/* Verification Status */}
                     <td>
                       <span className={`vsi-badge ${
@@ -308,10 +321,12 @@ const VerifyPurchaseDeptIndents = () => {
 
                     {/* Actions */}
                     <td style={{ textAlign: 'right' }}>
-                       <button className="vsi-btn-verify" onClick={() => handleViewIndent(indent)}>
-                          <Eye size={16} style={{ marginRight: '4px' }} />
-                          View
-                        </button>
+                       <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'flex-end' }}>
+                         <button className="vsi-btn-verify" onClick={() => handleViewIndent(indent)}>
+                            <Eye size={16} style={{ marginRight: '4px' }} />
+                            View
+                         </button>
+                       </div>
                     </td>
 
                   </tr>

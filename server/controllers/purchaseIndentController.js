@@ -167,7 +167,10 @@ const getAllIndents = async (req, res) => {
     // Get materials for each indent
     for (let indent of indents) {
       const [materials] = await db.query(
-        'SELECT * FROM purchase_indent_materials WHERE indent_id = ?',
+        `SELECT pim.*, COALESCE(m.material_code, pim.raw_material) AS material_code, COALESCE(m.warehouse_location, '') AS warehouse_location, m.material_name
+         FROM purchase_indent_materials pim
+         LEFT JOIN materials m ON (pim.material_id = m.material_id OR LOWER(TRIM(pim.material_description)) = LOWER(TRIM(m.material_name)) OR pim.raw_material = m.material_code)
+         WHERE pim.indent_id = ?`,
         [indent.indent_id]
       );
       indent.materials = materials;
@@ -226,7 +229,10 @@ const getIndentById = async (req, res) => {
 
     // Get indent materials
     const [materials] = await db.query(
-      'SELECT * FROM purchase_indent_materials WHERE indent_id = ? ORDER BY indent_material_id',
+      `SELECT pim.*, COALESCE(m.material_code, pim.raw_material) AS material_code, COALESCE(m.warehouse_location, '') AS warehouse_location, m.material_name
+       FROM purchase_indent_materials pim
+       LEFT JOIN materials m ON (pim.material_id = m.material_id OR LOWER(TRIM(pim.material_description)) = LOWER(TRIM(m.material_name)) OR pim.raw_material = m.material_code)
+       WHERE pim.indent_id = ? ORDER BY pim.indent_material_id`,
       [id]
     );
 
@@ -293,8 +299,8 @@ const createIndent = async (req, res) => {
     const { indentResult, indentNumber } = await insertIndentWithGeneratedNumber(async (generatedIndentNumber) => {
       const [result] = await db.query(
         `INSERT INTO purchase_indents 
-          (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, status, workflow_stage, po_number, po_date, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (indent_number, customer_order_id, requested_by, request_date, required_by_date, priority, reason, status, workflow_stage, po_number, po_date, order_quantity, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           generatedIndentNumber,
           customerOrderId || null,
@@ -302,6 +308,7 @@ const createIndent = async (req, res) => {
           requestDate,
           requiredByDate,
           priority || 'Standard',
+          req.body.reason || reason || null,
           status || 'Draft',
           workflowStage || 'QMS Init',
           poNumber || null,
@@ -433,6 +440,11 @@ const updateIndentStatus = async (req, res) => {
     if (workflowStage) {
       updateFields.push('workflow_stage = ?');
       updateParams.push(workflowStage);
+    }
+
+    if (req.body.reason !== undefined || reason !== undefined) {
+      updateFields.push('reason = ?');
+      updateParams.push(req.body.reason !== undefined ? req.body.reason : reason);
     }
 
     if (poNumber !== undefined) {
@@ -948,18 +960,33 @@ const createPurchaseDeptIndent = async (req, res) => {
 
     // Insert materials
     for (const m of materials) {
+      let matId = m.materialId || m.material_id || null;
+      let matCode = m.materialCode || m.material_code || m.rawMaterial || m.raw_material || null;
+
+      if (!matId && m.description) {
+        const [matMatch] = await db.query(
+          'SELECT material_id, material_code FROM materials WHERE material_name = ? OR material_code = ? LIMIT 1',
+          [m.description.trim(), m.description.trim()]
+        );
+        if (matMatch.length > 0) {
+          matId = matMatch[0].material_id;
+          if (!matCode) matCode = matMatch[0].material_code;
+        }
+      }
+
       await db.query(
         `INSERT INTO purchase_indent_materials
-          (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, specifications)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          (indent_id, material_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, specifications)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           indentId,
+          matId,
           m.description.trim(),
-          m.rawMaterial || m.raw_material || null,
+          matCode,
           parseFloat(m.quantity),
           m.unit || 'Kg',
           parseFloat(m.currentStock) || 0,
-          m.specifications || null
+          m.specifications || m.remarks || null
         ]
       );
     }

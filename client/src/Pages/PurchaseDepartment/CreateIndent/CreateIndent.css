@@ -135,30 +135,34 @@
 
 .pi-section {
   background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
 }
 
 .pi-section-title {
   font-size: 16px;
   font-weight: 700;
-  color: #1f2937;
+  color: #0f172a;
   margin: 0 0 20px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-left: 4px solid #2563eb;
+  padding-left: 12px;
 }
 
 .pi-section-info {
-  font-size: 13px;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 4px 8px;
-  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* -- Form Fields ----------------------------------------------------------- */
@@ -180,9 +184,9 @@
 }
 
 .pi-label {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  color: #374151;
+  color: #1e293b;
 }
 
 .pi-input,
@@ -191,22 +195,26 @@
   width: 100%;
   padding: 10px 14px;
   font-size: 14px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   background: white;
-  color: #1f2937;
+  color: #0f172a;
+  font-weight: 500;
   transition: all 0.2s;
   font-family: inherit;
 }
 .pi-input:focus, .pi-select:focus, .pi-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 .pi-input:disabled, .pi-select:disabled, .pi-textarea:disabled {
-  background: #f9fafb;
-  color: #6b7280;
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #e2e8f0;
   cursor: not-allowed;
+  font-weight: 500;
+  opacity: 1;
 }
 
 .pi-textarea {
@@ -217,7 +225,7 @@
 /* -- Table (Adapted to match pi- styles) ----------------------------------- */
 .pi-table-wrap {
   overflow-x: auto;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
 }
 
@@ -227,21 +235,21 @@
 }
 
 .pi-th {
-  background: #f9fafb;
+  background: #f8fafc;
   text-align: left;
   padding: 12px 16px;
   font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: 700;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #cbd5e1;
   white-space: nowrap;
 }
 
 .pi-tr td {
   padding: 12px 16px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e2e8f0;
   vertical-align: top;
 }
 .pi-tr:last-child td {
@@ -262,8 +270,8 @@
   left: 0;
   z-index: 50;
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   width: 100%;
   min-width: 250px;
@@ -274,13 +282,13 @@
 .cpi-dropdown-item {
   padding: 8px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   justify-content: space-between;
 }
-.cpi-dropdown-item:hover { background: #f9fafb; }
-.cpi-dropdown-name { font-size: 13px; font-weight: 500; color: #1f2937; }
-.cpi-dropdown-code { font-size: 11px; color: #6b7280; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+.cpi-dropdown-item:hover { background: #f8fafc; }
+.cpi-dropdown-name { font-size: 13px; font-weight: 600; color: #0f172a; }
+.cpi-dropdown-code { font-size: 11px; color: #0284c7; background: #f0f9ff; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd; }
 
 /* -- Workflow Steps (Styled like pi-workflow) ------------------------------ */
 .pi-workflow-steps {
@@ -293,49 +301,61 @@
 .pi-workflow-steps::before {
   content: "";
   position: absolute;
-  top: 15px;
+  top: 16px;
   left: 40px;
   right: 40px;
-  height: 2px;
-  background: #e5e7eb;
+  height: 3px;
+  background: #e2e8f0;
   z-index: 0;
 }
 .pi-step-item {
   display: flex;
   flex-direction: column;
-  items-align: center;
+  align-items: center;
   gap: 8px;
   position: relative;
   z-index: 1;
   background: white;
-  padding: 0 10px;
+  padding: 0 12px;
 }
 .pi-step-circle {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: #f3f4f6;
-  color: #9ca3af;
+  background: #f1f5f9;
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #cbd5e1;
+  transition: all 0.3s ease;
 }
 .pi-step-item.active .pi-step-circle {
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: white;
   border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+.pi-step-item.rejected .pi-step-circle {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
 }
 .pi-step-label {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   font-weight: 500;
 }
 .pi-step-item.active .pi-step-label {
-  color: #1f2937;
-  font-weight: 600;
+  color: #0f172a;
+  font-weight: 700;
+}
+.pi-step-item.rejected .pi-step-label {
+  color: #b91c1c;
+  font-weight: 700;
 }
 
 /* Delete Action */
