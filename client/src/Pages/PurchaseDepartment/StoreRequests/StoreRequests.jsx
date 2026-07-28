@@ -64,7 +64,6 @@ const StoreRequests = () => {
       }));
       setRequests(mapped);
     } catch (err) {
-      console.error('Failed to fetch store requests:', err);
       setError('Failed to load store requests');
     } finally {
       setLoading(false);
@@ -160,7 +159,6 @@ const StoreRequests = () => {
       setSelectedRequest(null);
       // alert('Request rejected successfully');
     } catch (err) {
-      console.error('Failed to reject request:', err);
       alert('Failed to reject request');
     } finally {
       setIsProcessing(false);

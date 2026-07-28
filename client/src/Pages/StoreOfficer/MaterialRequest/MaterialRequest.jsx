@@ -147,7 +147,6 @@ const MaterialRequest = () => {
       }});
       setAllRequests(mapped);
     } catch (err) {
-      console.error('Failed to fetch requests:', err);
       setError('Failed to load requests');
     } finally {
       setLoading(false);
@@ -249,7 +248,6 @@ const MaterialRequest = () => {
           (request) => String(request.material_code || '').toLowerCase() === materialCode.toLowerCase()
         ) || null;
       } catch (err) {
-        console.error('Failed to fetch material details for restock prefill:', err);
       }
 
       if (!isActive) return;
@@ -441,7 +439,6 @@ const MaterialRequest = () => {
       const rawRequest = response.data || {};
       setNewRequest(buildRequestFormState(rawRequest, request));
     } catch (err) {
-      console.error('Failed to fetch request details for edit:', err);
       setNewRequest(buildRequestFormState(request));
     }
 
@@ -453,7 +450,6 @@ const MaterialRequest = () => {
       storeRequestService.deleteRequest(request.dbId)
         .then(() => fetchRequests())
         .catch((err) => {
-          console.error('Failed to delete request:', err);
           alert('Failed to delete request');
         });
     }
@@ -479,7 +475,6 @@ const MaterialRequest = () => {
         }));
       }
     } catch (err) {
-      console.error('Failed to fetch material on blur:', err);
     }
   };
 
@@ -509,7 +504,6 @@ const MaterialRequest = () => {
     apiCall
       .then(() => fetchRequests())
       .catch((err) => {
-        console.error(`Failed to ${editingId ? 'update' : 'create'} request:`, err);
         alert(`Failed to ${editingId ? 'update' : 'create'} request`);
       })
       .finally(() => {

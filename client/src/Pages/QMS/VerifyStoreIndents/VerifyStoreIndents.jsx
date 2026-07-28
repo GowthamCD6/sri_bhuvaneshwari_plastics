@@ -28,7 +28,6 @@ const VerifyStoreIndents = () => {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching all indents for QMS verification');
         // Fetch indents from multiple workflow stages:
         // 1. QMS Init: Draft indents created by QMS
         // 2. Store Officer: Submitted by QMS, pending Store Officer review
@@ -43,7 +42,6 @@ const VerifyStoreIndents = () => {
           purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
         ]);
         
-        console.log('Fetched responses:', responses);
         
         // Combine all responses
         const allIndentsData = responses.reduce((acc, response) => {
@@ -53,7 +51,6 @@ const VerifyStoreIndents = () => {
           return acc;
         }, []);
         
-        console.log('Combined indents:', allIndentsData);
         
         // Filter out Purchase Dept indents (they have customer_order_id = null)
         const storeIndentsData = allIndentsData.filter(indent => indent.customer_order_id != null);
@@ -99,11 +96,9 @@ const VerifyStoreIndents = () => {
             };
           });
           
-          console.log('Transformed indents:', transformedData);
           setAllIndents(transformedData);
         }
       } catch (err) {
-        console.error('Error fetching indents:', err);
         setError('Failed to load indents');
       } finally {
         setLoading(false);
@@ -195,8 +190,6 @@ const VerifyStoreIndents = () => {
 
   // Navigate to view indent details
   const handleViewIndent = (indent) => {
-    console.log('🔍 Navigating to indent:', indent);
-    console.log('Indent ID being passed:', indent.indentId);
     
     // Clear any existing state and navigate with fresh state
     navigate('/qms-purchase-indents', {

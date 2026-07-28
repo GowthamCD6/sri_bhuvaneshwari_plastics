@@ -84,7 +84,6 @@ const StockAdjustment = () => {
       setMaterials(mappedMaterials);
       setHistory(mappedHistory);
     } catch (err) {
-      console.error('Failed to load stock adjustment data:', err);
       setError('Failed to load stock adjustment data');
     } finally {
       setLoading(false);
@@ -302,7 +301,6 @@ const StockAdjustment = () => {
         setNotes('');
       })
       .catch((err) => {
-        console.error('Failed to create adjustment:', err);
         alert('Failed to create adjustment');
       });
   };

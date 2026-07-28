@@ -90,7 +90,6 @@ const AccountantDashboard = () => {
       ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       setIndents(allData);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }

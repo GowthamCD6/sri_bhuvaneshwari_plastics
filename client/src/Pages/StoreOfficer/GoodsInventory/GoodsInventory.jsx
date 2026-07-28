@@ -147,7 +147,6 @@ const MaterialManager = () => {
         setActiveCategory(mappedCategories[0].name);
       }
     } catch (err) {
-      console.error('Failed to fetch inventory:', err);
       setError('Failed to load materials');
     } finally {
       setLoading(false);
@@ -241,7 +240,6 @@ const MaterialManager = () => {
         showToast('error', response.message || 'Failed to create category');
       }
     } catch (err) {
-      console.error('Failed to create category:', err);
       showToast('error', err.message || 'Failed to create category. Please try again.');
     }
   };
@@ -352,7 +350,6 @@ const MaterialManager = () => {
         setModalStatus(null);
       }, 1800);
     } catch (err) {
-      console.error('Failed to create material:', err);
       const msg = err?.data?.message || err?.message || 'Failed to create material. Please try again.';
       setModalStatus({ type: 'error', message: msg });
     } finally {
@@ -369,7 +366,6 @@ const MaterialManager = () => {
       setSelectedMaterial(null);
       fetchInventory().catch(() => {});
     } catch (err) {
-      console.error('Failed to delete material:', err);
     } finally {
       setDeleting(false);
     }

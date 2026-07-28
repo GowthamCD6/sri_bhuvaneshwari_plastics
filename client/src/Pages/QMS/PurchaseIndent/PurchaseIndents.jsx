@@ -196,11 +196,6 @@ const NewPurchaseIndent = () => {
   // Track if we've loaded indent data
   const [indentDataLoaded, setIndentDataLoaded] = useState(false);
   
-  console.log('=== NAVIGATION STATE CHECK ===');
-  console.log('location.state:', location.state);
-  console.log('passedIndentId:', passedIndentId);
-  console.log('fromCustomerOrder:', fromCustomerOrder);
-  console.log('orderData:', orderData);
 
   // State declarations - NO DUMMY DATA
   const [materials, setMaterials] = useState([]);
@@ -320,7 +315,6 @@ const NewPurchaseIndent = () => {
         }
       }, 800);
     } catch (deleteError) {
-      console.error('Delete indent error:', deleteError);
       showModal('Delete Failed', deleteError.message || 'Failed to delete purchase indent.', 'error');
     } finally {
       setLoading(false);
@@ -346,11 +340,6 @@ const NewPurchaseIndent = () => {
 
   // Debug: Log user info on mount
   useEffect(() => {
-    console.log('=== PURCHASE INDENT COMPONENT MOUNTED ===');
-    console.log('Current user:', user);
-    console.log('User roleName:', user?.roleName);
-    console.log('Is view mode:', isViewMode);
-    console.log('Passed indent ID:', passedIndentId);
   }, []);
 
   useEffect(() => {
@@ -363,7 +352,6 @@ const NewPurchaseIndent = () => {
 
         setFormulaRows(Array.isArray(data?.rows) ? data.rows : []);
       } catch (error) {
-        console.error('Failed to load formula rows:', error);
         if (isActive) {
           setFormulaRows([]);
         }
@@ -397,7 +385,6 @@ const NewPurchaseIndent = () => {
 
         setMaterialCatalog(list);
       } catch (error) {
-        console.error('Failed to load materials catalog:', error);
         if (isActive) {
           setMaterialCatalog([]);
         }
@@ -417,15 +404,10 @@ const NewPurchaseIndent = () => {
 
   // Debug: Track formData.poFilePath changes
   useEffect(() => {
-    console.log('=== FORM DATA PO FILE PATH CHANGED ===');
-    console.log('formData.poFilePath:', formData.poFilePath);
-    console.log('Should show View button:', !!formData.poFilePath);
   }, [formData.poFilePath]);
 
   // Debug: Track workflow stage changes
   useEffect(() => {
-    console.log('=== WORKFLOW STAGE CHANGED ===');
-    console.log('formData.workflowStage:', formData.workflowStage);
   }, [formData.workflowStage]);
 
   // Pre-fill form if coming from customer order (ONLY for new indents, not when viewing existing)
@@ -436,11 +418,6 @@ const NewPurchaseIndent = () => {
     // CRITICAL: Only run if explicitly coming from customer order AND no indent ID exists
     // This prevents overwriting materials when viewing existing indents
     if (fromCustomerOrder && orderData && !passedIndentId && !createdIndentId && !indentDataLoaded) {
-      console.log('=== PURCHASE INDENT: Receiving customer order data ===');
-      console.log('Order Data:', orderData);
-      console.log('Order Items:', orderData.orderItems);
-      console.log('Indent Date:', orderData.indentDate);
-      console.log('Indent ID:', orderData.indentId);
       
       // Get earliest required_by_date from order items
       let earliestRequiredDate = '';
@@ -448,17 +425,11 @@ const NewPurchaseIndent = () => {
         const dates = orderData.orderItems
           .map(item => item.required_by_date || item.required_date)
           .filter(date => date);
-        console.log('Extracted dates from items:', dates);
         if (dates.length > 0) {
           earliestRequiredDate = dates.sort()[0];
         }
       }
 
-      console.log('Setting form data with:');
-      console.log('- indentNumber:', orderData.indentId);
-      console.log('- indentDate:', orderData.indentDate);
-      console.log('- requiredByDate:', earliestRequiredDate);
-      console.log('- requestedBy:', orderData.customerName);
 
       const orderQuantity = getCustomerOrderQuantity(orderData.orderItems || []);
 
@@ -532,13 +503,10 @@ const NewPurchaseIndent = () => {
             rmPercentage: formulaFields.formulaRmPercentage ? formatPercentage(formulaFields.formulaRmPercentage) : '',
           };
         });
-        console.log('Setting materials from customer order (NEW indent only):', orderMaterials);
         setMaterials(orderMaterials);
       } else {
-        console.log('No order items to set as materials');
       }
     } else if (passedIndentId || createdIndentId) {
-      console.log('⚠️ SKIPPING customer order data - viewing existing indent ID:', passedIndentId || createdIndentId);
     }
   }, [fromCustomerOrder, orderData, passedIndentId, createdIndentId, indentDataLoaded, formulaRowsLoaded, materialCatalogLoaded, formulaRows, materialCatalog]);
 
@@ -621,10 +589,6 @@ const NewPurchaseIndent = () => {
         if (response.success && response.data) {
           const indent = response.data;
           
-          console.log('=== FETCHED INDENT DATA ===');
-          console.log('Full indent:', indent);
-          console.log('PO Number from DB:', indent.po_number);
-          console.log('PO Date from DB:', indent.po_date);
           
           setFormData({
             department: indent.department || 'stores',
@@ -652,18 +616,7 @@ const NewPurchaseIndent = () => {
             poFilePath: resolvePoFilePath(indent)
           });
           
-          console.log('=== FORM DATA AFTER SET ===');
-          console.log('Workflow Stage:', indent.workflow_stage || 'QMS Init');
-          console.log('poNumber:', indent.po_number || '(empty)');
-          console.log('poDate:', indent.po_date || '(empty)');
-          console.log('poFilePath from DB:', resolvePoFilePath(indent) || '(no file)');
-          console.log('Store Officer Notes:', indent.store_officer_notes || '(none)');
-          console.log('QMS Notes:', indent.qms_notes || '(none)');
-          console.log('Admin Notes:', indent.admin_notes || '(none)');
-          console.log('Indent Date from DB:', indent.indent_date || indent.request_date);
-          console.log('Required By Date from DB:', indent.required_by_date);
 
-          console.log('Materials from indent:', indent.materials);
           if (indent.materials && indent.materials.length > 0) {
             const mappedMaterials = indent.materials.map(m => {
               const formulaFields = buildFormulaFields(
@@ -706,20 +659,14 @@ const NewPurchaseIndent = () => {
                 rmPercentage: m.rm_percentage || (formulaFields.formulaRmPercentage ? formatPercentage(formulaFields.formulaRmPercentage) : '') || '',
               };
             });
-            console.log('✅ FETCH INDENT: Setting', mappedMaterials.length, 'materials');
-            console.log('Material descriptions:', mappedMaterials.map(m => m.description));
-            console.log('Full materials data:', mappedMaterials);
             setMaterials(mappedMaterials);
             setIndentDataLoaded(true);
           } else {
-            console.log('⚠️ No materials found in indent or materials array is empty');
-            console.log('indent.materials value:', indent.materials);
             setMaterials([]);
             setIndentDataLoaded(true);
           }
         }
       } catch (err) {
-        console.error('Error fetching indent:', err);
         setError('Failed to load purchase indent');
       } finally {
         setLoading(false);
@@ -922,7 +869,6 @@ const NewPurchaseIndent = () => {
       ? `${API_BASE_URL}/purchase-indents/${currentIndentId}/download-po`
       : `${apiOrigin}/uploads/${formData.poFilePath}`;
 
-    console.log('Opening file URL:', fileUrl);
     window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -963,9 +909,6 @@ const NewPurchaseIndent = () => {
       let workflowStage = 'QMS Init';
       let status = 'Draft';
 
-      console.log('User role:', user?.roleName);
-      console.log('Action:', action);
-      console.log('passedIndentId:', passedIndentId);
 
       if (action === 'submit') {
         if (user?.roleName === 'StoreOfficer' && passedIndentId) {
@@ -1014,23 +957,17 @@ const NewPurchaseIndent = () => {
         }))
       };
 
-      console.log('Submitting indent data:', indentData);
-      console.log('Materials count:', materials.length);
-      console.log('Action:', action, 'Workflow Stage:', workflowStage, 'Status:', status);
-      console.log('Full indent data being sent:', JSON.stringify(indentData, null, 2));
 
       let response;
       let finalIndentId = createdIndentId || passedIndentId;
       
       // ALWAYS check if indent with this number exists (resubmission should overwrite)
       if (!finalIndentId && indentNumber) {
-        console.log('Checking for existing indent with number:', indentNumber);
         try {
           const checkResponse = await purchaseIndentService.getAllIndents({});
           const existingIndent = resolveIndentArray(checkResponse).find(i => i.indent_number === indentNumber);
           
           if (existingIndent?.indent_id) {
-            console.log('Found existing indent - will overwrite ID:', existingIndent.indent_id);
             finalIndentId = existingIndent.indent_id;
             setCreatedIndentId(existingIndent.indent_id);
             if (!formData.indentNumber) {
@@ -1038,17 +975,14 @@ const NewPurchaseIndent = () => {
             }
           }
         } catch (checkError) {
-          console.log('Could not check for existing indent:', checkError.message);
         }
       }
       
       if (finalIndentId) {
         // Update existing indent (including resubmissions)
-        console.log('Updating existing indent:', finalIndentId);
         
         // If submitting to next stage (not just saving draft), use sendToNextStage
         if (action === 'submit') {
-          console.log('Submitting to next workflow stage - using sendToNextStage');
           response = await purchaseIndentService.sendToNextStage(finalIndentId, {
             poNumber: formData.poNumber || null,
             poDate: formData.poDate || null,
@@ -1079,7 +1013,6 @@ const NewPurchaseIndent = () => {
           });
         } else {
           // Just saving as draft - use regular update
-          console.log('Saving as draft - using updateIndentStatus');
           response = await purchaseIndentService.updateIndentStatus(finalIndentId, {
             status: status,
             workflowStage: workflowStage,
@@ -1110,24 +1043,20 @@ const NewPurchaseIndent = () => {
         }
       } else {
         // No existing indent found - create new one
-        console.log('Creating new indent');
         try {
           response = await purchaseIndentService.createIndent(indentData);
           
           // Store the created indent ID for subsequent operations
           if (response.success && response.data?.indent_id) {
             setCreatedIndentId(response.data.indent_id);
-            console.log('Stored created indent ID:', response.data.indent_id);
           }
         } catch (createError) {
           // If creation fails due to duplicate, fetch and update instead
           if (createError.message?.includes('already exists')) {
-            console.log('Creation failed - indent exists. Fetching and updating...');
             const allIndents = await purchaseIndentService.getAllIndents({});
             const existingIndent = resolveIndentArray(allIndents).find(i => i.indent_number === indentNumber);
             
             if (existingIndent?.indent_id) {
-              console.log('Found indent ID:', existingIndent.indent_id, '- Overwriting');
               setCreatedIndentId(existingIndent.indent_id);
               finalIndentId = existingIndent.indent_id;
               
@@ -1196,10 +1125,6 @@ const NewPurchaseIndent = () => {
         }
       }
 
-      console.log('=== API RESPONSE ===');
-      console.log('Success:', response.success);
-      console.log('Response data:', response.data);
-      console.log('Full response:', JSON.stringify(response, null, 2));
 
       if (response.success) {
         // Update formData with the saved indent number and ID
@@ -1220,45 +1145,30 @@ const NewPurchaseIndent = () => {
         // Upload PO file if selected
         if (selectedPOFile && savedIndentId) {
           try {
-            console.log('===== FILE UPLOAD STARTING =====');
-            console.log('Uploading PO file for indent:', savedIndentId);
-            console.log('Selected file:', selectedPOFile.name);
             const uploadResponse = await purchaseIndentService.uploadPOFile(savedIndentId, selectedPOFile);
-            console.log('Upload response:', uploadResponse);
             if (uploadResponse.success) {
-              console.log('PO file uploaded successfully!');
-              console.log('Response data:', uploadResponse.data);
               // Update formData with the actual file path from server
               const actualFilePath = resolvePoFilePath(uploadResponse.data);
-              console.log('Extracted file path:', actualFilePath);
               setFormData(prev => ({ 
                 ...prev, 
                 poFilePath: actualFilePath 
               }));
               setSelectedPOFile(null); // Clear file selection after upload
-              console.log('===== FILE UPLOAD COMPLETE =====');
-              console.log('formData.poFilePath should now be:', actualFilePath);
             } else {
-              console.error('Upload failed - response not successful:', uploadResponse);
             }
           } catch (uploadError) {
-            console.error('===== FILE UPLOAD ERROR =====');
-            console.error('Failed to upload PO file:', uploadError);
             poUploadFailed = true;
             poUploadErrorMessage = uploadError.message || 'Failed to upload PO file.';
           }
         } else {
-          console.log('Skipping file upload - selectedPOFile:', !!selectedPOFile, 'savedIndentId:', savedIndentId);
         }
         
         // Refetch the indent data after any submission to get updated workflow, materials, and file path
         if (savedIndentId) {
           try {
-            console.log('Refreshing indent data after submission...');
             const refreshResponse = await purchaseIndentService.getIndentById(savedIndentId);
             if (refreshResponse.success && refreshResponse.data) {
               const indent = refreshResponse.data;
-              console.log('Refreshed indent data:', indent);
               
               // Update formData with latest data
               setFormData(prev => ({ 
@@ -1291,14 +1201,11 @@ const NewPurchaseIndent = () => {
                   stockMatched: true,
                   isEditing: false
                 }));
-                console.log('✅ Refresh: Setting', mappedMaterials.length, 'materials:', mappedMaterials.map(m => m.description));
                 setMaterials(mappedMaterials);
               } else {
-                console.log('⚠️ Refresh: No materials in response');
               }
             }
           } catch (refreshError) {
-            console.log('Could not refresh indent data:', refreshError.message);
           }
         }
 
@@ -1336,7 +1243,6 @@ const NewPurchaseIndent = () => {
         }, 2000);
       }
     } catch (err) {
-      console.error('Submit error:', err);
       setError(err.response?.data?.message || err.message || 'Failed to process purchase indent');
     } finally {
       setLoading(false);
@@ -1367,7 +1273,6 @@ const NewPurchaseIndent = () => {
 
   // Render material card with edit capability
   const renderMaterialCard = (material, index) => {
-    console.log(`🎨 Rendering material card ${index + 1}:`, material.description, '| isEditing:', material.isEditing);
 
     const { compStock, rmStock } = (() => {
       const normalizedComponent = normalizeText(material.description);
@@ -1396,7 +1301,6 @@ const NewPurchaseIndent = () => {
       return { compStock: comp, rmStock: rm };
     })();
     if (material.isEditing) {
-      console.log('  ↳ Rendering EDITING mode');
       return (
         <div key={material.id} className="pi-material-card editing">
           <div className="pi-material-number">{index + 1}</div>
@@ -1484,7 +1388,6 @@ const NewPurchaseIndent = () => {
       );
     }
 
-    console.log('  ↳ Rendering DISPLAY mode');
     return (
       <div key={material.id} className="pi-material-card">
         <div className="pi-material-number">{index + 1}</div>
@@ -1840,16 +1743,7 @@ const NewPurchaseIndent = () => {
 
             {/* Materials List */}
             <div className="pi-materials-list">
-              {console.log('🔍 RENDERING MATERIALS LIST:', {
-                materialsLength: materials.length,
-                filteredLength: filteredMaterials.length,
-                groupBySupplier,
-                searchQuery,
-                userRole: user?.roleName,
-                isViewMode,
-                passedIndentId,
-                materialsData: materials.map(m => ({ id: m.id, desc: m.description, isEditing: m.isEditing }))
-              })}
+
               {materials.length === 0 ? (
                 <div style={{padding: '40px', textAlign: 'center', color: '#64748b'}}>
                   <p>No materials added yet. Click "Add material" to get started.</p>

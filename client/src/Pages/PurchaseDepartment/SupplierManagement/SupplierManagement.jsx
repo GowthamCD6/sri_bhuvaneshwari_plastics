@@ -48,7 +48,6 @@ const SupplierManagement = () => {
         setSuppliers(mapped);
       }
     } catch (error) {
-      console.error('Error fetching suppliers:', error);
       setPageNotice({ type: 'error', message: 'Failed to load suppliers' });
     }
   };
@@ -73,7 +72,6 @@ const SupplierManagement = () => {
           setDbMaterials(invRes.value.data);
         }
       } catch (err) {
-        console.error('Error fetching DB data:', err);
       }
     };
     fetchData();

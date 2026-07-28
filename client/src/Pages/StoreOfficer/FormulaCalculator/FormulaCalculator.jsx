@@ -233,7 +233,6 @@ const FormulaCalculator = () => {
         await reloadRowsFromServer();
         setError(null);
       } catch (err) {
-        console.error('Error loading calculator:', err);
         // Keep table empty on load error
         setRows([]);
         setError(null);
@@ -393,7 +392,6 @@ const FormulaCalculator = () => {
       setError(null);
       setActionMessage({ type: 'success', text: 'Row added successfully.' });
     } catch (err) {
-      console.error('Error adding row:', err);
       setError('Failed to add row. Please try again.');
       setActionMessage({ type: 'danger', text: 'Failed to add row.' });
     } finally {
@@ -516,7 +514,6 @@ const FormulaCalculator = () => {
       setError(null);
       setActionMessage({ type: 'danger', text: 'Row deleted successfully.' });
     } catch (err) {
-      console.error('Error deleting row:', err);
       setError('Failed to delete row. Please try again.');
       setActionMessage({ type: 'danger', text: 'Failed to delete row.' });
     } finally {
@@ -675,7 +672,6 @@ const FormulaCalculator = () => {
       setEditPanelErrors({});
       setActionMessage({ type: 'success', text: 'Row updated successfully.' });
     } catch (err) {
-      console.error('Error updating row:', err);
       setEditPanelErrors({ general: 'Failed to update row: ' + err.message });
       setActionMessage({ type: 'danger', text: 'Failed to update row.' });
     } finally {

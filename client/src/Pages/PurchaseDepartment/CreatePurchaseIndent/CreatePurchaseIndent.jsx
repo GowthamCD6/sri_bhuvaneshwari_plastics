@@ -214,7 +214,6 @@ const CreatePurchaseIndent = () => {
           setIndentNumber(nextIndentNumber);
         }
       } catch (err) {
-        console.error('Failed to load next indent number:', err);
         if (isActive) {
           setIndentNumber(`IND-${new Date().getFullYear()}-001`);
         }

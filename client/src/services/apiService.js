@@ -50,7 +50,7 @@ const clearAllAuth = () => {
   removeUserData();
   localStorage.removeItem('auth-storage');
   // Instruct backend to clear HttpOnly cookie
-  fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(()=>console.log('Logout API failed'));
+  fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(()=>{});
 };
 
 /**
@@ -160,7 +160,6 @@ const fetchWithAuth = async (url, options = {}) => {
       err.status = 0;
       throw err;
     }
-    console.error('API Error:', error);
     throw error;
   } finally {
     clearTimeout(timeoutId);
@@ -211,7 +210,6 @@ export const authService = {
     try {
       await fetchWithAuth('/auth/logout', { method: 'POST' });
     } catch (error) {
-      console.error('Logout error:', error);
     } finally {
       clearAllAuth();
     }

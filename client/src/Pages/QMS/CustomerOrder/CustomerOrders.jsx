@@ -127,7 +127,6 @@ const CustomerOrders = () => {
       const response = await customerOrderService.getAllOrders({});
       setOrders(response.data || []);
     } catch (err) {
-      console.error('Failed to fetch orders:', err);
       setError('Failed to load orders');
     } finally {
       setLoading(false);
@@ -150,7 +149,6 @@ const CustomerOrders = () => {
         handleCloseModal();
       }
     } catch (err) {
-      console.error('Failed to create order:', err);
       alert('Failed to create order: ' + (err.message || 'Unknown error'));
     }
   };
@@ -192,7 +190,6 @@ const CustomerOrders = () => {
         return;
       }
     } catch (lookupError) {
-      console.error('Could not resolve linked purchase indent from order list:', lookupError);
     }
 
     navigate('/qms-purchase-indents', {
@@ -222,7 +219,6 @@ const CustomerOrders = () => {
       }
       setSelectedOrder(order);
     } catch (detailError) {
-      console.error('Failed to load order details:', detailError);
       setSelectedOrder(order);
     }
   };

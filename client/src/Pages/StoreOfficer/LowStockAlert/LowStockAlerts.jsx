@@ -54,7 +54,6 @@ const LowStockAlerts = () => {
         });
         setAlerts(mapped);
       } catch (err) {
-        console.error('Failed to fetch low stock materials:', err);
         setError('Failed to load low stock alerts');
       } finally {
         setLoading(false);

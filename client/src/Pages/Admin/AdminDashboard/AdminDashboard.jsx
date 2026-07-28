@@ -97,7 +97,6 @@ const AdminDashboard = () => {
           setPendingIndents([]);
         }
       } catch (err) {
-        console.error('Admin dashboard fetch error:', err);
         setError('Failed to load dashboard data');
       } finally {
         setLoading(false);

@@ -82,5 +82,4 @@ app.get('/api/health', (req, res) => {
 
 
 app.listen(port, async () => {
-    console.log(`Server running on port ${port}`);
 });

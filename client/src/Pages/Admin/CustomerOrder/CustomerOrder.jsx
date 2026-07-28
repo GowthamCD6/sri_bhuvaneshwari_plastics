@@ -78,7 +78,6 @@ const CustomerOrderApprovals = () => {
         sourceLabel: 'Customer Order',
       });
     } catch (err) {
-      console.error('Failed to export indent details:', err);
       alert('Failed to download selected purchase indent PDF');
     } finally {
       setDownloadingIndentId(null);
@@ -90,7 +89,6 @@ const CustomerOrderApprovals = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching all indents for Admin approval');
       // Fetch indents from multiple workflow stages:
       // 1. Admin: Pending for Admin approval
       // 2. Accountant, Completed: Already approved by Admin, showing history
@@ -100,7 +98,6 @@ const CustomerOrderApprovals = () => {
         purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
       ]);
       
-      console.log('Admin fetched responses:', responses);
       
       // Combine all responses
       const allIndentsData = responses.reduce((acc, response) => {
@@ -110,7 +107,6 @@ const CustomerOrderApprovals = () => {
         return acc;
       }, []);
       
-      console.log('Admin combined indents:', allIndentsData);
       
       const mapped = allIndentsData.map((indent) => {
         const materials = Array.isArray(indent.materials) ? indent.materials : [];
@@ -147,7 +143,6 @@ const CustomerOrderApprovals = () => {
       });
       setIndents(mapped);
     } catch (err) {
-      console.error('Failed to fetch admin approvals:', err);
       setError('Failed to load approvals');
     } finally {
       setLoading(false);

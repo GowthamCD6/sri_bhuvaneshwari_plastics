@@ -43,7 +43,6 @@ export const formulaCalculatorService = {
       const response = await fetchWithAuth(ENDPOINT);
       return response;
     } catch (error) {
-      console.error('Error fetching calculators:', error);
       throw error;
     }
   },
@@ -54,7 +53,6 @@ export const formulaCalculatorService = {
       const response = await fetchWithAuth(`${ENDPOINT}/default`);
       return response;
     } catch (error) {
-      console.error('Error fetching default calculator:', error);
       // Keep UI usable even if default endpoint is not ready.
       return {
         calculator_id: null,
@@ -70,7 +68,6 @@ export const formulaCalculatorService = {
       const response = await fetchWithAuth(`${ENDPOINT}/${id}`);
       return response;
     } catch (error) {
-      console.error('Error fetching calculator:', error);
       throw error;
     }
   },
@@ -84,7 +81,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error creating calculator:', error);
       throw error;
     }
   },
@@ -98,7 +94,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error updating calculator:', error);
       throw error;
     }
   },
@@ -111,7 +106,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error deleting calculator:', error);
       throw error;
     }
   },
@@ -125,7 +119,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error creating row:', error);
       throw error;
     }
   },
@@ -139,7 +132,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error updating row:', error);
       throw error;
     }
   },
@@ -152,7 +144,6 @@ export const formulaCalculatorService = {
       });
       return response;
     } catch (error) {
-      console.error('Error deleting row:', error);
       throw error;
     }
   }

@@ -163,7 +163,6 @@ const Dashboard = () => {
         setRecentRequests(Array.isArray(all) ? all.slice(0, 5) : []);
       }
     } catch (err) {
-      console.error('Dashboard fetch:', err);
     } finally {
       setLoading(false);
     }

@@ -11,7 +11,6 @@ router.use(verifyToken);
  * Get all categories with material counts
  */
 router.get('/', authorize('categories:read'), async (req, res) => {
-  console.log('GET /api/categories - Fetching all categories');
   
   const query = `
     SELECT 
@@ -40,8 +39,6 @@ router.get('/', authorize('categories:read'), async (req, res) => {
       return a.category.localeCompare(b.category);
     });
 
-    console.log('Categories fetched:', results.length, 'categories');
-    console.log('Categories data:', results);
     res.status(200).json({
       success: true,
       data: results
@@ -60,17 +57,12 @@ router.get('/', authorize('categories:read'), async (req, res) => {
  * Note: Creates a placeholder material entry to establish the category
  */
 router.post('/', authorize('categories:write'), async (req, res) => {
-  console.log('=== POST /api/categories - Create Category ===');
-  console.log('Request body:', req.body);
-  console.log('User:', req.user);
   
   const { name } = req.body;
   const userId = req.user?.userId;
 
-  console.log('Extracted data - name:', name, 'userId:', userId);
 
   if (!name || !name.trim()) {
-    console.log('Validation failed: Category name is required');
     return res.status(400).json({
       success: false,
       message: 'Category name is required'
@@ -86,18 +78,14 @@ router.post('/', authorize('categories:write'), async (req, res) => {
       message: 'Category name must be 50 characters or less'
     });
   }
-  console.log('Processing category name:', categoryName);
 
   try {
     // Check if category already exists
     const checkQuery = 'SELECT category FROM materials WHERE category = ? LIMIT 1';
-    console.log('Checking if category exists...');
     
     const [results] = await db.query(checkQuery, [categoryName]);
-    console.log('Check query results:', results);
 
     if (results.length > 0) {
-      console.log('Category already exists:', categoryName);
       return res.status(409).json({
         success: false,
         message: 'Category already exists'
@@ -110,7 +98,6 @@ router.post('/', authorize('categories:write'), async (req, res) => {
     const maxSlugLen = 50 - 'CAT-'.length - '-'.length - String(now).length;
     const safeSlug = slug.length > maxSlugLen ? slug.substring(0, maxSlugLen) : slug;
     const materialCode = `CAT-${safeSlug}-${now}`;
-    console.log('Creating placeholder material with code:', materialCode);
     
     const insertQuery = `
       INSERT INTO materials (
@@ -138,10 +125,8 @@ router.post('/', authorize('categories:write'), async (req, res) => {
       'Placeholder entry for category creation'
     ];
 
-    console.log('Insert query values:', values);
 
     const [result] = await db.query(insertQuery, values);
-    console.log('Category created successfully! Insert result:', result);
     
     res.status(201).json({
       success: true,

@@ -4,7 +4,6 @@ const path = require('path');
 
 async function runMigration() {
   try {
-    console.log('Running formula calculator table migration...\n');
     
     // Read the SQL file
     const sqlPath = path.join(__dirname, 'database/add_formula_calculator_table.sql');
@@ -16,23 +15,17 @@ async function runMigration() {
       .map(stmt => stmt.trim())
       .filter(stmt => stmt && !stmt.startsWith('--'));
     
-    console.log(`Found ${statements.length} SQL statements\n`);
     
     // Execute each statement
     for (let i = 0; i < statements.length; i++) {
       const stmt = statements[i];
-      console.log(`Executing statement ${i + 1}/${statements.length}...`);
-      console.log(`Statement preview: ${stmt.substring(0, 80)}...`);
       
       try {
         await db.query(stmt);
-        console.log(`✓ Success\n`);
       } catch (err) {
-        console.log(`✗ Error: ${err.message}\n`);
       }
     }
     
-    console.log('Migration complete!');
     
     // Verify tables created
     const [tables] = await db.query(`
@@ -41,8 +34,7 @@ async function runMigration() {
       AND TABLE_NAME IN ('formula_calculators', 'formula_calculator_rows', 'formulas')
     `);
     
-    console.log('\nTables created:');
-    tables.forEach(t => console.log(`  ✓ ${t.TABLE_NAME}`));
+    tables.forEach(t => );
     
     process.exit(0);
   } catch (err) {

@@ -119,7 +119,6 @@ const QMSDashboard = () => {
         setAllIndents(Array.isArray(indents) ? indents.slice(0, 6) : []);
       }
     } catch (err) {
-      console.error('Dashboard fetch:', err);
     } finally {
       setLoading(false);
     }

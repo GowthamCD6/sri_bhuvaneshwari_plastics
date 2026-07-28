@@ -320,7 +320,7 @@ const CreatePurchaseIndent = () => {
           }
         }
       })
-      .catch((err) => console.error('Failed to load materials:', err));
+      .catch((err) => );
   }, [storeRequest]);
 
   const showToast = (type, message) => {
@@ -396,7 +396,6 @@ const CreatePurchaseIndent = () => {
       showToast('success', 'Indent submitted for Store Verification.');
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
-      console.error('Submit indent error:', err);
       showToast('error', err.message || 'Failed to submit indent.');
     } finally {
       setSubmitting(false);

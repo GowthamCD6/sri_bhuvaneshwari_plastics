@@ -29,7 +29,6 @@ const CustomerIndents = () => {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching all indents for Accountant verification');
         // Fetch indents from multiple workflow stages:
         // 1. Accountant: Pending for accountant processing
         // 2. Completed: Already verified/processed
@@ -38,7 +37,6 @@ const CustomerIndents = () => {
           purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
         ]);
         
-        console.log('Fetched responses:', responses);
         
         // Combine all responses
         const allIndentsData = responses.reduce((acc, response) => {
@@ -48,7 +46,6 @@ const CustomerIndents = () => {
           return acc;
         }, []);
         
-        console.log('Combined indents:', allIndentsData);
         
         if (allIndentsData.length > 0) {
           const transformedData = allIndentsData.map(indent => {
@@ -93,11 +90,9 @@ const CustomerIndents = () => {
             };
           });
           
-          console.log('Transformed indents:', transformedData);
           setAllIndents(transformedData);
         }
       } catch (err) {
-        console.error('Error fetching indents:', err);
         setError('Failed to load indents');
       } finally {
         setLoading(false);
@@ -201,8 +196,6 @@ const CustomerIndents = () => {
 
   // Navigate to view indent details
   const handleViewIndent = (indent) => {
-    console.log('🔍 Navigating to indent:', indent);
-    console.log('Indent ID being passed:', indent.indentId);
     
     // Clear any existing state and navigate with fresh state
     navigate('/accountant-purchase-indents', {

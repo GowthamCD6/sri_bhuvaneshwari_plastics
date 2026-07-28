@@ -98,7 +98,6 @@ const RequestIndent = () => {
           setIndentNumber(nextIndentNumber);
         }
       } catch (err) {
-        console.error('Failed to load next indent number:', err);
         if (isActive) {
           setIndentNumber(`IND-${new Date().getFullYear()}-001`);
         }
@@ -193,7 +192,6 @@ const RequestIndent = () => {
       alert('Purchase indent created successfully.');
       navigate('/store-requests');
     } catch (err) {
-      console.error('Failed to create request indent:', err);
       alert(err.message || 'Failed to create purchase indent.');
     } finally {
       setSubmitting(false);

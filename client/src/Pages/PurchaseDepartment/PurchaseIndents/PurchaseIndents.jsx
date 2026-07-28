@@ -49,7 +49,6 @@ const PurchaseIndents = () => {
       });
       setIndents(mapped);
     } catch (err) {
-      console.error('Failed to fetch indents:', err);
       setError('Failed to load indents');
     } finally {
       setLoading(false);

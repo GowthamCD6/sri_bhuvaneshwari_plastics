@@ -101,7 +101,6 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
         setFormulaRows(Array.isArray(data?.rows) ? data.rows : []);
         setInventory(invResponse.data || []);
       } catch (error) {
-        console.error('Failed to load data:', error);
         if (isActive) {
           setFormulaRows([]);
           setInventory([]);
@@ -287,7 +286,6 @@ const NewOrderModal = ({ onClose, onSubmit }) => {
       // Close modal
       onClose();
     } catch (error) {
-      console.error('Error creating order:', error);
     } finally {
       setIsSubmitting(false);
     }

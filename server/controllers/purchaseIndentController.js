@@ -227,9 +227,6 @@ const getIndentById = async (req, res) => {
       [id]
     );
 
-    console.log(`=== GET INDENT BY ID ===`);
-    console.log(`Indent ID: ${id}, Indent Number: ${indent.indent_number}`);
-    console.log(`Found ${materials.length} materials:`, materials.map(m => m.material_description));
 
     indent.materials = materials;
 
@@ -277,11 +274,6 @@ const createIndent = async (req, res) => {
       materials
     } = req.body;
 
-    console.log('=== CREATE INDENT REQUEST ===');
-    console.log('Workflow Stage:', workflowStage);
-    console.log('Status:', status);
-    console.log('Materials count:', materials?.length);
-    console.log('Materials data:', JSON.stringify(materials, null, 2));
 
     const userId = req.user.userId;
 
@@ -324,14 +316,10 @@ const createIndent = async (req, res) => {
 
     const indentId = indentResult.insertId;
 
-    console.log('Indent Number:', indentNumber);
 
-    console.log('Indent created with ID:', indentId);
-    console.log('Inserting materials...');
 
     // Insert indent materials
     for (const material of materials) {
-      console.log('Inserting material:', material.description);
       await db.query(
         `INSERT INTO purchase_indent_materials 
           (indent_id, material_description, raw_material, quantity, unit_of_measurement, current_stock, required_stock, preferred_supplier, estimated_cost, specifications, customer_part, po_number, po_date, rm_cost, rm_rate, pieces_per_kg, rm_percentage)
@@ -358,7 +346,6 @@ const createIndent = async (req, res) => {
       );
     }
 
-    console.log('All materials inserted successfully');
 
     // Log status history
     await db.query(
@@ -493,8 +480,6 @@ const updateIndentStatus = async (req, res) => {
 
     // Update materials if provided
     if (materials && Array.isArray(materials) && materials.length > 0) {
-      console.log('Updating materials for indent:', id);
-      console.log('Materials received:', materials);
       
       // Delete existing materials
       await db.query(
@@ -527,7 +512,6 @@ const updateIndentStatus = async (req, res) => {
           ]
         );
       }
-      console.log(`Inserted ${materials.length} materials for indent ${id}`);
     }
 
     // Log status change
@@ -605,10 +589,6 @@ const sendToNextStage = async (req, res) => {
           newStatus = 'Pending QMS Verification';
           newStage = 'QMS Verified';
           // Update PO fields from Store Officer
-          console.log('=== STORE OFFICER SUBMITTING ===');
-          console.log('PO Number received:', poNumber);
-          console.log('PO Date received:', poDate);
-          console.log('Additional data:', { orderQuantity: req.body.orderQuantity, rmCost: req.body.rmCost, rmRate: req.body.rmRate });
           
           if (poNumber !== undefined) {
             updateFields.push('po_number = ?');
@@ -692,8 +672,6 @@ const sendToNextStage = async (req, res) => {
 
     // Update materials if provided
     if (materials && Array.isArray(materials) && materials.length > 0) {
-      console.log('Updating materials for indent:', id);
-      console.log('Materials received:', materials);
       
       // Delete existing materials
       await db.query(
@@ -726,7 +704,6 @@ const sendToNextStage = async (req, res) => {
           ]
         );
       }
-      console.log(`Inserted ${materials.length} materials for indent ${id}`);
     }
 
     // Update customer order status if linked

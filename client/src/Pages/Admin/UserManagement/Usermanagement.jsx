@@ -107,7 +107,6 @@ const UserManagement = () => {
       }));
       setUsers(mapped);
     } catch (err) {
-      console.error('Failed to fetch users:', err);
       setError('Failed to load users');
     } finally {
       setLoading(false);

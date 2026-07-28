@@ -52,7 +52,6 @@ const InventoryDashboard = () => {
         });
         setAllMaterials(mapped);
       } catch (err) {
-        console.error('Failed to fetch inventory:', err);
         setError('Failed to load inventory');
       } finally {
         setLoading(false);

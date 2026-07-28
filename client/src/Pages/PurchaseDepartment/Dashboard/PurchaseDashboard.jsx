@@ -123,7 +123,6 @@ const PurchaseDashboard = () => {
       if (supR.status === "fulfilled") { const r = supR.value?.data || supR.value || []; setSuppliers(Array.isArray(r) ? r : []); }
       if (dashR.status === "fulfilled") setApiDash(dashR.value?.data || dashR.value || null);
     } catch (err) {
-      console.error("Dashboard fetch:", err);
     } finally {
       setLoading(false);
     }

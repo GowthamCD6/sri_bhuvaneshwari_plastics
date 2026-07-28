@@ -34,7 +34,6 @@ const RoleManagement = () => {
         setAllPermissions(permsRes.data);
       }
     } catch (error) {
-      console.error('Error fetching initial data:', error);
       showMessage('Failed to load roles and permissions', 'error');
     } finally {
       setLoading(false);
@@ -50,7 +49,6 @@ const RoleManagement = () => {
         setRolePermissions(res.data.map(p => p.id));
       }
     } catch (error) {
-      console.error('Error fetching role permissions:', error);
       showMessage('Failed to load permissions for this role', 'error');
     } finally {
       setLoading(false);
@@ -79,7 +77,6 @@ const RoleManagement = () => {
         showMessage(res.message || 'Failed to update permissions', 'error');
       }
     } catch (error) {
-      console.error('Error saving permissions:', error);
       showMessage('An error occurred while saving', 'error');
     } finally {
       setSaving(false);

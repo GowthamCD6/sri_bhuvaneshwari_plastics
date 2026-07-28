@@ -28,7 +28,6 @@ const VerifyPurchaseIndents = () => {
         setLoading(true);
         setError(null);
         
-        console.log('Fetching all indents for Store Officer');
         // Fetch all indents that Store Officer needs to see:
         // 1. Pending: workflow_stage = 'Store Officer'
         // 2. Recently Verified: workflow_stage = 'QMS Verified' 
@@ -42,7 +41,6 @@ const VerifyPurchaseIndents = () => {
           purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
         ]);
         
-        console.log('Fetched responses:', responses);
         
         // Combine all responses
         const allIndentsData = responses.reduce((acc, response) => {
@@ -52,7 +50,6 @@ const VerifyPurchaseIndents = () => {
           return acc;
         }, []);
         
-        console.log('Combined indents:', allIndentsData);
         
         if (allIndentsData.length > 0) {
           // Transform API data to match UI format
@@ -107,11 +104,9 @@ const VerifyPurchaseIndents = () => {
             };
           });
           
-          console.log('Transformed indents:', transformedData);
           setAllIndents(transformedData);
         }
       } catch (err) {
-        console.error('Error fetching indents:', err);
         setError('Failed to load purchase indents');
       } finally {
         setLoading(false);

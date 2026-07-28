@@ -39,9 +39,7 @@ const pool = mysql.createPool({
 // Test the connection
 pool.getConnection((err, connection) => {
     if (err) {
-        console.log("Database Connection Failed:", err);
     } else {
-        console.log("Database Connected Successfully");
         connection.release(); // Release the connection back to the pool
     }
 });

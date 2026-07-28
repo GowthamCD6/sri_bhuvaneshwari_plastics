@@ -91,7 +91,6 @@ const VerifyPurchaseDeptIndents = () => {
 
       setIndents(purchaseDeptIndents);
     } catch (err) {
-      console.error('Failed to fetch purchase dept indents:', err);
       setError('Failed to load purchase dept indents');
     } finally {
       setLoading(false);
@@ -144,7 +143,6 @@ const VerifyPurchaseDeptIndents = () => {
       await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by QMS' });
       fetchIndents();
     } catch (err) {
-      console.error('Approve failed:', err);
       alert('Failed to approve indent');
     }
   };
@@ -157,7 +155,6 @@ const VerifyPurchaseDeptIndents = () => {
       });
       fetchIndents();
     } catch (err) {
-      console.error('Reject failed:', err);
       alert('Failed to reject indent');
     }
   };

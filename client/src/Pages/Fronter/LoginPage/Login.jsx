@@ -33,7 +33,6 @@ const Login = ({ onLogin }) => {
       // Call login API
       const response = await authService.login(formData.mobile, formData.password);
       
-      console.log('Login successful:', response);
       
       // Call parent onLogin handler with user data
       if (onLogin) {
@@ -44,7 +43,6 @@ const Login = ({ onLogin }) => {
         });
       }
     } catch (err) {
-      console.error('Login error:', err);
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
@@ -59,7 +57,6 @@ const Login = ({ onLogin }) => {
     try {
       const result = await authService.googleLogin(response.credential);
       
-      console.log('Google login successful:', result);
       
       // Call parent onLogin handler with user data
       if (onLogin) {
@@ -70,7 +67,6 @@ const Login = ({ onLogin }) => {
         });
       }
     } catch (err) {
-      console.error('Google login error:', err);
       setError(err.message || 'Google login failed. Please try again.');
     } finally {
       setLoading(false);

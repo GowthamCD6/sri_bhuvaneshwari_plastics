@@ -92,7 +92,6 @@ const StoreRequestApproval = () => {
 
       setIndents(storeRequestIndents);
     } catch (err) {
-      console.error('Failed to fetch store request approvals:', err);
       setError('Failed to load store request approvals');
     } finally {
       setLoading(false);
@@ -173,7 +172,6 @@ const StoreRequestApproval = () => {
       await purchaseIndentService.sendToNextStage(indentId, { comments: 'Approved by QMS' });
       fetchStoreRequestIndents();
     } catch (err) {
-      console.error('Approve failed:', err);
       alert('Failed to approve indent');
     }
   };
@@ -183,7 +181,6 @@ const StoreRequestApproval = () => {
       await purchaseIndentService.updateIndentStatus(indentId, { status: 'Rejected', comments: 'Rejected by QMS' });
       fetchStoreRequestIndents();
     } catch (err) {
-      console.error('Reject failed:', err);
       alert('Failed to reject indent');
     }
   };
@@ -230,7 +227,6 @@ const StoreRequestApproval = () => {
         sourceLabel: 'Store Request',
       });
     } catch (err) {
-      console.error('Failed to export indent details:', err);
       alert('Failed to download selected purchase indent PDF');
     } finally {
       setDownloadingIndentId(null);
