@@ -29,69 +29,70 @@ const StoreIndents = () => {
         setLoading(true);
         setError(null);
         
-        // Fetch indents from multiple workflow stages:
-        // 1. Accountant: Pending for accountant processing
-        // 2. Completed: Already verified/processed
-        const responses = await Promise.all([
-          purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
-          purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
-        ]);
+        const response = await purchaseIndentService.getAllIndents();
+        let allData = [];
+        if (response && response.success && Array.isArray(response.data)) {
+          allData = response.data;
+        } else if (Array.isArray(response?.data)) {
+          allData = response.data;
+        } else if (Array.isArray(response)) {
+          allData = response;
+        }
+
+        if (allData.length === 0) {
+          try {
+            const deptRes = await purchaseIndentService.getPurchaseDeptIndents();
+            if (deptRes && deptRes.success && Array.isArray(deptRes.data)) {
+              allData = deptRes.data;
+            }
+          } catch (e) {}
+        }
         
-        
-        // Combine all responses
-        const allIndentsData = responses.reduce((acc, response) => {
-          if (response.success && response.data) {
-            return [...acc, ...response.data];
-          }
-          return acc;
-        }, []);
-        
-        
-        if (allIndentsData.length > 0) {
-          const transformedData = allIndentsData.map(indent => {
-            // Determine status based on workflow_stage
-            let displayStatus = 'Pending QMS';
+        const storeRequestIndents = allData
+          .filter((indent) => (!indent.customer_order_id || indent.customer_order_id === null) && indent.status !== 'Draft')
+          .map(indent => {
+            const materials = Array.isArray(indent.materials) ? indent.materials : [];
+            const first = materials[0];
+            const materialName = first?.material_description || 'Materials';
+            const materialCode = first?.material_code || first?.raw_material || 'N/A';
+            const quantity = first?.quantity ? `${first.quantity}${first.unit_of_measurement || ''}` : '-';
+            const details = materials.length > 1 ? `${quantity} • +${materials.length - 1} more` : `${quantity} • ${materialName}`;
+            const reasonText = indent.reason || indent.remarks || 'Standard Material Request';
+
+            let displayStatus = 'Pending Processing';
             let statusClass = 'badge-pending';
-            if (['Accountant'].includes(indent.workflow_stage)) {
-              statusClass = 'badge-pending';
-              displayStatus = 'Pending Processing';
+            if (indent.status === 'Rejected') {
+              displayStatus = 'Rejected';
+              statusClass = 'badge-rejected';
             } else if (['Completed'].includes(indent.workflow_stage)) {
-              statusClass = 'badge-verified';
               displayStatus = 'Processed';
-            } else if (indent.workflow_stage === 'Store Officer') {
-              // Submitted by QMS, waiting for Store Officer
-              displayStatus = 'Pending Store Review';
-              statusClass = 'badge-pending';
-            } else if (indent.workflow_stage === 'QMS Verified') {
-              // Returned by Store Officer, pending QMS verification
-              displayStatus = 'Pending QMS';
-              statusClass = 'badge-pending';
-            } else if (indent.workflow_stage === 'Admin' || indent.workflow_stage === 'Accountant' || indent.workflow_stage === 'Completed') {
-              // Already verified by QMS and moved forward
-              displayStatus = 'Verified';
               statusClass = 'badge-verified';
             }
-            
+
             return {
               id: indent.indent_number,
               indentId: indent.indent_id,
-              date: new Date(indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+              date: new Date(indent.request_date || indent.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
               project: indent.customer_name || 'Stock Replenishment',
               orderId: indent.customer_order_indent_id ? `Order #${indent.customer_order_indent_id}` : 'N/A',
-              isCustomerIndent: !!indent.customer_order_id || !!indent.customer_order_indent_id,
-              raisedBy: indent.requested_by_name || 'N/A',
-              itemCount: `${indent.total_materials || 0} Items`,
+              isCustomerIndent: false,
+              material: materialName,
+              materialCode,
+              reason: reasonText,
+              details,
+              raisedBy: indent.requested_by_name || 'Purchase Department',
+              itemCount: `${materials.length || 0} Items`,
               priority: indent.priority === 'Urgent' ? 'High Priority' : 'Normal Priority',
               status: displayStatus,
               statusClass: statusClass,
               poNumber: indent.po_number || indent.material_po_number,
               poDate: indent.po_date,
-              workflowStage: indent.workflow_stage // For debugging
+              workflowStage: indent.workflow_stage,
+              rawIndent: indent,
             };
           });
-          
-          setAllIndents(transformedData);
-        }
+        
+        setAllIndents(storeRequestIndents);
       } catch (err) {
         setError('Failed to load indents');
       } finally {
@@ -196,16 +197,13 @@ const StoreIndents = () => {
 
   // Navigate to view indent details
   const handleViewIndent = (indent) => {
-    
-    // Clear any existing state and navigate with fresh state
-    navigate('/accountant-purchase-indents', {
+    if (!indent?.indentId) return;
+    navigate('/create-purchase-indent', {
       state: {
         indentId: indent.indentId,
-        fromCustomerOrder: false,
-        orderData: null,
-        isViewMode: true
-      },
-      replace: false
+        indentData: indent.rawIndent || indent,
+        readOnly: true
+      }
     });
   };
 
@@ -311,10 +309,10 @@ const StoreIndents = () => {
               <thead>
                 <tr>
                   <th>INDENT ID</th>
-                  <th>PROJECT / CUSTOMER</th>
+                  <th>MATERIAL & CODE</th>
+                  <th>REASON / PURPOSE</th>
                   <th>RAISED BY</th>
                   <th>ITEMS</th>
-                  <th>PO NUMBER</th>
                   <th>VERIFICATION STATUS</th>
                   <th style={{textAlign: 'right'}}>ACTIONS</th>
                 </tr>
@@ -330,26 +328,24 @@ const StoreIndents = () => {
                       <div className="vsi-subtext">{item.date}</div>
                     </td>
 
-                    {/* Project */}
+                    {/* Material & Code */}
                     <td>
-                      <div className="vsi-text-bold">{item.project}</div>
-                      <div className="vsi-subtext-blue">{item.orderId}</div>
+                      <div className="vsi-text-bold">{item.material}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                        <span className="vpdi-code-badge">Code: {item.materialCode}</span>
+                        <span className="vsi-subtext-blue" style={{ marginTop: 0 }}>({item.details})</span>
+                      </div>
+                    </td>
+
+                    {/* Reason / Purpose */}
+                    <td style={{ maxWidth: '240px' }}>
+                      <div className="vpdi-reason-text" title={item.reason}>{item.reason}</div>
                     </td>
 
                     {/* Raised By */}
                     <td>
                       <div className="vsi-user-cell">
-                        <div className="vsi-user-avatar-sm" style={{ 
-                          backgroundColor: '#e2e8f0', 
-                          color: '#475569', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          fontSize: '12px', 
-                          fontWeight: '600'
-                        }}>
-                          {(item.raisedBy || '?').charAt(0).toUpperCase()}
-                        </div>
+                        <div className="vpdi-avatar">P</div>
                         <span className="vsi-text-medium">{item.raisedBy}</span>
                       </div>
                     </td>
@@ -358,12 +354,6 @@ const StoreIndents = () => {
                     <td>
                       <div className="vsi-text-bold">{item.itemCount}</div>
                       <div className="vsi-subtext">{item.priority}</div>
-                    </td>
-
-                    {/* PO Number */}
-                    <td>
-                      <div className="vsi-text-bold">{item.poNumber || 'N/A'}</div>
-                      <div className="vsi-subtext">{item.poDate || ''}</div>
                     </td>
 
                     {/* Verification Status */}
@@ -380,7 +370,7 @@ const StoreIndents = () => {
                         onClick={() => handleViewIndent(item)}
                       >
                         <Eye size={16} style={{marginRight: '4px'}} />
-                        View/Process
+                        View
                       </button>
                     </td>
 

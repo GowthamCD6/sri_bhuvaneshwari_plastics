@@ -380,13 +380,14 @@ const CreatePurchaseIndent = () => {
   };
 
   const userRole = user?.roleName?.toLowerCase() || '';
-  const isQmsOrAdmin = userRole === 'qms' || userRole === 'admin';
+  const isApproverRole = ['qms', 'admin', 'accountant'].includes(userRole);
   const isPendingVerification = 
     formData.status === 'Pending QMS Verification' || 
     formData.status === 'Pending QMS Approval' || 
     formData.status === 'Pending Admin Approval' || 
-    ['Purchase Dept', 'QMS Init', 'QMS Verified', 'Admin'].includes(formData.workflowStage);
-  const canQmsVerify = isQmsOrAdmin && isReadOnly && currentIndentId && isPendingVerification && formData.status !== 'Rejected';
+    formData.status === 'Pending Processing' || 
+    ['Purchase Dept', 'QMS Init', 'QMS Verified', 'Admin', 'Accountant'].includes(formData.workflowStage);
+  const canQmsVerify = isApproverRole && isReadOnly && currentIndentId && isPendingVerification && formData.status !== 'Rejected';
 
   const handleQmsApprove = async () => {
     try {

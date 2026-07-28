@@ -123,7 +123,7 @@ const AppNavigator = () => {
       <Route path="/store-requests" element={protectRoute(<StoreRequests />, ['purchasedepartment'])} />
       <Route path="/suppliers" element={protectRoute(<SupplierManagement />, ['purchasedepartment'])} />
       <Route path="/qms-indents" element={protectRoute(<PurchaseIndents />, ['purchasedepartment'])} />
-      <Route path="/create-purchase-indent" element={protectRoute(<CreatePurchaseIndent />, ['purchasedepartment', 'qms', 'admin'])} />
+      <Route path="/create-purchase-indent" element={protectRoute(<CreatePurchaseIndent />, ['purchasedepartment', 'qms', 'admin', 'accountant'])} />
 
       {/* ===== ACCOUNTANT ROLE ROUTES ===== */}
       <Route path="/accountant-dashboard" element={protectRoute(<AccountantDashboard />, ['accountant'])} />
