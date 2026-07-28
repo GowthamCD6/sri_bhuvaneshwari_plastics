@@ -118,7 +118,7 @@ const getAdminApprovals = async (req, res) => {
  */
 const getAllIndents = async (req, res) => {
   try {
-    const { status, userId, workflowStage, search } = req.query;
+    const { status, userId, workflowStage, search, isCustomerOrder } = req.query;
 
     let query = `
       SELECT 
@@ -158,6 +158,12 @@ const getAllIndents = async (req, res) => {
       query += ` AND (pi.indent_number LIKE ? OR co.customer_name LIKE ?)`;
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm);
+    }
+
+    if (isCustomerOrder === 'true' || isCustomerOrder === true) {
+      query += ` AND pi.customer_order_id IS NOT NULL`;
+    } else if (isCustomerOrder === 'false' || isCustomerOrder === false) {
+      query += ` AND pi.customer_order_id IS NULL`;
     }
 
     query += ` GROUP BY pi.indent_id ORDER BY pi.created_at DESC`;
@@ -495,13 +501,13 @@ const updateIndentStatus = async (req, res) => {
 
     // Update materials if provided
     if (materials && Array.isArray(materials) && materials.length > 0) {
-      
+
       // Delete existing materials
       await db.query(
         'DELETE FROM purchase_indent_materials WHERE indent_id = ?',
         [id]
       );
-      
+
       // Insert new materials
       for (const material of materials) {
         await db.query(
@@ -604,7 +610,7 @@ const sendToNextStage = async (req, res) => {
           newStatus = 'Pending QMS Verification';
           newStage = 'QMS Verified';
           // Update PO fields from Store Officer
-          
+
           if (poNumber !== undefined) {
             updateFields.push('po_number = ?');
             updateParams.push(poNumber || null);
@@ -687,13 +693,13 @@ const sendToNextStage = async (req, res) => {
 
     // Update materials if provided
     if (materials && Array.isArray(materials) && materials.length > 0) {
-      
+
       // Delete existing materials
       await db.query(
         'DELETE FROM purchase_indent_materials WHERE indent_id = ?',
         [id]
       );
-      
+
       // Insert new materials
       for (const material of materials) {
         await db.query(
@@ -726,10 +732,10 @@ const sendToNextStage = async (req, res) => {
       'SELECT customer_order_id FROM purchase_indents WHERE indent_id = ?',
       [id]
     );
-    
+
     if (indentInfo[0]?.customer_order_id) {
       let customerOrderStatus = 'Pending Store Review';
-      
+
       // Map workflow stage to customer order status
       switch (newStage) {
         case 'Store Officer':
@@ -746,7 +752,7 @@ const sendToNextStage = async (req, res) => {
           customerOrderStatus = 'Admin Approved';
           break;
       }
-      
+
       await db.query(
         'UPDATE customer_orders SET status = ? WHERE order_id = ?',
         [customerOrderStatus, indentInfo[0].customer_order_id]
@@ -816,7 +822,7 @@ const deleteIndent = async (req, res) => {
 const uploadPOFile = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
