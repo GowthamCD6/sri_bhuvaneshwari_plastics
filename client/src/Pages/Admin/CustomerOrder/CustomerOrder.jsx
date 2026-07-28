@@ -93,9 +93,9 @@ const CustomerOrderApprovals = () => {
       // 1. Admin: Pending for Admin approval
       // 2. Accountant, Completed: Already approved by Admin, showing history
       const responses = await Promise.all([
-        purchaseIndentService.getAllIndents({ workflowStage: 'Admin' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Accountant' }),
-        purchaseIndentService.getAllIndents({ workflowStage: 'Completed' })
+        purchaseIndentService.getAllIndents({ workflowStage: 'Admin', isCustomerOrder: true }),
+        purchaseIndentService.getAllIndents({ workflowStage: 'Accountant', isCustomerOrder: true }),
+        purchaseIndentService.getAllIndents({ workflowStage: 'Completed', isCustomerOrder: true })
       ]);
       
       
