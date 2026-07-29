@@ -161,7 +161,7 @@ pipeline {
         }
         sh '''
           SSH_KEY_FILE="$DEPLOY_SSH_KEY_FILE"
-          SSH_TARGET="sbp@$DEPLOY_HOST"
+          SSH_TARGET="tylo@$DEPLOY_HOST"
 
           if [ ! -f "$SSH_KEY_FILE" ]; then
             echo "Missing SSH key file: $SSH_KEY_FILE"
