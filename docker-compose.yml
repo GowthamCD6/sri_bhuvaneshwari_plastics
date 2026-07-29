@@ -20,7 +20,7 @@ services:
       context: ./server
     image: pcdpbit/sbp-backend:${DOCKER_IMG_VERSION}
     env_file:
-      - ./server/.env
+      - ./.env
     ports:
       - "5005:5000"
     volumes:
