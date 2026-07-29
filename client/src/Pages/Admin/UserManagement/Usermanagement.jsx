@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './Usermanagement.css';
 import { userService } from '../../../services/apiService';
-import RequirePermission from '../../../components/RequirePermission';
+import RequirePermission from '../../../Components/RequirePermission';
 
 // SVG Icons
 const Icons = {
