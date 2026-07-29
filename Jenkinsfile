@@ -126,7 +126,7 @@ pipeline {
       steps {
         sh '''
           DOCKER_BUILDKIT=1 docker build --pull --no-cache \\
-            --build-arg VITE_API_URL="https://sbp.tylo.co.in/api/" \\
+            --build-arg VITE_API_URL="https://sbp.tylo.co.in/api" \\
             --build-arg VITE_GOOGLE_CLIENT_ID="880469513355-k3o8hhnvtsb6bbuf0r59270av24712o6.apps.googleusercontent.com" \\
             -t "$FRONTEND_IMAGE" ./client
 
