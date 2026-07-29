@@ -197,8 +197,8 @@ BOOTSTRAP
             export DOCKER_IMG_VERSION="$IMAGE_TAG"
             export DOCKERHUB_ORG
 
-            docker compose pull frontend backend
-            docker compose up -d frontend backend
+            docker compose pull sbp-frontend sbp-backend
+            docker compose up -d sbp-frontend sbp-backend
 
             docker image prune -f
 REMOTE
