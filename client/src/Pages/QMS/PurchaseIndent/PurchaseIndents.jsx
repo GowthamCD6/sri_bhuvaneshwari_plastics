@@ -1769,7 +1769,6 @@ const NewPurchaseIndent = () => {
 
           </div>
 
-          {/* Part & PO Reference */}
           <div className="pi-section">
             <div className="pi-section-header">
               <div>
@@ -1832,7 +1831,6 @@ const NewPurchaseIndent = () => {
               </p>
             )}
 
-            {/* Dynamic fields for each material */}
             {materials.length > 0 && materials.map((material, index) => (
               <div key={material.id} style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e2e8f0' }}>
                 <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
