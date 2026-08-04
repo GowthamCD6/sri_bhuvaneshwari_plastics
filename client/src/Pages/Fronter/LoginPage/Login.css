@@ -299,13 +299,56 @@ body {
 @media (max-width: 1024px) {
   .login-container {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
   }
 
   .hero-section {
-    height: 35vh;
+    height: 30vh;
+  }
+
+  .logo-section {
+    margin-left: 0;
+  }
+
+  .hero-tagline {
+    margin-left: 0;
   }
 
   .login-section {
     padding: 40px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-section {
+    height: 25vh;
+  }
+
+  .hero-content {
+    padding: 24px;
+  }
+
+  .company-name {
+    font-size: 20px;
+  }
+
+  .logo {
+    width: 60px;
+    height: 55px;
+    border-radius: 12px;
+  }
+
+  .login-section {
+    padding: 24px 16px;
+  }
+
+  .login-box {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .login-title {
+    font-size: 22px;
   }
 }

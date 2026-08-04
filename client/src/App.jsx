@@ -3,11 +3,13 @@ import Sidebar from './Components/Sidebar/Sidebar';
 import AppNavigator from './Navigation/appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
 import useAuthStore from './store/authStore';
-import { useEffect } from 'react';
-import './App.css';
+import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
+import logo from './assets/SBP_logo.png';
 
 function AppContent() {
   const { isAuthenticated, user, login, logout } = useAuthStore();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,10 +28,14 @@ function AppContent() {
   // Redirect to home after login to trigger role-based routing
   useEffect(() => {
     if (isAuthenticated && location.pathname === '/') {
-      // The AppNavigator will handle redirecting to the correct default route
       navigate('/', { replace: true });
     }
   }, [isAuthenticated, location.pathname, navigate]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   // Get user role for sidebar
   const userRole = user?.roleName?.toLowerCase() || '';
@@ -40,10 +46,27 @@ function AppContent() {
         <Login onLogin={handleLogin} />
       ) : (
         <div className="app-container">
+          {/* Mobile Top Header */}
+          <header className="mobile-header">
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+            <div className="mobile-brand">
+              <img src={logo} alt="SBP Logo" className="mobile-logo-img" />
+              <span className="mobile-brand-name">Sri Bhuvaneshwari Plastics</span>
+            </div>
+          </header>
+
           <Sidebar 
             userRole={userRole} 
             userData={user}
             onLogout={handleLogout}
+            isOpen={mobileSidebarOpen}
+            onClose={() => setMobileSidebarOpen(false)}
           />
           <main className="main-content">
             <AppNavigator />

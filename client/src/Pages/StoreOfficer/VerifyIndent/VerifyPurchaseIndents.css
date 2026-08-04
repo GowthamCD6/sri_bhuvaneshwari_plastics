@@ -564,11 +564,15 @@
 @media (max-width: 768px) {
   .vpi-container {
     padding: 16px;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
   }
 
   .vpi-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
+    width: 100%;
   }
 
   .vpi-tab {
@@ -577,8 +581,23 @@
     white-space: nowrap;
   }
 
+  .vpi-search-filter {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;
+  }
+
   .vpi-search-input {
-    width: 180px;
+    width: 100%;
+  }
+
+  .vpi-table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vpi-table {
+    min-width: 650px;
   }
 
   .vpi-pagination {

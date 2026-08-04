@@ -422,7 +422,11 @@
   .pd-gauge-row   { grid-template-columns: 1fr 1fr; }
   .pd-bot-row     { grid-template-columns: 1fr; }
   .pd-page        { padding: 14px 12px; }
+  .pd-header      { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .pd-table-wrap  { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pd-table       { min-width: 600px; }
 }
 @media (max-width: 480px) {
   .pd-gauge-row   { grid-template-columns: 1fr; }
+  .pd-page-title  { font-size: 20px; }
 }

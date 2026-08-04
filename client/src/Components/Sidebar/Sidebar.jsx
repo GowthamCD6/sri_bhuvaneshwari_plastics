@@ -29,10 +29,14 @@ import {
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
 import logo from "../../assets/SBP_logo.png";
-const Sidebar = ({ userRole, userData, onLogout }) => {
+const Sidebar = ({ userRole, userData, onLogout, isOpen, onClose }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const location = useLocation();
+
+  const handleLinkClick = () => {
+    if (onClose) onClose();
+  };
 
   const roleMenus = {
     admin: [
@@ -156,128 +160,133 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
   const menuItems = roleMenus[userRole?.toLowerCase()] || roleMenus.qms || [];
 
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <div className="header-content">
-          <div className="logo-section">
-            <div className="logo-icon">
-              <span className="logo-text">
-                <img src={logo} alt="SBP Logo" className="logo-image" />
-              </span>
-            </div>
-            <div className="company-name">
-              <div className="company-title">Sri Bhuvaneshwari</div>
-              <div className="company-subtitle">Plastics</div>
+    <>
+      {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
+      <div className={`sidebar ${isOpen ? "mobile-open" : ""}`}>
+        <div className="sidebar-header">
+          <div className="header-content">
+            <div className="logo-section">
+              <div className="logo-icon">
+                <span className="logo-text">
+                  <img src={logo} alt="SBP Logo" className="logo-image" />
+                </span>
+              </div>
+              <div className="company-name">
+                <div className="company-title">Sri Bhuvaneshwari</div>
+                <div className="company-subtitle">Plastics</div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <nav className="sidebar-nav">
-        {menuItems.map((item, index) => {
-          if (item.section) {
-            return (
-              <div key={index} className="nav-section">
-                <span className="section-label">{item.label}</span>
-              </div>
-            );
-          }
-
-          const Icon = item.icon;
-
-          if (item.isDropdown) {
-            const isAnyChildActive = item.children.some(
-              (child) => location.pathname === child.path,
-            );
-
-            return (
-              <div key={index} className="nav-dropdown">
-                <div
-                  className={`nav-item dropdown-trigger ${isAnyChildActive ? "active" : ""}`}
-                  onClick={() => setApprovalsOpen(!approvalsOpen)}
-                  title={item.label}
-                >
-                  {isAnyChildActive && <div className="active-indicator" />}
-                  <Icon className="nav-icon" size={22} />
-                  <span className="nav-label">{item.label}</span>
-                  <ChevronDown
-                    className={`dropdown-arrow ${approvalsOpen ? "open" : ""}`}
-                    size={16}
-                  />
+        <nav className="sidebar-nav">
+          {menuItems.map((item, index) => {
+            if (item.section) {
+              return (
+                <div key={index} className="nav-section">
+                  <span className="section-label">{item.label}</span>
                 </div>
+              );
+            }
 
-                {approvalsOpen && (
-                  <div className="dropdown-content">
-                    {item.children.map((child) => {
-                      const ChildIcon = child.icon;
-                      const isActive = location.pathname === child.path;
+            const Icon = item.icon;
 
-                      return (
-                        <Link
-                          key={child.path}
-                          to={child.path}
-                          className={`nav-item sub-item ${isActive ? "active" : ""}`}
-                          title={child.label}
-                        >
-                          {isActive && <div className="active-indicator" />}
-                          <ChildIcon className="nav-icon" size={18} />
-                          <span className="nav-label">{child.label}</span>
-                        </Link>
-                      );
-                    })}
+            if (item.isDropdown) {
+              const isAnyChildActive = item.children.some(
+                (child) => location.pathname === child.path,
+              );
+
+              return (
+                <div key={index} className="nav-dropdown">
+                  <div
+                    className={`nav-item dropdown-trigger ${isAnyChildActive ? "active" : ""}`}
+                    onClick={() => setApprovalsOpen(!approvalsOpen)}
+                    title={item.label}
+                  >
+                    {isAnyChildActive && <div className="active-indicator" />}
+                    <Icon className="nav-icon" size={22} />
+                    <span className="nav-label">{item.label}</span>
+                    <ChevronDown
+                      className={`dropdown-arrow ${approvalsOpen ? "open" : ""}`}
+                      size={16}
+                    />
                   </div>
-                )}
-              </div>
+
+                  {approvalsOpen && (
+                    <div className="dropdown-content">
+                      {item.children.map((child) => {
+                        const ChildIcon = child.icon;
+                        const isActive = location.pathname === child.path;
+
+                        return (
+                          <Link
+                            key={child.path}
+                            to={child.path}
+                            className={`nav-item sub-item ${isActive ? "active" : ""}`}
+                            title={child.label}
+                            onClick={handleLinkClick}
+                          >
+                            {isActive && <div className="active-indicator" />}
+                            <ChildIcon className="nav-icon" size={18} />
+                            <span className="nav-label">{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            const isActive = location.pathname === item.path;
+
+            return (
+              <Link
+                key={index}
+                to={item.path}
+                className={`nav-item ${isActive ? "active" : ""}`}
+                title={item.label}
+                onClick={handleLinkClick}
+              >
+                {isActive && <div className="active-indicator" />}
+                <Icon className="nav-icon" size={22} />
+                <span className="nav-label">{item.label}</span>
+                {item.badge && <span className="nav-badge">{item.badge}</span>}
+              </Link>
             );
-          }
+          })}
+        </nav>
 
-          const isActive = location.pathname === item.path;
-
-          return (
-            <Link
-              key={index}
-              to={item.path}
-              className={`nav-item ${isActive ? "active" : ""}`}
-              title={item.label}
-            >
-              {isActive && <div className="active-indicator" />}
-              <Icon className="nav-icon" size={22} />
-              <span className="nav-label">{item.label}</span>
-              {item.badge && <span className="nav-badge">{item.badge}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* User Profile */}
-      <div className="sidebar-footer">
-        <div
-          className="user-profile"
-          onClick={() => setUserMenuOpen(!userMenuOpen)}
-        >
-          <div className="user-avatar">
-            <User size={20} />
+        {/* User Profile */}
+        <div className="sidebar-footer">
+          <div
+            className="user-profile"
+            onClick={() => setUserMenuOpen(!userMenuOpen)}
+          >
+            <div className="user-avatar">
+              <User size={20} />
+            </div>
+            <div className="user-info">
+              <div className="user-name">{userData?.username || "User"}</div>
+              <div className="user-role">{userData?.roleName || "Role"}</div>
+            </div>
+            <ChevronDown
+              size={18}
+              className={`user-menu-icon ${userMenuOpen ? "open" : ""}`}
+            />
           </div>
-          <div className="user-info">
-            <div className="user-name">{userData?.username || "User"}</div>
-            <div className="user-role">{userData?.roleName || "Role"}</div>
-          </div>
-          <ChevronDown
-            size={18}
-            className={`user-menu-icon ${userMenuOpen ? "open" : ""}`}
-          />
+
+          {userMenuOpen && (
+            <div className="user-dropdown">
+              <button className="logout-btn" onClick={onLogout}>
+                <LogOut size={18} />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
-
-        {userMenuOpen && (
-          <div className="user-dropdown">
-            <button className="logout-btn" onClick={onLogout}>
-              <LogOut size={18} />
-              <span>Logout</span>
-            </button>
-          </div>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 

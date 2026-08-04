@@ -382,6 +382,10 @@
 /* Responsive */
 @media (max-width: 768px) {
   .pi-form-grid { grid-template-columns: 1fr; }
-  .pi-header { flex-direction: column; align-items: stretch; }
+  .pi-header { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  .pi-header-right { width: 100%; flex-wrap: wrap; justify-content: space-between; }
+  .cpi-items-table-container,
+  .pi-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .pi-table { min-width: 650px; }
 }
 

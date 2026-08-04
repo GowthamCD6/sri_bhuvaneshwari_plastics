@@ -621,3 +621,47 @@
   background-size: 600px 100%;
   animation: lsa-shimmer 1.4s ease-in-out infinite;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .lsa-container {
+    padding: 16px;
+  }
+
+  .lsa-stats-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .lsa-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .lsa-filter-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .lsa-search-wrapper {
+    width: 100%;
+  }
+
+  .lsa-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lsa-table {
+    min-width: 650px;
+  }
+
+  .lsa-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+}

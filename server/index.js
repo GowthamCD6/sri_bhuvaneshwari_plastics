@@ -81,5 +81,16 @@ app.get('/api/health', (req, res) => {
 });
 
 
-app.listen(port, async () => {
+const server = app.listen(port, () => {
+    console.log(`Server is running on port ${port} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`API Health: http://localhost:${port}/api/health`);
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`ERROR: Port ${port} is already in use by another application/process.`);
+        console.error(`Please terminate the process running on port ${port} and restart.`);
+    } else {
+        console.error('Server error:', err);
+    }
 });

@@ -424,3 +424,63 @@
   flex-shrink: 0;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .vsi-container {
+    padding: 16px;
+  }
+
+  .vsi-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .vsi-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .vsi-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .vsi-tabs {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .vsi-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .vsi-search-input {
+    width: 100%;
+  }
+
+  .vsi-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vsi-table {
+    min-width: 650px;
+  }
+
+  .vsi-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .vsi-stats-row {
+    grid-template-columns: 1fr;
+  }
+}
