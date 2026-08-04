@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const dashboardController = require('../controllers/dashboardController');
-const { verifyToken, authorize } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 
-router.get('/admin', authorize('dashboard:admin'), dashboardController.getAdminDashboard);
-router.get('/store', authorize('dashboard:store'), dashboardController.getStoreDashboard);
-router.get('/purchase', authorize('dashboard:purchase'), dashboardController.getPurchaseDashboard);
-router.get('/qms', authorize('dashboard:qms'), dashboardController.getQMSDashboard);
+router.get('/admin', requireRole('Admin'), dashboardController.getAdminDashboard);
+router.get('/store', requireRole('StoreOfficer'), dashboardController.getStoreDashboard);
+router.get('/purchase', requireRole('PurchaseDepartment'), dashboardController.getPurchaseDashboard);
+router.get('/qms', requireRole('QMS'), dashboardController.getQMSDashboard);
 
 module.exports = router;

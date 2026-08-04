@@ -4,24 +4,7 @@ const { generateAccessToken, generateRefreshToken, verifyRefreshToken, decodeTok
 const { verifyGoogleToken } = require('../utils/googleAuth');
 const crypto = require('crypto');
 
-/**
- * Helper to fetch permissions for a role
- */
-const getPermissionsForRole = async (roleId) => {
-  try {
-    const query = `
-      SELECT p.permission_name 
-      FROM permissions p
-      JOIN role_permissions rp ON p.id = rp.permission_id
-      WHERE rp.role_id = ?
-    `;
-    const [results] = await db.query(query, [roleId]);
-    return results.map(r => r.permission_name);
-  } catch (error) {
-    console.error('Error fetching permissions:', error);
-    return [];
-  }
-};
+
 /**
  * Set JWT Cookies
  */
@@ -106,9 +89,6 @@ const login = async (req, res) => {
     // Set cookies (both access and refresh)
     setTokenCookies(res, accessToken, refreshToken);
 
-    // Fetch permissions
-    const permissions = await getPermissionsForRole(user.role_id);
-
     // Send response
     res.status(200).json({
       success: true,
@@ -120,10 +100,8 @@ const login = async (req, res) => {
         email: user.email,
         roleName: user.role_name,
         roleId: user.role_id,
-        deptId: user.dept_id,
-        permissions: permissions
-      },
-      permissions: permissions
+        deptId: user.dept_id
+      }
     });
 
   } catch (error) {
@@ -203,9 +181,6 @@ const completeGoogleLogin = async (user, req, res) => {
     // Set cookies
     setTokenCookies(res, accessToken, refreshToken);
 
-    // Fetch permissions
-    const permissions = await getPermissionsForRole(user.role_id);
-
     // Send response
     res.status(200).json({
       success: true,
@@ -217,10 +192,8 @@ const completeGoogleLogin = async (user, req, res) => {
         email: user.email,
         roleName: user.role_name,
         roleId: user.role_id,
-        deptId: user.dept_id,
-        permissions: permissions
-      },
-      permissions: permissions
+        deptId: user.dept_id
+      }
     });
   } catch (error) {
     console.error('Complete Google login error:', error);
@@ -286,9 +259,6 @@ const getProfile = async (req, res) => {
 
     const user = results[0];
 
-    // Fetch permissions
-    const permissions = await getPermissionsForRole(user.role_id);
-
     res.status(200).json({
       success: true,
       user: {
@@ -300,10 +270,8 @@ const getProfile = async (req, res) => {
         roleId: user.role_id,
         deptId: user.dept_id,
         createdAt: user.created_at,
-        updatedAt: user.updated_at,
-        permissions: permissions
-      },
-      permissions: permissions
+        updatedAt: user.updated_at
+      }
     });
 
   } catch (error) {

@@ -28,7 +28,6 @@ import FormulaCalculator from '../Pages/StoreOfficer/FormulaCalculator/FormulaCa
 // ===== ADMIN ROLE PAGES =====
 import AdminDashboard from '../Pages/Admin/AdminDashboard/AdminDashboard';
 import UserManagement from '../Pages/Admin/UserManagement/Usermanagement';
-import RoleManagement from '../Pages/Admin/RoleManagement/RoleManagement';
 import CustomerOrder from '../Pages/Admin/CustomerOrder/CustomerOrder';
 import StoreRequestApproval from '../Pages/Admin/StoreRequestApproval/StoreRequestApproval';
 
@@ -112,7 +111,6 @@ const AppNavigator = () => {
       {/* ===== ADMIN ROLE ROUTES ===== */}
       <Route path="/admin-dashboard" element={protectRoute(<AdminDashboard />, ['admin'])} />
       <Route path="/user-management" element={protectRoute(<UserManagement />, ['admin'])} />
-      <Route path="/role-management" element={protectRoute(<RoleManagement />, ['admin'])} />
       <Route path="/customer-order" element={protectRoute(<CustomerOrder />, ['admin'])} />
       <Route path="/store-request-approvals" element={protectRoute(<StoreRequestApproval />, ['admin'])} />
       <Route path="/admin-purchase-indents" element={protectRoute(<QMSPurchaseIndents />, ['admin'])} />

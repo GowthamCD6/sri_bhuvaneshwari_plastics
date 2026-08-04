@@ -10,25 +10,25 @@ const {
   updateCalculatorRow,
   deleteCalculatorRow
 } = require('../controllers/formulaCalculatorController');
-const { verifyToken, authorize } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 router.use(verifyToken);
 
 // Read permissions
-router.get('/default', authorize('formulas:read'), getDefaultCalculator);
-router.get('/', authorize('formulas:read'), getAllCalculators);
-router.get('/:id', authorize('formulas:read'), getCalculatorById);
+router.get('/default', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS', 'Accountant'), getDefaultCalculator);
+router.get('/', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS', 'Accountant'), getAllCalculators);
+router.get('/:id', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS', 'Accountant'), getCalculatorById);
 
 // Write permissions
-router.post('/', authorize('formulas:write'), createCalculator);
-router.put('/:id', authorize('formulas:write'), updateCalculator);
-router.delete('/:id', authorize('formulas:write'), deleteCalculator);
+router.post('/', requireRole('Admin', 'StoreOfficer'), createCalculator);
+router.put('/:id', requireRole('Admin', 'StoreOfficer'), updateCalculator);
+router.delete('/:id', requireRole('Admin', 'StoreOfficer'), deleteCalculator);
 
 // Row permissions
-router.post('/:id/rows', authorize('formulas:write'), createCalculatorRow);
-router.put('/:id/rows/:rowId', authorize('formulas:write'), updateCalculatorRow);
-router.delete('/:id/rows/:rowId', authorize('formulas:write'), deleteCalculatorRow);
+router.post('/:id/rows', requireRole('Admin', 'StoreOfficer'), createCalculatorRow);
+router.put('/:id/rows/:rowId', requireRole('Admin', 'StoreOfficer'), updateCalculatorRow);
+router.delete('/:id/rows/:rowId', requireRole('Admin', 'StoreOfficer'), deleteCalculatorRow);
 
 module.exports = router;

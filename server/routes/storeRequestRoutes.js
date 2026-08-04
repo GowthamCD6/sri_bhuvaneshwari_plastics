@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const storeRequestController = require('../controllers/storeRequestController');
-const { verifyToken, authorize } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 
-router.get('/', authorize('requests:read'), storeRequestController.getAllRequests);
-router.get('/:id', authorize('requests:read'), storeRequestController.getRequestById);
-router.post('/', authorize('requests:create'), storeRequestController.createRequest);
-router.put('/:id', authorize('requests:process'), storeRequestController.updateRequest);
-router.patch('/:id/verify', authorize('requests:process'), storeRequestController.verifyRequest);
-router.delete('/:id', authorize('requests:delete'), storeRequestController.deleteRequest);
+router.get('/', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS'), storeRequestController.getAllRequests);
+router.get('/:id', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS'), storeRequestController.getRequestById);
+router.post('/', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS'), storeRequestController.createRequest);
+router.put('/:id', requireRole('Admin', 'StoreOfficer'), storeRequestController.updateRequest);
+router.patch('/:id/verify', requireRole('Admin', 'StoreOfficer'), storeRequestController.verifyRequest);
+router.delete('/:id', requireRole('Admin'), storeRequestController.deleteRequest);
 
 module.exports = router;

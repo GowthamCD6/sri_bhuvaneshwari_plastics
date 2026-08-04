@@ -1,27 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
-const { verifyToken, authorize, authorizeAny } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 // All user routes require authentication
 router.use(verifyToken);
 
 // Get all users (Users with manage permission, or specific other roles can be handled, but let's give users:manage)
-router.get('/', authorize('users:manage'), userController.getAllUsers);
+router.get('/', requireRole('Admin'), userController.getAllUsers);
 
 // Get user by ID (Admin only)
-router.get('/:userId', authorize('users:manage'), userController.getUserById);
+router.get('/:userId', requireRole('Admin'), userController.getUserById);
 
 // Create new user (Admin only)
-router.post('/', authorize('users:manage'), userController.createUser);
+router.post('/', requireRole('Admin'), userController.createUser);
 
 // Update user (Admin only)
-router.put('/:userId', authorize('users:manage'), userController.updateUser);
+router.put('/:userId', requireRole('Admin'), userController.updateUser);
 
 // Delete user (Admin only)
-router.delete('/:userId', authorize('users:manage'), userController.deleteUser);
+router.delete('/:userId', requireRole('Admin'), userController.deleteUser);
 
 // Update user status (Admin only)
-router.patch('/:userId/status', authorize('users:manage'), userController.updateUserStatus);
+router.patch('/:userId/status', requireRole('Admin'), userController.updateUserStatus);
 
 module.exports = router;
