@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import useAuthStore from '../store/authStore';
+import useAuthStore, { normalizeRole } from '../store/authStore';
 
 // ===== COMMON PAGES =====
 import Dashboard from '../Pages/StoreOfficer/Dashboard/Dashboard';
@@ -38,13 +38,6 @@ import SupplierManagement from '../Pages/PurchaseDepartment/SupplierManagement/S
 import PurchaseIndents from '../Pages/PurchaseDepartment/PurchaseIndents/PurchaseIndents';
 import PurchaseDashboard from '../Pages/PurchaseDepartment/Dashboard/PurchaseDashboard';
 import CreatePurchaseIndent from '../Pages/PurchaseDepartment/CreateIndent/CreateIndent';
-
-const normalizeRole = (role) => {
-  const normalized = String(role || '').toLowerCase().trim();
-  if (normalized === 'store') return 'storeofficer';
-  if (normalized === 'purchase') return 'purchasedepartment';
-  return normalized;
-};
 
 const AccessDenied = () => (
   <div style={{ padding: '32px', color: '#0f172a' }}>
