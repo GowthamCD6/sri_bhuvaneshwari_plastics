@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
-const { verifyToken, authorize } = require('../middleware/authMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -10,7 +10,7 @@ router.use(verifyToken);
 /**
  * Get all categories with material counts
  */
-router.get('/', authorize('categories:read'), async (req, res) => {
+router.get('/', requireRole('Admin', 'StoreOfficer', 'PurchaseDepartment', 'QMS', 'Accountant'), async (req, res) => {
   
   const query = `
     SELECT 
@@ -55,7 +55,7 @@ router.get('/', authorize('categories:read'), async (req, res) => {
  * Create a new category
  * Note: Creates a placeholder material entry to establish the category
  */
-router.post('/', authorize('categories:write'), async (req, res) => {
+router.post('/', requireRole('Admin', 'StoreOfficer'), async (req, res) => {
   
   const { name } = req.body;
   const userId = req.user?.userId;
@@ -146,7 +146,7 @@ router.post('/', authorize('categories:write'), async (req, res) => {
 /**
  * Rename a category (updates all materials with the old category name)
  */
-router.put('/:categoryName', authorize('categories:write'), async (req, res) => {
+router.put('/:categoryName', requireRole('Admin', 'StoreOfficer'), async (req, res) => {
   const { categoryName } = req.params;
   const { name } = req.body;
 
@@ -190,7 +190,7 @@ router.put('/:categoryName', authorize('categories:write'), async (req, res) => 
 /**
  * Delete a category (only if it has no active materials)
  */
-router.delete('/:categoryName', authorize('categories:write'), async (req, res) => {
+router.delete('/:categoryName', requireRole('Admin', 'StoreOfficer'), async (req, res) => {
   const { categoryName } = req.params;
 
   if (categoryName === 'Raw Materials' || categoryName === 'Components') {

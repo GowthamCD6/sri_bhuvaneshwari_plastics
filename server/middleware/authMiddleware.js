@@ -102,75 +102,6 @@ const requireRole = (...allowedRoles) => {
 };
 
 /**
- * PBAC: Authorize user based on specific permission
- * @param {string} requiredPermission - e.g., 'inventory:read'
- */
-const authorize = (requiredPermission) => {
-  return async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ success: false, message: 'Authentication required' });
-      }
-
-      // Check permissions from database
-      const query = `
-        SELECT p.permission_name 
-        FROM permissions p
-        JOIN role_permissions rp ON p.id = rp.permission_id
-        WHERE rp.role_id = ? AND p.permission_name = ?
-      `;
-      const [results] = await db.query(query, [req.user.roleId, requiredPermission]);
-
-      if (results.length === 0) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. Insufficient permissions.'
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Authorization middleware error:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-  };
-};
-
-/**
- * PBAC: Authorize user based on multiple possible permissions (OR logic)
- * @param {Array<string>} requiredPermissions - e.g., ['dashboard:admin', 'dashboard:store']
- */
-const authorizeAny = (...requiredPermissions) => {
-  return async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ success: false, message: 'Authentication required' });
-      }
-
-      const query = `
-        SELECT p.permission_name 
-        FROM permissions p
-        JOIN role_permissions rp ON p.id = rp.permission_id
-        WHERE rp.role_id = ? AND p.permission_name IN (?)
-      `;
-      const [results] = await db.query(query, [req.user.roleId, requiredPermissions]);
-
-      if (results.length === 0) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. Insufficient permissions.'
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Authorization middleware error:', error);
-      res.status(500).json({ success: false, message: 'Internal server error' });
-    }
-  };
-};
-
-/**
  * Optional authentication - attach user if token exists but don't require it
  */
 const optionalAuth = async (req, res, next) => {
@@ -205,7 +136,5 @@ const optionalAuth = async (req, res, next) => {
 module.exports = {
   verifyToken,
   requireRole,
-  authorize,
-  authorizeAny,
   optionalAuth
 };

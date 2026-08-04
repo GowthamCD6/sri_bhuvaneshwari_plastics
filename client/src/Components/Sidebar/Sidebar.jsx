@@ -59,7 +59,6 @@ const Sidebar = ({ userRole, userData, onLogout }) => {
       },
       { label: "Administration", section: true },
       { path: "/user-management", label: "User Management", icon: UserCog },
-      { path: "/role-management", label: "Roles & Permissions", icon: Shield },
     ],
     qms: [
       { label: "Overview", section: true },
