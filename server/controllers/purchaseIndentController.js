@@ -282,6 +282,7 @@ const createIndent = async (req, res) => {
       requestDate,
       requiredByDate,
       priority,
+      reason,
       workflowStage,
       status,
       poNumber,
@@ -314,7 +315,7 @@ const createIndent = async (req, res) => {
           requestDate,
           requiredByDate,
           priority || 'Standard',
-          req.body.reason || reason || null,
+          reason || req.body.reason || null,
           status || 'Draft',
           workflowStage || 'QMS Init',
           poNumber || null,
@@ -415,7 +416,7 @@ const createIndent = async (req, res) => {
 const updateIndentStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poDate, materials } = req.body;
+    const { status, workflowStage, comments, storeOfficerNotes, qmsNotes, adminNotes, accountantNotes, poNumber, poDate, materials, reason } = req.body;
     const userId = req.user.userId;
 
     // Get current indent
@@ -448,9 +449,9 @@ const updateIndentStatus = async (req, res) => {
       updateParams.push(workflowStage);
     }
 
-    if (req.body.reason !== undefined || reason !== undefined) {
+    if (reason !== undefined || req.body.reason !== undefined) {
       updateFields.push('reason = ?');
-      updateParams.push(req.body.reason !== undefined ? req.body.reason : reason);
+      updateParams.push(reason !== undefined ? reason : req.body.reason);
     }
 
     if (poNumber !== undefined) {
