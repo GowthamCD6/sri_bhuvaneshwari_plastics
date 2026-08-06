@@ -206,10 +206,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="ad-container">
-      {/* Header */}
-      <div className="ad-header">
-        <h1 className="ad-title">Admin Dashboard</h1>
-      </div>
+
 
       {error && (
         <div style={{ padding: '12px 16px', margin: '12px 0', background: '#fee', border: '1px solid #fcc', borderRadius: '8px', color: '#c33' }}>

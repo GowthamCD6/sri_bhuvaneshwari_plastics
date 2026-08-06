@@ -10,8 +10,18 @@ import useAuthStore from '../store/authStore';
 const RequirePermission = ({ permission, children, fallback = null }) => {
   const { user } = useAuthStore();
   
-  // If no user or no permissions loaded, deny access
-  if (!user || !user.permissions) {
+  // If no user, deny access
+  if (!user) {
+    return fallback;
+  }
+
+  // Admin bypass
+  if (user.roleName === 'Admin' || user.role === 'Admin') {
+    return <>{children}</>;
+  }
+
+  // If no permissions loaded for non-admin, deny access
+  if (!user.permissions) {
     return fallback;
   }
   

@@ -45,28 +45,30 @@ const AccessDenied = () => (
   </div>
 );
 
+export const getDefaultRouteForRole = (role) => {
+  switch (role) {
+    case 'admin':
+      return '/admin-dashboard';
+    case 'qms':
+      return '/qms-dashboard';
+    case 'storeofficer':
+    case 'store':
+      return '/store-dashboard';
+    case 'purchasedepartment':
+      return '/purchase-dashboard';
+    case 'accountant':
+      return '/accountant-dashboard';
+    default:
+      return '/access-denied';
+  }
+};
+
 const AppNavigator = () => {
   const { user } = useAuthStore();
   const userRole = normalizeRole(user?.roleName);
 
   // Role-based default routes
-  const getDefaultRoute = () => {
-    switch (userRole) {
-      case 'admin':
-        return '/admin-dashboard';
-      case 'qms':
-        return '/qms-dashboard';
-      case 'storeofficer':
-      case 'store':
-        return '/store-dashboard';
-      case 'purchasedepartment':
-        return '/purchase-dashboard';
-      case 'accountant':
-        return '/accountant-dashboard';
-      default:
-        return '/access-denied';
-    }
-  };
+  const getDefaultRoute = () => getDefaultRouteForRole(userRole);
 
   const protectRoute = (element, allowedRoles = []) => {
     const isAllowed = allowedRoles.map(normalizeRole).includes(userRole);

@@ -1,17 +1,17 @@
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Components/Sidebar/Sidebar';
-import AppNavigator from './Navigation/appnavigator';
+import AppNavigator, { getDefaultRouteForRole } from './Navigation/appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
-import useAuthStore from './store/authStore';
-import { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
-import logo from './assets/SBP_logo.png';
+import useAuthStore, { normalizeRole } from './store/authStore';
+import { useEffect, useState } from 'react';
+import { Menu } from 'lucide-react';
+import './App.css';
 
 function AppContent() {
-  const { isAuthenticated, user, login, logout } = useAuthStore();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { isAuthenticated, user, login, logout, checkTokenExpiration } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Enforce 8-hour session token check on mount and periodically
   useEffect(() => {
@@ -19,7 +19,7 @@ function AppContent() {
 
     // Initial check on mount/rehydration
     if (checkTokenExpiration()) {
-      navigate('/', { replace: true });cls
+      navigate('/', { replace: true });
       return;
     }
 
@@ -37,7 +37,9 @@ function AppContent() {
     const userData = loginData.user;
     const token = loginData.token;
     login(userData, token);
-    navigate('/', { replace: true });
+    const userRole = normalizeRole(userData?.roleName);
+    const dashboardRoute = getDefaultRouteForRole(userRole);
+    navigate(dashboardRoute, { replace: true });
   };
 
   const handleLogout = () => {
@@ -45,17 +47,13 @@ function AppContent() {
     navigate('/');
   };
 
-  // Redirect to home after login to trigger role-based routing
+  // Redirect to dashboard after login to trigger role-based routing if they hit root
   useEffect(() => {
     if (isAuthenticated && location.pathname === '/') {
-      navigate('/', { replace: true });
+      const role = normalizeRole(user?.roleName);
+      navigate(getDefaultRouteForRole(role), { replace: true });
     }
-  }, [isAuthenticated, location.pathname, navigate]);
-
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileSidebarOpen(false);
-  }, [location.pathname]);
+  }, [isAuthenticated, location.pathname, navigate, user?.roleName]);
 
   // Get user role for sidebar
   const userRole = user?.roleName?.toLowerCase() || '';
@@ -66,27 +64,21 @@ function AppContent() {
         <Login onLogin={handleLogin} />
       ) : (
         <div className="app-container">
-          {/* Mobile Top Header */}
-          <header className="mobile-header">
-            <button 
-              className="mobile-menu-btn"
-              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+          <div className="mobile-header">
+            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
             </button>
             <div className="mobile-brand">
-              <img src={logo} alt="SBP Logo" className="mobile-logo-img" />
-              <span className="mobile-brand-name">Sri Bhuvaneshwari Plastics</span>
+              <span className="mobile-brand-name">SBP QMS</span>
             </div>
-          </header>
-
+            <div style={{ width: 24 }}></div> {/* spacer */}
+          </div>
           <Sidebar 
             userRole={userRole} 
             userData={user}
             onLogout={handleLogout}
-            isOpen={mobileSidebarOpen}
-            onClose={() => setMobileSidebarOpen(false)}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
           />
           <main className="main-content">
             <AppNavigator />
