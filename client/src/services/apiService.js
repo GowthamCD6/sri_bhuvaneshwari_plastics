@@ -4,6 +4,8 @@
  * Tokens are stored in cookies and will be automatically sent with requests
  */
 
+import useAuthStore from '../store/authStore';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
@@ -49,6 +51,9 @@ const clearAllAuth = () => {
   removeRefreshTokenFromStorage();
   removeUserData();
   localStorage.removeItem('auth-storage');
+  try {
+    useAuthStore.getState().logout();
+  } catch (e) {}
   // Instruct backend to clear HttpOnly cookie
   fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(()=>{});
 };
@@ -101,6 +106,15 @@ const removeUserData = () => {
  * Base fetch wrapper with JWT support (ready for future integration)
  */
 const fetchWithAuth = async (url, options = {}) => {
+  // Pre-check 8-hour session expiration before making API calls
+  if (useAuthStore.getState().checkTokenExpiration()) {
+    clearAllAuth();
+    window.location.href = '/';
+    const sessionErr = new Error('Session expired (8 hours reached). Please log in again.');
+    sessionErr.status = 401;
+    throw sessionErr;
+  }
+
   const isFormData = options.body instanceof FormData;
   const headers = {
     ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
