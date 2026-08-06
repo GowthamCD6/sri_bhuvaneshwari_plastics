@@ -19,7 +19,7 @@ function AppContent() {
 
     // Initial check on mount/rehydration
     if (checkTokenExpiration()) {
-      navigate('/', { replace: true });
+      navigate('/', { replace: true });cls
       return;
     }
 
@@ -45,7 +45,6 @@ function AppContent() {
     navigate('/');
   };
 
-<<<<<<< HEAD
   // Redirect to home after login to trigger role-based routing
   useEffect(() => {
     if (isAuthenticated && location.pathname === '/') {
@@ -60,10 +59,6 @@ function AppContent() {
 
   // Get user role for sidebar
   const userRole = user?.roleName?.toLowerCase() || '';
-=======
-  // Get user role for sidebar (normalized to match roleMenus)
-  const userRole = normalizeRole(user?.roleName);
->>>>>>> 0e47c38a32efe4fee86d3358d1ba6822fd52d1b3
 
   return (
     <>
