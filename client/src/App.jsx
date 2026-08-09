@@ -1,15 +1,17 @@
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './Components/Sidebar/Sidebar';
-import AppNavigator from './Navigation/appnavigator';
+import AppNavigator, { getDefaultRouteForRole } from './Navigation/appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
 import useAuthStore, { normalizeRole } from './store/authStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Menu } from 'lucide-react';
 import './App.css';
 
 function AppContent() {
   const { isAuthenticated, user, login, logout, checkTokenExpiration } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Enforce 8-hour session token check on mount and periodically
   useEffect(() => {
@@ -35,7 +37,9 @@ function AppContent() {
     const userData = loginData.user;
     const token = loginData.token;
     login(userData, token);
-    navigate('/', { replace: true });
+    const userRole = normalizeRole(userData?.roleName);
+    const dashboardRoute = getDefaultRouteForRole(userRole);
+    navigate(dashboardRoute, { replace: true });
   };
 
   const handleLogout = () => {
@@ -43,8 +47,16 @@ function AppContent() {
     navigate('/');
   };
 
-  // Get user role for sidebar (normalized to match roleMenus)
-  const userRole = normalizeRole(user?.roleName);
+  // Redirect to dashboard after login to trigger role-based routing if they hit root
+  useEffect(() => {
+    if (isAuthenticated && location.pathname === '/') {
+      const role = normalizeRole(user?.roleName);
+      navigate(getDefaultRouteForRole(role), { replace: true });
+    }
+  }, [isAuthenticated, location.pathname, navigate, user?.roleName]);
+
+  // Get user role for sidebar
+  const userRole = user?.roleName?.toLowerCase() || '';
 
   return (
     <>
@@ -52,10 +64,21 @@ function AppContent() {
         <Login onLogin={handleLogin} />
       ) : (
         <div className="app-container">
+          <div className="mobile-header">
+            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
+            <div className="mobile-brand">
+              <span className="mobile-brand-name">SBP QMS</span>
+            </div>
+            <div style={{ width: 24 }}></div> {/* spacer */}
+          </div>
           <Sidebar 
             userRole={userRole} 
             userData={user}
             onLogout={handleLogout}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
           />
           <main className="main-content">
             <AppNavigator />

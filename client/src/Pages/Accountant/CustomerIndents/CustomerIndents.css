@@ -357,6 +357,201 @@
 
 .vsi-page-btn:disabled {
   background-color: #f1f5f9 !important;
+  overflow-x: auto;
+}
+
+.vsi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vsi-table th {
+  text-align: left;
+  padding: 14px 24px;
+  background-color: #f8fafc;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--vsi-border);
+}
+
+.vsi-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--vsi-border);
+  vertical-align: middle;
+}
+
+.vsi-table tr:hover td {
+  background-color: #f8fafc;
+}
+
+/* Column Specifics */
+.vsi-id-link {
+  color: var(--vsi-primary);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.vsi-subtext {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.vsi-text-bold {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+}
+
+.vsi-subtext-blue {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.vsi-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vsi-user-avatar-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vsi-text-medium {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vsi-text-medium);
+}
+
+/* Store Status Progress Bar */
+.vsi-stock-text {
+  font-size: 12px;
+  margin-bottom: 6px;
+  display: flex;
+  gap: 4px;
+}
+
+.vsi-bold-dark {
+  font-weight: 600;
+  color: var(--vsi-text-dark);
+}
+
+.vsi-success-text {
+  color: var(--vsi-green);
+  font-weight: 500;
+}
+
+.vsi-progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: #f1f5f9; /* Light gray base */
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.vsi-progress-fill {
+  height: 100%;
+  background-color: var(--vsi-green);
+  border-radius: 4px;
+}
+
+/* Verification Badges */
+.vsi-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-pending {
+  background-color: var(--vsi-badge-orange-bg);
+  color: var(--vsi-badge-orange-text);
+}
+
+.badge-draft {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.badge-verified {
+  background-color: var(--vsi-badge-blue-bg);
+  color: var(--vsi-badge-blue-text);
+}
+
+/* Actions */
+.vsi-btn-verify {
+  background-color: var(--vsi-primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.vsi-btn-verify:hover {
+  background-color: var(--vsi-primary-hover);
+}
+
+/* --- Footer --- */
+.vsi-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vsi-footer-text {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.vsi-pagination {
+  display: flex;
+  gap: 8px;
+}
+
+.vsi-page-btn {
+  background-color: #eff6ff;
+  border: none;
+  color: var(--vsi-primary);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.vsi-page-btn:hover {
+  background-color: #dbeafe;
+}
+
+/* Enhanced functionality styles for complete page functionality */
+.vsi-page-numbers {
+  display: flex;
+  gap: 4px;
+  margin: 0 8px;
+}
+
+.vsi-page-btn.active {
+  background-color: var(--vsi-primary) !important;
+  border: 1px solid var(--vsi-primary);
+  color: white !important;
+}
+
+.vsi-page-btn:disabled {
+  background-color: #f1f5f9 !important;
   border: 1px solid #e2e8f0;
   color: #94a3b8 !important;
   cursor: not-allowed;
@@ -377,6 +572,111 @@
 .vsi-tab:hover:not(.active) {
   background-color: #eff6ff;
   color: var(--vsi-primary);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .vsi-container {
+    padding: 12px;
+  }
+
+  .vsi-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .vsi-page-title {
+    font-size: 20px;
+  }
+
+  .vsi-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .vsi-card {
+    padding: 16px;
+  }
+  
+  .vsi-card-value {
+    font-size: 24px;
+  }
+
+  .vsi-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .vsi-tabs {
+    overflow-x: auto;
+    width: 100%;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px; /* Space for scrollbar */
+  }
+
+  .vsi-tab {
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+
+  .vsi-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .vsi-search-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .vsi-filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .vsi-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  .vsi-table {
+    min-width: 800px;
+  }
+
+  .vsi-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    padding: 16px;
+  }
+  
+  .vsi-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .vsi-stats-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .vsi-table {
+    min-width: 700px;
+  }
+  
+  .vsi-actions-cell {
+    flex-direction: column;
+    align-items: flex-end;
+  }
 }
 @keyframes shimmer {
   0% { background-position: 200% 0; }

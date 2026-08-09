@@ -12,10 +12,13 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
   const expiresIn = process.env.JWT_COOKIE_EXPIRES_IN || '1';
   const days = parseInt(expiresIn);
   
+  // Set secure flag only when running in production AND over HTTPS
+  const isSecure = process.env.NODE_ENV === 'production' && (res.req?.secure || res.req?.headers['x-forwarded-proto'] === 'https');
+
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isSecure,
+    sameSite: 'lax',
     maxAge: days * 24 * 60 * 60 * 1000
   };
 

@@ -1009,3 +1009,33 @@
 .mr-view-value .mr-status-pill {
   margin-top: 0;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .mr-container {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 16px;
+  }
+
+  .mr-controls-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mr-tabs {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .mr-table-card,
+  .mr-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mr-table {
+    min-width: 700px;
+  }
+}

@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    Store Officer Dashboard – Full Dashboard CSS
    Prefix: sod-
    Theme: matches project palette (#2563eb primary, #f8fafc bg)
@@ -703,15 +703,19 @@
 }
 
 @media (max-width: 768px) {
-  .sod-page        { padding: 16px; }
+  .sod-page        { padding: 14px; }
+  .sod-header      { flex-direction: column; align-items: flex-start; gap: 10px; }
   .sod-gauge-row   { grid-template-columns: repeat(2, 1fr); }
   .sod-kpi-grid    { grid-template-columns: repeat(2, 1fr); }
   .sod-bot-row     { grid-template-columns: 1fr; }
   .sod-kpi-value   { font-size: 22px; }
   .sod-mid-row     { grid-template-columns: 1fr; }
+  .sod-table-wrap  { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sod-table       { min-width: 600px; }
 }
 
 @media (max-width: 480px) {
   .sod-gauge-row   { grid-template-columns: 1fr; }
   .sod-kpi-grid    { grid-template-columns: 1fr; }
+  .sod-page-title  { font-size: 20px; }
 }

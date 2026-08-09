@@ -1135,7 +1135,23 @@
     width: 100%;
     justify-content: center;
   }
-  
+
+@media (max-width: 768px) {
+  .sa-container {
+    padding: 16px;
+  }
+
+  .sa-table-card,
+  .sa-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sa-table {
+    min-width: 650px;
+    font-size: 13px;
+  }
+
   .sa-table th,
   .sa-table td {
     padding: 12px;
@@ -1148,17 +1164,20 @@
   
   .sa-toggle-group {
     flex-direction: column;
+    width: 100%;
   }
   
   .sa-toggle-btn {
     justify-content: center;
+    width: 100%;
   }
 }
 
 @media (max-width: 600px) {
   .sa-modal {
     margin: 16px;
-    padding: 24px;
+    padding: 20px;
+    width: calc(100% - 32px);
   }
   
   .sa-modal-stats {
@@ -1188,4 +1207,5 @@
   background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
   background-size: 600px 100%;
   animation: sa-shimmer 1.4s ease-in-out infinite;
+}
 }

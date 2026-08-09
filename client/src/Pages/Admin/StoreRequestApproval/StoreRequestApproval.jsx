@@ -262,11 +262,7 @@ const StoreRequestApproval = () => {
 
   return (
     <div className="qms-container store-request-approval">
-      <header className="qms-header">
-        <div className="qms-header-content">
-          <h1 className="qms-title">Store Request Approvals</h1>
-        </div>
-      </header>
+
 
       {error && (
         <div className="sra-error">
@@ -415,8 +411,9 @@ const StoreRequestApproval = () => {
             ))}
 
             {!loading && filteredIndents.length === 0 && (
-              <div className="sra-info-state">
-                No indents found.
+              <div className="empty-state">
+                <div className="empty-title">No indents found</div>
+                <div className="empty-subtitle">Try changing filters or search keywords.</div>
               </div>
             )}
           </div>

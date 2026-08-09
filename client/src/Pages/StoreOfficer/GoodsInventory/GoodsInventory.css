@@ -887,3 +887,18 @@
   animation: mm-shimmer 1.4s ease-in-out infinite;
   flex-shrink: 0;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+  .mm-container {
+    flex-direction: column;
+    height: auto;
+    min-height: auto;
+  }
+
+  .mm-sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+  }
+}

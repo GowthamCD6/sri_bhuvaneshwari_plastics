@@ -241,7 +241,19 @@ const NewPurchaseIndent = () => {
   const fileInputRef = useRef(null);
   const currentIndentId = passedIndentId || createdIndentId;
 
-  const isDeleteAllowed = ['QMS', 'Admin'].includes(user?.roleName);
+  const canUserAct = () => {
+    if (!currentIndentId) return true;
+    switch (formData.workflowStage) {
+      case 'QMS Init': return user?.roleName === 'QMS';
+      case 'Store Officer': return user?.roleName === 'StoreOfficer';
+      case 'QMS Verified': return user?.roleName === 'QMS';
+      case 'Admin': return user?.roleName === 'Admin';
+      case 'Accountant': return user?.roleName === 'Accountant';
+      case 'Completed': return false;
+      default: return false;
+    }
+  };
+  const isDeleteAllowed = canUserAct();
 
   const sanitizeFileName = (value) => {
     return String(value || 'purchase-indent').replace(/[^a-zA-Z0-9-_]/g, '-');
@@ -1936,18 +1948,7 @@ const NewPurchaseIndent = () => {
             <div className="pi-document-code">Document code: SBP/PI/IB/02-00 | v1.0</div>
             <div className="pi-footer-actions">
               
-              {user?.roleName === 'Accountant' ? (
-                null /* formData.workflowStage === 'Accountant' && (
-                  <button 
-                    onClick={() => handleSubmit('submit')}
-                    className="pi-btn pi-btn-primary"
-                    disabled={loading}
-                  >
-                    <Check size={16} />
-                    Mark as Processed
-                  </button>
-                ) */
-              ) : (
+              {canUserAct() && user?.roleName !== 'Accountant' && (
                 <button 
                   onClick={() => handleSubmit('submit')}
                   className="pi-btn pi-btn-primary"
@@ -1958,7 +1959,7 @@ const NewPurchaseIndent = () => {
                 </button>
               )}
 
-              {currentIndentId && isDeleteAllowed && user?.roleName !== 'Accountant' && (
+              {canUserAct() && currentIndentId && user?.roleName !== 'Accountant' && (
                 <button
                   onClick={handleDeleteIndent}
                   className="pi-btn pi-btn-outline"

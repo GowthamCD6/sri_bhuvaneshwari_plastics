@@ -195,3 +195,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .ri-page {
+    padding: 14px;
+  }
+
+  .ri-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ri-table {
+    min-width: 600px;
+  }
+
+  .ri-footer {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .ri-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

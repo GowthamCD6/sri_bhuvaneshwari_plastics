@@ -1634,3 +1634,28 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 768px) {
+  .formula-page {
+    padding: 14px;
+  }
+
+  .formula-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .formula-stat-card {
+    width: 100%;
+    height: auto;
+    min-height: 120px;
+  }
+
+  .formula-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .formula-table {
+    min-width: 750px;
+  }
+}

@@ -511,7 +511,7 @@ const StockAdjustment = () => {
           <button 
             className={`sa-btn-submit ${mode === 'out' ? 'out' : ''}`} 
             onClick={handleSubmit}
-            disabled={!selectedMaterial || quantity <= 0 || !reason}
+            disabled={!currentMaterial || quantity <= 0 || !reason}
           >
             {mode === 'in' ? <Plus size={18} /> : <Minus size={18} />}
             {mode === 'in' ? 'Add to Stock' : 'Remove from Stock'}

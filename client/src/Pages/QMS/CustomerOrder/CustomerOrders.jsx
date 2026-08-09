@@ -3,6 +3,7 @@ import { Eye, Plus, Search, List, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './CustomerOrders.css';
 import NewOrderModal from './Add-New-Customer/NewOrderModal';
+import OrderDetailsModal from '../../../Components/OrderDetailsModal/OrderDetailsModal';
 import { customerOrderService, purchaseIndentService } from '../../../services/apiService';
 
 const STORAGE_KEY = 'sbp_customer_orders_v1';
@@ -605,165 +606,11 @@ const CustomerOrders = () => {
       {isModalOpen && <NewOrderModal onClose={handleCloseModal} onSubmit={handleAddOrder} />}
 
       {/* Order Details Modal */}
-      {selectedOrder && (
-        <div className="order-details-overlay" onClick={() => setSelectedOrder(null)}>
-          <div className="order-details-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="order-details-header">
-              <div>
-                <div className="order-details-title">Order Details</div>
-                <div className="order-details-subtitle">{selectedOrder.indent_id || selectedOrder.indentId || selectedOrder.id} • {selectedOrder.customer_name || selectedOrder.customerName}</div>
-              </div>
-              <button className="order-details-close" type="button" onClick={() => setSelectedOrder(null)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="order-details-body">
-              <div className="details-grid">
-                <div className="detail-card">
-                  <div className="detail-label">Indent ID</div>
-                  <div className="detail-value">{selectedOrder.indent_id || selectedOrder.indentId || '-'}</div>
-                </div>
-                <div className="detail-card">
-                  <div className="detail-label">Indent Date</div>
-                  <div className="detail-value">{formatDisplayDate(selectedOrder.indent_date || selectedOrder.indentDate)}</div>
-                </div>
-                <div className="detail-card">
-                  <div className="detail-label">Status</div>
-                  <div className="detail-value">
-                    <span className={`badge ${selectedOrder.indentStatusClass || statusToBadgeClass(selectedOrder.status || selectedOrder.indentStatus)}`}>{selectedOrder.status || selectedOrder.indentStatus}</span>
-                  </div>
-                </div>
-                <div className="detail-card">
-                  <div className="detail-label">Delivery Status</div>
-                  <div className="detail-value">
-                    <span className={`badge ${deliveryStatusToBadgeClass(getDeliveryStatus(selectedOrder))}`}>{getDeliveryStatus(selectedOrder)}</span>
-                  </div>
-                </div>
-                <div className="detail-card">
-                  <div className="detail-label">Delivered At</div>
-                  <div className="detail-value">{selectedOrder.delivered_at ? formatDisplayDate(selectedOrder.delivered_at) : '-'}</div>
-                </div>
-                <div className="detail-card">
-                  <div className="detail-label">Priority</div>
-                  <div className="detail-value">
-                    <span className={`badge ${selectedOrder.priorityClass || getPriorityClass(selectedOrder.priority)}`}>{selectedOrder.priority}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <div className="detail-section-title">Customer</div>
-                <div className="detail-section-content">
-                  <div className="text-main">{selectedOrder.customer_name || selectedOrder.customerName}</div>
-                  <div className="text-sub">{selectedOrder.customer_phone || selectedOrder.customerPhone}</div>
-                  <div className="text-sub">{selectedOrder.customer_email || selectedOrder.customerEmail}</div>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <div className="detail-section-title">Items</div>
-                <div className="detail-section-content">
-                  <div className="details-table">
-                    <div className="details-table-head">
-                      <div>Component</div>
-                      <div>Qty</div>
-                      <div>Required By</div>
-                      <div>Status</div>
-                    </div>
-                    {(Array.isArray(selectedOrder.orderItems) ? selectedOrder.orderItems : []).map((it, idx) => (
-                      <div key={idx} className="details-table-row">
-                        <div className="details-strong">{it.component_name || it.component || '-'}</div>
-                        <div>{it.quantity ?? '-'}</div>
-                        <div>{formatDisplayDate(it.required_by_date || it.requiredByDate)}</div>
-                        <div>
-                          <span className="details-chip">{it.status || 'Requested'}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <div className="detail-section-title">Raw Materials / PO Date</div>
-                <div className="detail-section-content">
-                  <div className="details-grid details-grid-compact">
-                    <div className="detail-card">
-                      <div className="detail-label">PO Date</div>
-                      <div className="detail-value">
-                        {selectedOrder.purchase_indent_number || selectedOrder.purchaseIndentNumber || selectedOrder.po_date || selectedOrder.poDate || '-'}
-                      </div>
-                    </div>
-                    <div className="detail-card">
-                      <div className="detail-label">Order Date</div>
-                      <div className="detail-value">{formatDisplayDate(selectedOrder.indent_date || selectedOrder.indentDate)}</div>
-                    </div>
-                  </div>
-
-                  <div className="details-table details-table-raw">
-                    <div className="details-table-head">
-                      <div>Component</div>
-                      <div>Raw Material</div>
-                      <div>Required By</div>
-                    </div>
-                    {(Array.isArray(selectedOrder.orderItems) ? selectedOrder.orderItems : []).map((it, idx) => (
-                      <div key={`raw-${idx}`} className="details-table-row">
-                        <div className="details-strong">{it.component_name || it.component || '-'}</div>
-                        <div>{it.raw_material || it.rawMaterial || '-'}</div>
-                        <div>{formatDisplayDate(it.required_by_date || it.requiredByDate)}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="order-details-footer">
-              <div className="status-actions">
-                {(() => {
-                  const orderStatus = selectedOrder.status || selectedOrder.indentStatus || 'Draft';
-                  const delStatus = getDeliveryStatus(selectedOrder).toLowerCase();
-                  
-                  return (
-                    <>
-                      {orderStatus !== 'Draft' && (
-                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Draft')}>Draft</button>
-                      )}
-                      
-                      {orderStatus === 'Draft' && (
-                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Store Review')}>Send to Store</button>
-                      )}
-                      
-                      {(orderStatus !== 'Pending Admin Approval' && orderStatus !== 'Admin Approved') && (
-                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Pending Admin Approval')}>Send to Admin</button>
-                      )}
-                      
-                      {(orderStatus === 'Draft' || orderStatus === 'Pending Store Review') && (
-                        <button type="button" className="status-btn" onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, 'Admin Approved')}>Approve</button>
-                      )}
-                      
-                      {(orderStatus === 'Admin Approved' && delStatus !== 'delivered') && (
-                        <button
-                          type="button"
-                          className="status-btn status-btn-delivered"
-                          onClick={() => updateOrderStatus(selectedOrder.order_id || selectedOrder.id, {
-                            deliveryStatus: 'Delivered',
-                            comments: 'Marked as delivered to customer'
-                          })}
-                        >
-                          Mark Delivered
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-              <button className="btn-secondary" type="button" onClick={() => setSelectedOrder(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <OrderDetailsModal 
+        selectedOrder={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        updateOrderStatus={updateOrderStatus}
+      />
     </div>
   );
 };

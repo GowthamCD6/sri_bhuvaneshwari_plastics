@@ -1155,6 +1155,16 @@
     margin: 16px;
   }
 
+  .sup-table-card,
+  .sup-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sup-table {
+    min-width: 650px;
+  }
+
   .sup-table th,
   .sup-table td {
     padding: 8px 12px;

@@ -1295,3 +1295,41 @@
 .pi-modal-success h3 { color: #059669; }
 .pi-modal-error h3 { color: #dc2626; }
 .pi-modal-info h3 { color: #2563eb; }
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .pi-header {
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .pi-header-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pi-toolbar,
+  .pi-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .pi-table-card,
+  .pi-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pi-table {
+    min-width: 700px;
+  }
+
+  .pi-modal {
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
