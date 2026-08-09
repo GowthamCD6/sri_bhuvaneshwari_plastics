@@ -2,14 +2,34 @@ import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-
 import Sidebar from './Components/Sidebar/Sidebar';
 import AppNavigator from './Navigation/appnavigator';
 import Login from './Pages/Fronter/LoginPage/Login';
-import useAuthStore from './store/authStore';
+import useAuthStore, { normalizeRole } from './store/authStore';
 import { useEffect } from 'react';
 import './App.css';
 
 function AppContent() {
-  const { isAuthenticated, user, login, logout } = useAuthStore();
+  const { isAuthenticated, user, login, logout, checkTokenExpiration } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Enforce 8-hour session token check on mount and periodically
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Initial check on mount/rehydration
+    if (checkTokenExpiration()) {
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // Interval check every 10 seconds
+    const interval = setInterval(() => {
+      if (checkTokenExpiration()) {
+        navigate('/', { replace: true });
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, checkTokenExpiration, navigate]);
 
   const handleLogin = (loginData) => {
     const userData = loginData.user;
@@ -23,16 +43,8 @@ function AppContent() {
     navigate('/');
   };
 
-  // Redirect to home after login to trigger role-based routing
-  useEffect(() => {
-    if (isAuthenticated && location.pathname === '/') {
-      // The AppNavigator will handle redirecting to the correct default route
-      navigate('/', { replace: true });
-    }
-  }, [isAuthenticated, location.pathname, navigate]);
-
-  // Get user role for sidebar
-  const userRole = user?.roleName?.toLowerCase() || '';
+  // Get user role for sidebar (normalized to match roleMenus)
+  const userRole = normalizeRole(user?.roleName);
 
   return (
     <>
