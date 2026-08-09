@@ -98,13 +98,12 @@ const PurchaseIndents = () => {
   };
 
   const getStatusClass = (status) => {
-    switch (status.toLowerCase()) {
-      case 'pending': return 'status-pending';
-      case 'verified': return 'status-verified';
-      case 'processed': return 'status-processed';
-      case 'rejected': return 'status-rejected';
-      default: return 'status-pending';
-    }
+    if (!status) return 'status-pending';
+    const s = status.toLowerCase();
+    if (s.includes('rejected')) return 'status-rejected';
+    if (s.includes('processed') || s.includes('completed')) return 'status-processed';
+    if (s.includes('verified') || s.includes('approved')) return 'status-verified';
+    return 'status-pending';
   };
 
   const getPriorityClass = (priority) => {

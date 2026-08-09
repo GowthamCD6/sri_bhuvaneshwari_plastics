@@ -470,9 +470,13 @@ const CreatePurchaseIndent = () => {
     };
   };
 
+  const isSubmittingRef = useRef(false);
+
   const handleSubmit = async () => {
+    if (isSubmittingRef.current) return;
     if (!validate()) return;
     try {
+      isSubmittingRef.current = true;
       setSubmitting(true);
       const response = await purchaseIndentService.createIndent(
         buildPayload('Pending QMS Verification', 'Purchase Dept')
@@ -487,6 +491,7 @@ const CreatePurchaseIndent = () => {
       setTimeout(() => navigate('/qms-indents'), 1500);
     } catch (err) {
       showToast('error', err.message || 'Failed to submit indent.');
+      isSubmittingRef.current = false;
     } finally {
       setSubmitting(false);
     }
