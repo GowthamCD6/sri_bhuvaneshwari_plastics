@@ -280,77 +280,82 @@ const CustomerOrderApprovals = () => {
             </div>
           </div>
 
-          {/* Table Header */}
-          <div className="qms-table-header">
-            <div>Indent ID</div>
-            <div>Requested By</div>
-            <div>Department</div>
-            <div>Indent Date</div>
-            <div>Required By</div>
-            <div>Urgency</div>
-            <div>Items</div>
-            <div>Status</div>
-            <div>Action</div>
-          </div>
+          {/* Table Container */}
+          <div className="qms-table-scroll-wrapper">
+            <div className="qms-table-container">
+              {/* Table Header */}
+              <div className="qms-table-header">
+                <div>Indent ID</div>
+                <div>Requested By</div>
+                <div>Department</div>
+                <div>Indent Date</div>
+                <div>Required By</div>
+                <div>Items</div>
+                <div>Urgency</div>
+                <div>Status</div>
+                <div>Action</div>
+              </div>
 
-          {/* Table Body */}
-          <div className="qms-table-body">
-            {filteredIndents.map((indent) => (
-              <div key={indent.id} className="qms-table-row">
-                <div className="qms-indent-cell">
-                  <div className="qms-indent-id-main">{indent.id}</div>
-                  <div className="qms-indent-type">Customer Order</div>
-                  <div className="qms-indent-id-sub">#{indent.indentId || indent.id}</div>
-                </div>
-                <div className="qms-requester-cell">
-                  <div className="qms-requester-name-main">{indent.requestedBy}</div>
-                  <div className="qms-requester-role">QMS Officer</div>
-                </div>
-                <div className="qms-department">{indent.department}</div>
-                <div className="qms-date">{indent.date}</div>
-                <div className="qms-date">{indent.requiredBy}</div>
-                <div className="qms-items-cell">
-                  <div className="qms-items-count">{indent.itemsCount}</div>
-                  <div className="qms-items-label">Materials</div>
-                </div>
-                <div>
-                  <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
-                    {indent.urgency}
-                  </span>
-                </div>
-                <div className="qms-status">
-                  <div className="qms-status-dot"></div>
-                  <div className="qms-status-stack">
-                    <span className="qms-status-text">{indent.status}</span>
-                    <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
+              {/* Table Body */}
+              <div className="qms-table-body">
+                {filteredIndents.map((indent) => (
+                  <div key={indent.id} className="qms-table-row">
+                    <div className="qms-indent-cell">
+                      <div className="qms-indent-id-main">{indent.id}</div>
+                      <div className="qms-indent-type">Customer Order</div>
+                      <div className="qms-indent-id-sub">#{indent.indentId || indent.id}</div>
+                    </div>
+                    <div className="qms-requester-cell">
+                      <div className="qms-requester-name-main">{indent.requestedBy}</div>
+                      <div className="qms-requester-role">QMS Officer</div>
+                    </div>
+                    <div className="qms-department">{indent.department}</div>
+                    <div className="qms-date">{indent.date}</div>
+                    <div className="qms-date">{indent.requiredBy}</div>
+                    <div className="qms-items-cell">
+                      <div className="qms-items-count">{indent.itemsCount}</div>
+                      <div className="qms-items-label">Materials</div>
+                    </div>
+                    <div>
+                      <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
+                        {indent.urgency}
+                      </span>
+                    </div>
+                    <div className="qms-status">
+                      <div className="qms-status-dot"></div>
+                      <div className="qms-status-stack">
+                        <span className="qms-status-text">{indent.status}</span>
+                        <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
+                      </div>
+                    </div>
+                    <div className="qms-actions-cell-row">
+                      <button 
+                        className="qms-action-link qms-action-btn-new"
+                        onClick={() => handleViewIndent(indent)}
+                      >
+                        <Eye size={16} />
+                        View
+                      </button>
+                      <button
+                        className="qms-action-link qms-action-btn-new"
+                        disabled={downloadingIndentId === indent.indentId}
+                        onClick={() => exportSingleIndent(indent)}
+                        title="Download this purchase indent as PDF"
+                      >
+                        <Download size={16} />
+                        {downloadingIndentId === indent.indentId ? '...' : 'PDF'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="qms-actions-cell-row">
-                  <button 
-                    className="qms-action-link qms-action-btn-new"
-                    onClick={() => handleViewIndent(indent)}
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <button
-                    className="qms-action-link qms-action-btn-new"
-                    disabled={downloadingIndentId === indent.indentId}
-                    onClick={() => exportSingleIndent(indent)}
-                    title="Download this purchase indent as PDF"
-                  >
-                    <Download size={16} />
-                    {downloadingIndentId === indent.indentId ? '...' : 'PDF'}
-                  </button>
-                </div>
-              </div>
-            ))}
+                ))}
 
-            {!loading && filteredIndents.length === 0 && (
-              <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
-                No indents found.
+                {!loading && filteredIndents.length === 0 && (
+                  <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
+                    No indents found.
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Footer */}

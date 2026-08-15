@@ -29,16 +29,6 @@
 }
 
 @media (max-width: 768px) {
-  .store-request-approval .qms-table-header {
-    display: none;
-  }
-
-  .store-request-approval .qms-table-row {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    padding: 1rem;
-  }
-
   .store-request-approval .qms-reason-cell {
     max-width: 100%;
     white-space: normal;

@@ -331,91 +331,95 @@ const StoreRequestApproval = () => {
             </div>
           </div>
 
-          <div className="qms-table-header">
-            <div>Indent ID</div>
-            <div>Requested By</div>
-            <div>Material & Code</div>
-            <div>Reason / Purpose</div>
-            <div>Indent Date</div>
-            <div>Urgency</div>
-            <div>Status</div>
-            <div>Action</div>
-          </div>
-
-          <div className="qms-table-body">
-            {loading && (
-              <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
-                Loading...
+          <div className="qms-table-scroll-wrapper">
+            <div className="qms-table-container">
+              <div className="qms-table-header">
+                <div>Indent ID</div>
+                <div>Requested By</div>
+                <div>Material & Code</div>
+                <div>Reason / Purpose</div>
+                <div>Indent Date</div>
+                <div>Urgency</div>
+                <div>Status</div>
+                <div>Action</div>
               </div>
-            )}
 
-            {paginatedIndents.map((indent) => (
-              <div key={indent.id} className="qms-table-row">
-                <div className="qms-indent-cell">
-                  <div className="qms-indent-id-main">{indent.id}</div>
-                  <div className="qms-indent-type">Purchase Dept</div>
-                </div>
-
-                <div className="qms-requester-cell">
-                  <div className="qms-requester-name-main">{indent.requestedBy}</div>
-                  <div className="qms-requester-role">Purchase Dept</div>
-                </div>
-
-                <div className="qms-indent-cell">
-                  <div className="qms-indent-id-main" style={{ color: '#1f2937' }}>{indent.material}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '11px', background: '#f0f9ff', color: '#0284c7', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 600 }}>Code: {indent.materialCode}</span>
+              <div className="qms-table-body">
+                {loading && (
+                  <div style={{ padding: '18px', color: '#64748b', textAlign: 'center' }}>
+                    Loading...
                   </div>
-                  <div className="qms-indent-id-sub">({indent.details})</div>
-                </div>
+                )}
 
-                <div className="qms-indent-cell qms-reason-cell">
-                  <div className="qms-indent-type" style={{ color: '#334155', fontWeight: 500 }} title={indent.reason}>{indent.reason}</div>
-                </div>
+                {paginatedIndents.map((indent) => (
+                  <div key={indent.id} className="qms-table-row">
+                    <div className="qms-indent-cell">
+                      <div className="qms-indent-id-main">{indent.id}</div>
+                      <div className="qms-indent-type">Purchase Dept</div>
+                    </div>
 
-                <div className="qms-date">{indent.date}</div>
+                    <div className="qms-requester-cell">
+                      <div className="qms-requester-name-main">{indent.requestedBy}</div>
+                      <div className="qms-requester-role">Purchase Dept</div>
+                    </div>
 
-                <div>
-                  <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
-                    {indent.urgency}
-                  </span>
-                </div>
+                    <div className="qms-indent-cell">
+                      <div className="qms-indent-id-main" style={{ color: '#1f2937' }}>{indent.material}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                        <span style={{ fontSize: '11px', background: '#f0f9ff', color: '#0284c7', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 600 }}>Code: {indent.materialCode}</span>
+                      </div>
+                      <div className="qms-indent-id-sub">({indent.details})</div>
+                    </div>
 
-                <div className="qms-status">
-                  <div className="qms-status-dot"></div>
-                  <div className="qms-status-stack">
-                    <span className="qms-status-text">{indent.status}</span>
-                    <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
+                    <div className="qms-indent-cell qms-reason-cell">
+                      <div className="qms-indent-type" style={{ color: '#334155', fontWeight: 500 }} title={indent.reason}>{indent.reason}</div>
+                    </div>
+
+                    <div className="qms-date">{indent.date}</div>
+
+                    <div>
+                      <span className={`qms-urgency ${indent.urgency.toLowerCase()}`}>
+                        {indent.urgency}
+                      </span>
+                    </div>
+
+                    <div className="qms-status">
+                      <div className="qms-status-dot"></div>
+                      <div className="qms-status-stack">
+                        <span className="qms-status-text">{indent.status}</span>
+                        <span className={`qms-status-subtext ${indent.lifecycleStatus.toLowerCase()}`}>{indent.lifecycleStatus}</span>
+                      </div>
+                    </div>
+
+                    <div className="qms-actions-cell-row">
+                      <button 
+                        className="qms-action-link qms-action-btn-new"
+                        onClick={() => handleViewIndent(indent)}
+                      >
+                        <Eye size={16} />
+                        View
+                      </button>
+                      <button
+                        className="qms-action-link qms-action-btn-new"
+                        disabled={downloadingIndentId === indent.indentId}
+                        onClick={() => exportSingleIndent(indent)}
+                        title="Download this purchase indent as PDF"
+                      >
+                        <Download size={16} />
+                        {downloadingIndentId === indent.indentId ? '...' : 'PDF'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ))}
 
-                <div className="qms-actions-cell-row">
-                  <button 
-                    className="qms-action-link qms-action-btn-new"
-                    onClick={() => handleViewIndent(indent)}
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <button
-                    className="qms-action-link qms-action-btn-new"
-                    disabled={downloadingIndentId === indent.indentId}
-                    onClick={() => exportSingleIndent(indent)}
-                    title="Download this purchase indent as PDF"
-                  >
-                    <Download size={16} />
-                    {downloadingIndentId === indent.indentId ? '...' : 'PDF'}
-                  </button>
-                </div>
+                {!loading && filteredIndents.length === 0 && (
+                  <div className="empty-state">
+                    <div className="empty-title">No indents found</div>
+                    <div className="empty-subtitle">Try changing filters or search keywords.</div>
+                  </div>
+                )}
               </div>
-            ))}
-
-            {!loading && filteredIndents.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-title">No indents found</div>
-                <div className="empty-subtitle">Try changing filters or search keywords.</div>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="qms-footer">

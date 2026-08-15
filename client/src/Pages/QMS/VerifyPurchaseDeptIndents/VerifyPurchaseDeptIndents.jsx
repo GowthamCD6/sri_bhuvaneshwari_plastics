@@ -281,11 +281,11 @@ const VerifyPurchaseDeptIndents = () => {
                     </td>
 
                     {/* Material & Code */}
-                    <td>
+                    <td className="vpdi-material-col">
                       <div className="vsi-text-bold">{indent.material}</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                      <div className="vpdi-code-row">
                         <span className="vpdi-code-badge">Code: {indent.materialCode}</span>
-                        <span className="vsi-subtext-blue" style={{ marginTop: 0 }}>({indent.details})</span>
+                        <span className="vsi-subtext-blue">({indent.details})</span>
                       </div>
                     </td>
 

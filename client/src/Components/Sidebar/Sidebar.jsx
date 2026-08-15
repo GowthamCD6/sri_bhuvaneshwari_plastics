@@ -25,6 +25,7 @@ import {
   LogOut,
   ClipboardList,
   Calculator,
+  X,
 } from "lucide-react";
 import "./Sidebar.css";
 import "./SidebarUserProfile.css";
@@ -163,6 +164,16 @@ const Sidebar = ({ userRole, userData, onLogout, isOpen, onClose }) => {
       {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
       <div className={`sidebar ${isOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-header">
+          {onClose && (
+            <button 
+              type="button" 
+              className="sidebar-close-btn" 
+              onClick={onClose}
+              aria-label="Close sidebar"
+            >
+              <X size={18} />
+            </button>
+          )}
           <div className="header-content">
             <div className="logo-section">
               <div className="logo-icon">
